@@ -1,0 +1,401 @@
+import React, { useState, useEffect } from 'react';
+import { 
+  ChevronLeft, Heart, Share2, HelpCircle, Minus, Plus, 
+  Play, CheckCircle2, X, Flame, Search, Bell, Compass,
+  Martini, User, ChevronRight, Info, HeartOff, Shuffle, Settings2,
+  Wine, Droplets, ThermometerSnowflake, Edit3, PlusCircle, BookOpen,
+  Sparkles, Wand2, Maximize2, RotateCcw, Lightbulb, GlassWater, Scan,
+  MoreHorizontal, Users, Timer
+} from 'lucide-react';
+
+const App = () => {
+  // --- 核心状态管理 ---
+  const [activeTab, setActiveTab] = useState('mix'); 
+  const [currentDrink, setCurrentDrink] = useState(null); 
+  const [isFocusMode, setIsFocusMode] = useState(false);
+  const [showHelper, setShowHelper] = useState(false);
+  const [checkedIngredients, setCheckedIngredients] = useState({});
+  const [currentStep, setCurrentStep] = useState(0);
+  
+  // --- 特调页内部状态 ---
+  const [mixMode, setMixMode] = useState('home'); 
+  const [moodInput, setMoodInput] = useState("");
+  const [selectedMood, setSelectedMood] = useState(null);
+  const [currentCardIndex, setCurrentCardIndex] = useState(0);
+
+  // --- 我的页面内部状态 ---
+  const [mineTab, setMineTab] = useState('favorites');
+
+  // --- 模拟数据: 原料库 ---
+  const [inventory] = useState([
+    { id: 'whiskey', name: "威士忌", image: "https://images.unsplash.com/photo-1527281400828-ac737a999b9a?w=200", inStock: true },
+    { id: 'lemon', name: "柠檬", image: "https://images.unsplash.com/photo-1585059895312-5e769bc6f151?w=200", inStock: true },
+    { id: 'ice', name: "冰块", image: "https://images.unsplash.com/photo-1551538597-39322a3683a4?w=200", inStock: true },
+    { id: 'gin', name: "金酒", image: "https://images.unsplash.com/photo-1551538597-39322a3683a4?w=200", inStock: true }
+  ]);
+
+  // --- 模拟数据: 饮品库 (针对详情页与轮播深度优化) ---
+  const allDrinks = [
+    {
+      id: 1, 
+      name: "威士忌酸", 
+      subName: "Whiskey Sour", 
+      type: "微醺", 
+      abv: 15,
+      tags: ["酸甜", "经典"],
+      image: "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=800",
+      reason: "最古老的鸡尾酒之一，酸甜平衡的典范。细腻的泡沫与威士忌的醇厚交织，每一口都是经典的味道。",
+      briefIngredients: [
+        { label: "WHISKEY", icon: Wine },
+        { label: "LEMON", icon: Droplets },
+        { label: "ICE", icon: ThermometerSnowflake }
+      ],
+      ingredients: [
+        { id: '1', name: "波本威士忌", amount: "45", unit: "ml", icon: Wine },
+        { id: '2', name: "鲜榨柠檬汁", amount: "30", unit: "ml", icon: Droplets },
+        { id: '3', name: "简单糖浆", amount: "15", unit: "ml", icon: GlassWater },
+        { id: '4', name: "蛋清 (可选)", amount: "1", unit: "个", icon: Droplets },
+      ],
+      steps: [
+        { title: "干摇", subTitle: "Dry Shake", desc: "将所有原料倒入摇酒壶。不加冰，用力摇晃10-15秒以乳化蛋清。" },
+        { title: "加冰摇和", desc: "加入足量冰块，再次用力摇晃约15秒，直到摇酒壶表面结霜。" },
+        { title: "滤冰出品", desc: "准备加满大冰块的岩石杯。使用滤网双重过滤倒入杯中。" },
+        { title: "装饰", desc: "挤压柠檬皮油于酒面并放入装饰，或点缀苦精。" }
+      ]
+    },
+    {
+      id: 2, name: "内格罗尼", subName: "Negroni", type: "烈酒", abv: 22, ready: false,
+      tags: ["苦甜", "沉稳"],
+      image: "https://images.unsplash.com/photo-1551028150-64b9f398f678?w=800",
+      reason: "苦味与甜感的博弈，在冰块消融间寻找平衡。这是一杯献给成年人独处的静谧之选。",
+      briefIngredients: [{ label: "GIN", icon: Wine }, { label: "CAMPARI", icon: Droplets }, { label: "VERMOUTH", icon: ThermometerSnowflake }],
+      ingredients: [{ id: 'gin', name: "金酒", amount: "30", unit: "ml", icon: Wine }],
+      steps: [{ title: "搅拌", desc: "倒入加冰搅拌杯中充分搅拌，滤入古典杯。" }]
+    },
+    {
+      id: 3, name: "极地气泡", subName: "Arctic Soda", type: "清新", abv: 0, ready: true,
+      tags: ["冰爽", "薄荷"],
+      image: "https://images.unsplash.com/photo-1544145945-f904253d0c7b?w=800",
+      reason: "纯净的冰爽感穿透口腔，瞬间带走压力带给你的阴霾。薄荷的香气帮你重拾专注。",
+      briefIngredients: [{ label: "SODA", icon: GlassWater }, { label: "MINT", icon: Flame }, { label: "ICE", icon: ThermometerSnowflake }],
+      ingredients: [{ id: 'soda', name: "苏打水", amount: "200", unit: "ml", icon: GlassWater }],
+      steps: [{ title: "注水", desc: "倒入极度冰镇的苏打水即可。" }]
+    }
+  ];
+
+  // --- 逻辑处理 ---
+  const processMoodAndGenerate = () => {
+    const combinedInput = (moodInput + (selectedMood || "")).toLowerCase();
+    const negativeKeywords = ['慢', '累', '烦', '难', '压力', 'emo', '不开心', '糟', '委屈', '失败'];
+    const isNegative = negativeKeywords.some(kw => combinedInput.includes(kw));
+    if (isNegative || selectedMood === '#烦躁') setMixMode('intervention'); 
+    else handleStartGeneration(); 
+  };
+
+  const handleStartGeneration = () => {
+    setMixMode('generating');
+    setTimeout(() => setMixMode('results'), 1500);
+  };
+
+  const toggleIngredient = (id) => {
+    setCheckedIngredients(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  // --- 子组件: 计量助手 ---
+  const HelperModal = () => (
+    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
+      <div className="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl animate-in slide-in-from-bottom duration-300">
+        <div className="flex justify-between items-center mb-6">
+          <h3 className="text-xl font-bold text-gray-900 font-serif tracking-tight">生活容器对照表</h3>
+          <button onClick={() => setShowHelper(false)} className="p-2 bg-gray-100 rounded-full active:scale-90 transition-transform"><X size={20}/></button>
+        </div>
+        <div className="space-y-4">
+          {[{ label: "1 瓶盖", value: "≈ 5ml", icon: "🍼" }, { label: "1 汤勺", value: "≈ 15ml", icon: "🥄" }, { label: "1 养乐多瓶", value: "≈ 100ml", icon: "🥤" }].map((item, idx) => (
+            <div key={idx} className="flex items-center p-4 bg-gray-50 rounded-2xl border border-gray-100">
+              <span className="text-3xl mr-4">{item.icon}</span>
+              <div className="flex-1 font-bold text-gray-800">{item.label}</div>
+              <div className="text-lg font-black text-blue-600 font-serif tracking-tighter">{item.value}</div>
+            </div>
+          ))}
+        </div>
+        <button onClick={() => setShowHelper(false)} className="w-full mt-8 py-4 bg-gray-900 text-white font-bold rounded-2xl">知道了</button>
+      </div>
+    </div>
+  );
+
+  // --- 子组件: 专注制作模式 ---
+  const FocusModeView = ({ drink }) => {
+    if (!drink || !drink.steps[currentStep]) return null;
+    return (
+      <div className="fixed inset-0 z-[110] bg-white flex flex-col p-8 animate-in slide-in-from-right duration-500 overflow-hidden">
+        <div className="flex justify-between items-center mb-12">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+            <span className="text-sm font-bold tracking-widest text-gray-400 uppercase tracking-tighter">Focus Modeing</span>
+          </div>
+          <button onClick={() => setIsFocusMode(false)} className="p-3 bg-gray-100 rounded-full active:scale-90 transition-transform"><X /></button>
+        </div>
+        <div className="flex-1 flex flex-col justify-center max-w-2xl mx-auto w-full px-4">
+          <div className="mb-4 text-7xl font-black text-gray-100 italic">STEP 0{currentStep + 1}</div>
+          <h2 className="text-5xl font-black text-gray-900 mb-8 leading-[1.1] tracking-tight">
+            <span className="text-blue-500">{drink.steps[currentStep].title}</span>
+            <br />
+            <span className="text-2xl text-gray-400 mt-2 block">{drink.steps[currentStep].desc}</span>
+          </h2>
+          <div className="flex gap-4 mt-12">
+            {currentStep > 0 && <button onClick={() => setCurrentStep(p => p - 1)} className="flex-1 py-6 border-2 border-gray-100 rounded-3xl text-xl font-bold text-gray-400 flex items-center justify-center gap-2"><ChevronLeft /> 上一步</button>}
+            <button onClick={() => currentStep < drink.steps.length - 1 ? setCurrentStep(p => p + 1) : setIsFocusMode(false)} className="flex-[2] py-6 bg-gray-900 text-white rounded-3xl text-xl font-bold shadow-xl active:scale-95 transition-transform">
+              {currentStep === drink.steps.length - 1 ? '完成制作' : '下一步'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className={`min-h-screen font-sans max-w-md mx-auto relative shadow-2xl overflow-x-hidden flex flex-col transition-colors duration-700 ${activeTab === 'mix' && mixMode === 'home' ? 'bg-[#1A0B2E]' : 'bg-[#F7F5F2]'}`}>
+      
+      {/* --- 主内容区 --- */}
+      <main className="flex-1 flex flex-col w-full relative">
+        
+        {/* --- 特调页 --- */}
+        {activeTab === 'mix' && !currentDrink && (
+          <div className="flex-1 flex flex-col relative animate-in fade-in duration-500">
+            {mixMode === 'home' && (
+              <div className="flex-1 flex flex-col items-center px-8 pt-20 bg-gradient-to-b from-[#2D1B36] via-[#1A0B2E] to-[#0F081A]">
+                <div className="text-center mb-10 z-10">
+                  <h1 className="text-4xl font-serif font-medium text-white mb-3 tracking-tight">今晚的心情是？</h1>
+                  <p className="text-white/40 text-xs tracking-[0.2em] font-light uppercase">Explore your secret flavor</p>
+                </div>
+                <div className="w-full relative mb-6 z-10 group">
+                  <div className="absolute inset-0 bg-white/5 backdrop-blur-xl rounded-full border border-white/10 group-focus-within:border-white/30 transition-all shadow-2xl" />
+                  <div className="relative flex items-center h-14 px-6">
+                    <Sparkles className="text-white/30 mr-4" size={18} />
+                    <input 
+                      value={moodInput} 
+                      onChange={(e) => setMoodInput(e.target.value)} 
+                      className="bg-transparent border-none focus:ring-0 text-white placeholder:text-white/20 w-full text-base font-light" 
+                      placeholder="比如：微醺的周五夜晚..." 
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-2.5 mb-14 z-10">
+                   {['#放松', '#狂欢', '#浪漫'].map((mood, i) => (
+                     <button key={i} onClick={() => setSelectedMood(mood)} className={`px-5 py-1.5 backdrop-blur-md border rounded-full text-xs font-medium transition-all ${selectedMood === mood ? 'bg-purple-600 text-white border-purple-400' : 'bg-white/10 text-white/80 border-white/10'}`}>{mood}</button>
+                   ))}
+                </div>
+                <div className="relative flex-1 w-full flex items-center justify-center pb-20">
+                  <div className="relative z-20 w-40 h-60 bg-white/5 backdrop-blur-[24px] rounded-t-[5rem] rounded-b-[2rem] border border-white/10 shadow-[inset_0_0_40px_rgba(255,255,255,0.05)]" />
+                  <div className="absolute bottom-20 z-10 w-64 h-64">
+                    <div className="absolute inset-0 border border-purple-500/30 rounded-full animate-spin" />
+                    <div className="absolute inset-0 bg-purple-600/20 blur-[60px] rounded-full animate-pulse" />
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 bg-black/60 px-4 py-2 rounded-full border border-white/10 text-white text-xs whitespace-nowrap">
+                      12 种原料已就绪 <Edit3 size={12} className="inline ml-1" />
+                    </div>
+                  </div>
+                </div>
+                <div className="w-full pb-10 px-4 z-10">
+                  <button onClick={processMoodAndGenerate} className="w-full h-14 bg-gradient-to-r from-purple-600 to-blue-600 rounded-3xl text-white font-bold tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-transform"><Sparkles size={18}/> 开始生成</button>
+                </div>
+              </div>
+            )}
+            
+            {mixMode === 'intervention' && (
+              <div className="flex-1 flex flex-col items-center justify-end px-8 pb-32 bg-[#0F081A] text-white animate-in fade-in duration-500">
+                <Heart className="w-16 h-16 text-red-400 mb-12 fill-current animate-pulse shadow-[0_0_20px_rgba(248,113,113,0.4)]" />
+                <h2 className="text-3xl font-serif font-medium mb-12 text-center leading-tight">抱抱你。<br/>此刻你是想...</h2>
+                <div className="flex flex-col w-full gap-4">
+                  <button onClick={handleStartGeneration} className="w-full py-6 bg-white/5 border border-white/10 rounded-3xl text-lg font-bold active:bg-white/10 transition-colors">想静静陪你</button>
+                  <button onClick={handleStartGeneration} className="w-full py-6 bg-white/10 border border-white/20 rounded-3xl text-lg font-bold active:bg-white/20 transition-colors">想换个心情</button>
+                </div>
+              </div>
+            )}
+
+            {mixMode === 'generating' && (
+              <div className="flex-1 flex flex-col items-center justify-center bg-[#0F081A] text-white animate-in zoom-in-110 duration-700">
+                <Wand2 className="animate-spin mb-6 text-purple-400" size={56} />
+                <h2 className="text-2xl font-serif font-bold animate-pulse tracking-widest">正在共鸣情绪风味...</h2>
+              </div>
+            )}
+
+            {mixMode === 'results' && (
+              <div className="flex-1 flex flex-col animate-in slide-in-from-bottom duration-700 overflow-hidden relative">
+                <header className="flex items-center justify-between p-6 pt-10 flex-none z-20">
+                  <button onClick={() => setMixMode('home')} className="p-2 active:scale-90 transition-transform"><ChevronLeft className="text-gray-800"/></button>
+                  <h1 className="text-xl font-serif font-bold tracking-tight text-gray-800 italic leading-none">Mood Mix</h1>
+                  <button onClick={() => setShowHelper(true)} className="p-2"><HelpCircle size={24} className="text-gray-400" /></button>
+                </header>
+                <div className="flex-1 flex flex-col justify-center relative overflow-hidden">
+                  <div 
+                    className="flex transition-all duration-500 ease-out items-center h-[520px]"
+                    style={{ transform: `translateX(calc(12.5% - (${currentCardIndex} * 75%)))`, width: `${allDrinks.length * 75}%` }}
+                  >
+                    {allDrinks.map((drink, idx) => (
+                      <div 
+                        key={drink.id} 
+                        onClick={() => setCurrentCardIndex(idx)}
+                        className={`flex-none w-[75vw] px-3 transition-all duration-500 transform ${idx === currentCardIndex ? 'scale-100 opacity-100 z-10' : 'scale-[0.85] opacity-30 grayscale-[30%] z-0'}`}
+                      >
+                        <div className="relative aspect-[3/4.5] rounded-[2.8rem] overflow-hidden shadow-[0_25px_60px_-12px_rgba(0,0,0,0.22)] bg-white border border-black/[0.02]">
+                          <img src={drink.image} className="w-full h-full object-cover" alt={drink.name} />
+                          <div className="absolute inset-0 bg-gradient-to-b from-black/5 via-transparent to-black/85" />
+                          <div className="absolute top-7 left-7">
+                            <div className="bg-white/10 backdrop-blur-md border border-white/20 px-4 py-1.5 rounded-full flex items-center gap-2 text-white/90 text-[11px] font-bold tracking-wide">
+                               <Droplets size={14} className="opacity-80 text-blue-300"/> {drink.abv > 0 ? `微醺 | ABV ${drink.abv}%` : '无酒精'}
+                            </div>
+                          </div>
+                          <div className="absolute inset-0 flex flex-col items-center justify-end pb-12 px-8 text-center">
+                            <h2 className="text-4xl font-bold text-white mb-4 tracking-tight leading-none drop-shadow-md">{drink.name}</h2>
+                            <p className="text-[13px] text-white/70 leading-relaxed font-light mb-8 max-w-[240px] line-clamp-2">{drink.reason}</p>
+                            <div className="flex items-center gap-6 mb-10">
+                              {drink.briefIngredients.map((ing, bIdx) => {
+                                const BriefIcon = ing.icon;
+                                return (
+                                  <div key={bIdx} className="flex flex-col items-center gap-2">
+                                    <div className="text-white/90"><BriefIcon size={22} strokeWidth={2.5}/></div>
+                                    <span className="text-[10px] font-black text-white/30 tracking-[0.25em] uppercase leading-none">{ing.label}</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                            <div className="flex justify-between w-full px-4">
+                              <button className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white border border-white/10 active:scale-75 transition-all"><HeartOff size={22} /></button>
+                              <button className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-[#FF7675] border border-white/10 active:scale-75 transition-all"><Heart size={22} className="fill-current" /></button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="absolute left-0 top-0 bottom-0 w-[15%] z-20 cursor-pointer" onClick={() => setCurrentCardIndex(p => Math.max(0, p - 1))} />
+                  <div className="absolute right-0 top-0 bottom-0 w-[15%] z-20 cursor-pointer" onClick={() => setCurrentCardIndex(p => Math.min(allDrinks.length - 1, p + 1))} />
+                </div>
+                <div className="flex flex-col items-center pb-12 flex-none z-10">
+                  <div className="flex gap-3 mb-10">
+                     {allDrinks.map((_, i) => (
+                       <button key={i} onClick={() => setCurrentCardIndex(i)} className={`h-1.5 rounded-full transition-all duration-500 ${i === currentCardIndex ? 'bg-gray-900 w-6 shadow-sm' : 'bg-gray-300 w-1.5'}`} />
+                     ))}
+                  </div>
+                  <div className="flex items-center w-full px-10 gap-4">
+                    <button className="w-12 h-12 rounded-full bg-white shadow-soft flex items-center justify-center text-gray-400 active:scale-90 border border-black/[0.03] transition-all"><Maximize2 size={20} /></button>
+                    <button onClick={() => setCurrentDrink(allDrinks[currentCardIndex])} className="flex-1 h-14 bg-blue-600 rounded-2xl font-black text-white text-base shadow-[0_15px_35px_-5px_rgba(37,99,235,0.5)] active:scale-[0.98] transition-all tracking-widest uppercase">开始制作</button>
+                    <button className="w-12 h-12 rounded-full bg-white shadow-soft flex items-center justify-center text-gray-400 active:scale-90 border border-black/[0.03] transition-all"><Settings2 size={20} /></button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* --- 详情制作页 --- */}
+        {currentDrink && (
+          <div className="fixed inset-0 z-50 bg-[#F7F5F2] overflow-y-auto animate-in slide-in-from-bottom duration-500 pb-32">
+            <div className="relative h-[45vh] w-full overflow-hidden">
+              <img src={currentDrink.image} className="w-full h-full object-cover" alt={currentDrink.name} />
+              <div className="absolute top-10 inset-x-0 px-6 flex justify-between">
+                <button onClick={() => {setCurrentDrink(null); setCheckedIngredients({});}} className="w-10 h-10 rounded-full bg-black/20 backdrop-blur-md flex items-center justify-center text-white"><ChevronLeft size={24} /></button>
+                <button className="w-10 h-10 rounded-full bg-black/20 backdrop-blur-md flex items-center justify-center text-white"><MoreHorizontal size={24} /></button>
+              </div>
+              <div className="absolute bottom-0 left-0 right-0 h-12 bg-white rounded-t-[3rem]" />
+            </div>
+            <div className="relative -mt-4 bg-white min-h-[55vh] px-8 pt-2">
+              <button className="absolute -top-7 right-8 w-14 h-14 bg-white rounded-full shadow-lg flex items-center justify-center text-[#FF7675] active:scale-90 transition-transform"><Heart size={28} className="fill-current" /></button>
+              <div className="mb-6">
+                <h1 className="text-3xl font-bold text-gray-900 mb-3">{currentDrink.name}</h1>
+                <div className="flex flex-wrap gap-2">
+                  <span className="px-3 py-1 bg-blue-50 text-blue-500 rounded-lg text-xs font-bold flex items-center gap-1"><Martini size={14} /> ABV {currentDrink.abv}%</span>
+                  {currentDrink.tags?.map((tag, idx) => (
+                    <span key={idx} className="px-3 py-1 bg-gray-100 text-gray-500 rounded-lg text-xs font-bold">{tag}</span>
+                  ))}
+                </div>
+              </div>
+              <p className="text-[14px] text-gray-500 leading-relaxed mb-8">{currentDrink.reason}</p>
+              <div className="mb-10">
+                <div className="flex justify-between items-center mb-5">
+                  <h3 className="text-lg font-bold text-gray-900">原料清单</h3>
+                  <div className="flex items-center gap-1.5 text-gray-400 bg-gray-50 px-3 py-1 rounded-full text-xs"><Users size={14} /> 1人份</div>
+                </div>
+                <div className="space-y-3">
+                  {currentDrink.ingredients.map(ing => {
+                    const IngredientIcon = ing.icon;
+                    return (
+                      <div 
+                        key={ing.id} 
+                        className={`flex items-center justify-between p-4 bg-gray-50/80 rounded-2xl border border-transparent active:bg-gray-100 transition-all ${checkedIngredients[ing.id] ? 'opacity-40 grayscale' : ''}`}
+                        onClick={() => toggleIngredient(ing.id)}
+                      >
+                        <div className="flex items-center gap-4">
+                          <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-blue-500 shadow-sm"><IngredientIcon size={18} /></div>
+                          <span className="font-bold text-gray-800">{ing.name}</span>
+                        </div>
+                        <span className="font-serif font-black text-gray-900">{ing.amount}{ing.unit}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+              <div className="mb-12">
+                <h3 className="text-lg font-bold text-gray-900 mb-6">制作步骤</h3>
+                <div className="space-y-0 relative">
+                  {currentDrink.steps.map((step, idx) => (
+                    <div key={idx} className="flex gap-6 pb-8 relative group">
+                      <div className="flex flex-col items-center">
+                        <div className="w-3.5 h-3.5 rounded-full bg-blue-200 border-[3px] border-white ring-4 ring-blue-50/50 z-10" />
+                        {idx !== currentDrink.steps.length - 1 && <div className="w-px h-full bg-gray-100 absolute top-4 bottom-0 left-[7px]" />}
+                      </div>
+                      <div className="flex-1 -mt-1">
+                        <div className="flex items-center gap-2 mb-2">
+                           <h4 className="font-bold text-gray-900">{step.title}</h4>
+                           {step.subTitle && <span className="text-[11px] font-medium text-gray-300 uppercase tracking-wider">{step.subTitle}</span>}
+                        </div>
+                        <p className="text-[13px] text-gray-500 leading-relaxed">{step.desc}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="fixed bottom-0 inset-x-0 p-6 bg-gradient-to-t from-white via-white to-transparent pt-12 z-30">
+               <button 
+                 onClick={() => { setIsFocusMode(true); setCurrentStep(0); }}
+                 className="w-full h-16 bg-blue-600 rounded-3xl font-black text-white text-lg shadow-2xl flex items-center justify-center gap-3 active:scale-95 transition-all"
+               >
+                 <Play size={22} fill="currentColor" /> 进入专注模式
+               </button>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 2 & 3 占位 */}
+        {activeTab === 'explore' && !currentDrink && <div className="p-10 text-center text-gray-400 italic">灵感内容探索中...</div>}
+        {activeTab === 'mine' && !currentDrink && <div className="p-10 text-center text-gray-400 italic font-serif">个人资产管理中...</div>}
+      </main>
+
+      {/* --- 全局底部导航 --- */}
+      {!isFocusMode && !currentDrink && (
+        <nav className="fixed bottom-7 left-1/2 -translate-x-1/2 z-50">
+          <div className="bg-white/95 backdrop-blur-xl flex h-16 items-center gap-1 rounded-full px-2 shadow-2xl border border-white/50 ring-1 ring-black/[0.03] min-w-[320px]">
+            <button onClick={() => {setActiveTab('mix'); setMixMode('home');}} className={`flex h-full min-w-[100px] flex-col items-center justify-center gap-1 rounded-full transition-all duration-300 ${activeTab === 'mix' ? 'text-blue-600 bg-gray-50 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}>
+              <Martini size={22} className={activeTab === 'mix' ? 'fill-current' : ''} />
+              <span className="text-[10px] font-bold tracking-tight">特调</span>
+            </button>
+            <button onClick={() => {setActiveTab('explore'); setCurrentDrink(null);}} className={`flex h-full min-w-[100px] flex-col items-center justify-center gap-1 rounded-full transition-all duration-300 ${activeTab === 'explore' ? 'text-blue-600 bg-gray-50 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}>
+              <Lightbulb size={22} />
+              <span className="text-[10px] font-bold tracking-tight">灵感</span>
+            </button>
+            <button onClick={() => {setActiveTab('mine'); setCurrentDrink(null);}} className={`flex h-full min-w-[100px] flex-col items-center justify-center gap-1 rounded-full transition-all duration-300 ${activeTab === 'mine' ? 'text-blue-600 bg-gray-50 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}>
+              <User size={22} />
+              <span className="text-[10px] font-bold tracking-tight">我的</span>
+            </button>
+          </div>
+        </nav>
+      )}
+
+      {showHelper && <HelperModal />}
+      {isFocusMode && currentDrink && <FocusModeView drink={currentDrink} />}
+    </div>
+  );
+};
+
+export default App;

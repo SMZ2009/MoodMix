@@ -1,0 +1,30 @@
+# .gitignore 文件内容（保存到项目根目录，文件名就是 .gitignore，无其他后缀）
+
+# 1. 忽略 Node.js 依赖包（核心，体积大且无需提交）
+node_modules/
+
+# 2. 忽略 npm 日志文件
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 3. 忽略环境变量配置文件（包含敏感信息，如密钥、数据库地址）
+.env
+.env.local
+.env.development.local
+.env.production.local
+
+# 4. 忽略编辑器/IDE 生成的配置文件（不同编辑器可按需添加）
+.idea/        # WebStorm/IDEA
+.vscode/      # VS Code
+*.swp         # Vim 临时文件
+.DS_Store     # macOS 系统文件
+Thumbs.db     # Windows 系统文件
+
+# 5. 忽略构建/打包后的产物（比如 React/Vue 打包的 dist）
+dist/
+build/
+out/
+
+# 6. 忽略缓存文件
+*.cache

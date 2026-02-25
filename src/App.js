@@ -26,11 +26,11 @@ const iconMap = {
 };
 
 const MOOD_TAGS = [
-  { label: '#放松', value: '#放松' },
-  { label: '#狂欢', value: '#狂欢' },
-  { label: '#浪漫', value: '#浪漫' },
-  { label: '#独处', value: '#独处' },
-  { label: '#难受', value: '#难受' }
+  { label: '放松', value: '#放松' },
+  { label: '狂欢', value: '#狂欢' },
+  { label: '浪漫', value: '#浪漫' },
+  { label: '独处', value: '#独处' },
+  { label: '难受', value: '#难受' }
 ];
 
 const EXPLORE_CATEGORIES = [
@@ -589,7 +589,7 @@ const ExploreSection = ({
       {/* 列表渲染：自动应用搜索过滤后的 filteredDrinks */}
       <div className="flex-1 px-4 pb-28 pt-2 overflow-y-auto w-full no-scrollbar">
         {filteredDrinks.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredDrinks.map((drink) => (
               <SwipeableCard
                 key={drink.id}
@@ -1309,15 +1309,13 @@ const App = () => {
         )}
 
         {activeTab === 'mine' && !currentDrink && (
-          <PageTransition animation="fade" duration={400}>
-            <MineSection
-              userInventory={userInventory}
-              onUpdateInventory={fetchInventory}
-              favorites={favoriteDrinks}
-              cardFeedback={cardFeedback}
-              onSelectDrink={setCurrentDrink}
-            />
-          </PageTransition>
+          <MineSection
+            userInventory={userInventory}
+            onUpdateInventory={fetchInventory}
+            favorites={favoriteDrinks}
+            cardFeedback={cardFeedback}
+            onSelectDrink={setCurrentDrink}
+          />
         )}
 
         {currentDrink && (

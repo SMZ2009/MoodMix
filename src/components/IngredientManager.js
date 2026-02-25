@@ -73,7 +73,7 @@ const IngredientManager = ({ userInventory, onUpdate }) => {
                 {activeCategory === cat && (
                     <div className="flex flex-wrap gap-2 pt-2 pb-4 px-1 animate-in slide-in-from-top-2 duration-200" style={{ minWidth: 0 }}>
                         {items.map(item => {
-                            const isOwned = userInventory.standard.some(u => u.ing_id === item.ing_id);
+                            const isOwned = userInventory.standard.some(u => u.ing_id === item.ing_id && u.in_stock);
                             return (
                                 <button
                                     key={item.ing_id}
@@ -101,7 +101,7 @@ const IngredientManager = ({ userInventory, onUpdate }) => {
                 <div>
                     <h2 className="text-lg font-bold text-gray-800">我的存储</h2>
                     <p className="text-xs text-gray-500">
-                        {userInventory.standard.length + userInventory.custom.length} 种原料
+                        {userInventory.standard.filter(i => i.in_stock).length + userInventory.custom.filter(i => i.in_stock).length} 种原料
                     </p>
                 </div>
                 {!showCustomForm && (

@@ -85,8 +85,8 @@ body {
 
 @media (max-height: 600px) {
   .min-h-screen-safe {
-    min-height: -webkit-fill-available;
-    min-height: fill-available;
+    min-height: -webkit-stretch;
+    min-height: stretch;
   }
   
   .pb-nav-safe {

@@ -50,7 +50,7 @@ const MoodInputSection = ({
   moodInput, setMoodInput, selectedMood, setSelectedMood, onGenerate, buttonFeedback, isMixing,
   ingredientCount, onEditIngredients, onNavigate, activeTab
 }) => (
-  <div className="flex-1 flex flex-col items-center px-6 pt-6 pb-20 bg-dreamy-gradient w-full min-h-screen relative overflow-hidden trae-browser-inspect-draggable">
+  <div className="flex-1 flex flex-col items-center px-6 pt-6 pb-20 bg-dreamy-gradient w-full min-h-screen h-screen relative overflow-hidden trae-browser-inspect-draggable">
     <div className="absolute top-0 left-1/4 w-96 h-96 bg-purple-200/40 rounded-full blur-[120px] pointer-events-none mix-blend-multiply"></div>
     <div className="absolute top-1/4 right-0 w-80 h-80 bg-blue-200/40 rounded-full blur-[100px] pointer-events-none mix-blend-multiply"></div>
     <div className="absolute bottom-1/3 left-0 w-72 h-72 bg-pink-200/40 rounded-full blur-[100px] pointer-events-none mix-blend-multiply"></div>
@@ -306,7 +306,7 @@ const ResultsSection = ({
   }, [onIndexChange]);
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden relative bg-dreamy-gradient">
+    <div className="flex-1 flex flex-col overflow-hidden relative bg-dreamy-gradient h-screen">
       <header className="flex items-center justify-between p-5 pt-8 flex-none z-20">
         <InteractiveButton
           variant="icon"
@@ -756,7 +756,7 @@ const DrinkDetailSection = ({ drink, checkedIngredients, onToggleIngredient, onB
   const drinkSteps = drink.steps || [{ title: 'Step 1', desc: drink.reason || 'Enjoy!' }];
 
   return (
-    <div className="fixed inset-0 z-50 bg-dreamy-gradient overflow-y-auto pb-36">
+    <div className="fixed inset-0 z-50 bg-dreamy-gradient h-screen overflow-y-auto pb-36">
       <div className="relative h-[40vh] w-full max-w-4xl mx-auto overflow-hidden">
         <img src={drink.image} className="w-full h-full object-cover" alt={drink.name} />
         <div className="absolute top-8 inset-x-0 px-6 flex justify-between">

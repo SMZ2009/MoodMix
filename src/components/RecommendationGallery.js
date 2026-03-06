@@ -160,11 +160,11 @@ const RecommendationGallery = ({ drinks, onBack, onStartMaking, onShuffle, onNav
       {/* Card Carousel */}
       <main className="relative z-10 flex-1 flex items-center justify-center overflow-hidden">
         {/* Stacked Cards Container */}
-        <div className="w-full h-full flex items-center justify-center px-4 sm:px-8">
+        <div className="w-full h-full flex items-center justify-center px-4 sm:px-6 md:px-8">
           {/* Cards Stack - 缩小并居中 */}
           <div 
             ref={containerRef}
-            className="relative w-[85%] h-[75%] max-w-md"
+            className="relative w-[90vw] max-w-md h-[65vh] max-h-[500px]"
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}

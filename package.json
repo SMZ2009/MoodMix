@@ -27,7 +27,7 @@
     "tailwindcss": "^3.4.0"
   },
   "scripts": {
-    "start": "cross-env PORT=3000 NODE_OPTIONS=\"--max-old-space-size=4096\" react-scripts start",
+    "start": "npm run build && node server/prodServer.js",
     "server": "node server/llmProxy.js",
     "build": "cross-env NODE_OPTIONS=\"--max-old-space-size=4096\" react-scripts build",
     "serve-prod": "node server/prodServer.js",

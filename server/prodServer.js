@@ -13,6 +13,7 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const { existsSync } = require('fs');
 require('dotenv').config({ path: path.resolve(__dirname, '..', '.env') });
 
 const app = express();
@@ -187,6 +188,12 @@ app.get('*', (req, res) => {
 // ═══════════════════════════════════════════
 // 启动服务器
 // ═══════════════════════════════════════════
+
+// 确保 build 目录存在
+if (!existsSync(buildPath)) {
+  console.error(`❌ 错误: build 目录不存在，请先运行 npm run build`);
+  process.exit(1);
+}
 
 app.listen(PORT, '0.0.0.0', () => {
   const hasKey = process.env.SILICONFLOW_API_KEY && process.env.SILICONFLOW_API_KEY !== 'your_key_here';

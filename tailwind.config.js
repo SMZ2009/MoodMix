@@ -5,13 +5,19 @@ module.exports = {
   ],
   theme: {
     screens: {
-      'sm': '480px',
-      'md': '768px',
-      'lg': '1024px',
-      'xl': '1280px',
-      '2xl': '1536px',
+      'xs': '320px',
+      'sm': '375px',
+      'md': '425px',
+      'lg': '768px',
+      'xl': '1024px',
+      '2xl': '1280px',
     },
     extend: {
+      spacing: {
+        'safe-x': 'env(safe-area-inset-left)',
+        'safe-y': 'env(safe-area-inset-top)',
+        'safe-b': 'env(safe-area-inset-bottom)',
+      },
       colors: {
         'mood-purple': '#2D1B36',
         'mood-dark': '#1A0B2E',

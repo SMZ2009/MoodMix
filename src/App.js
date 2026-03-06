@@ -54,18 +54,18 @@ const MoodInputSection = ({
     <div className="absolute top-0 left-1/4 w-96 h-96 bg-purple-200/40 rounded-full blur-[120px] pointer-events-none mix-blend-multiply"></div>
     <div className="absolute top-1/4 right-0 w-80 h-80 bg-blue-200/40 rounded-full blur-[100px] pointer-events-none mix-blend-multiply"></div>
     <div className="absolute bottom-1/3 left-0 w-72 h-72 bg-pink-200/40 rounded-full blur-[100px] pointer-events-none mix-blend-multiply"></div>
-    <div className="text-center mb-6 z-10">
-      <h2 className="text-[28px] font-bold text-gray-800 mb-3 tracking-wide mx-auto text-center" style={{ fontFamily: 'serif' }}>现在的心情是?</h2>
-      <p className="text-gray-500 text-sm font-light tracking-wider mx-auto text-center">探索未知的味觉旅程</p>
+    <div className="text-center mb-4 sm:mb-6 z-10">
+      <h2 className="text-2xl xs:text-[24px] sm:text-[28px] font-bold text-gray-800 mb-2 sm:mb-3 tracking-wide mx-auto text-center" style={{ fontFamily: 'serif' }}>现在的心情是?</h2>
+      <p className="text-gray-500 text-xs sm:text-sm font-light tracking-wider mx-auto text-center">探索未知的味觉旅程</p>
     </div>
-    <div className="w-full max-w-md relative mb-6 z-10 group">
-      <div className="absolute inset-0 bg-white/40 backdrop-blur-xl rounded-xl border border-white/60 group-focus-within:border-purple-300/60 group-focus-within:bg-white/70 group-focus-within:scale-[1.02] transition-all duration-500" style={{ boxShadow: 'rgba(139, 92, 246, 0.05) 0px 4px 24px, rgba(255, 255, 255, 0.6) 0px 1px 1px inset' }}></div>
-      <div className="relative flex items-center h-14 px-6">
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-purple-400 mr-3 flex-shrink-0 transition-transform duration-500 group-focus-within:scale-110 group-focus-within:rotate-12" aria-hidden="true"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"></path><path d="M20 2v4"></path><path d="M22 4h-4"></path><circle cx="4" cy="20" r="2"></circle></svg>
-        <input className="bg-transparent border-none focus:outline-none focus:ring-0 text-gray-800 placeholder:text-gray-400 w-full text-[15px] font-medium outline-none" placeholder="比如：微醺的周五夜晚..." value={moodInput} onChange={(e) => setMoodInput(e.target.value)}></input>
+    <div className="w-full max-w-md relative mb-4 sm:mb-6 z-10 group">
+      <div className="absolute inset-0 bg-white/40 backdrop-blur-xl rounded-xl sm:rounded-2xl border border-white/60 group-focus-within:border-purple-300/60 group-focus-within:bg-white/70 group-focus-within:scale-[1.02] transition-all duration-500" style={{ boxShadow: 'rgba(139, 92, 246, 0.05) 0px 4px 24px, rgba(255, 255, 255, 0.6) 0px 1px 1px inset' }}></div>
+      <div className="relative flex items-center h-10 sm:h-12 lg:h-14 px-4 sm:px-6">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-purple-400 mr-2 sm:mr-3 flex-shrink-0 transition-transform duration-500 group-focus-within:scale-110 group-focus-within:rotate-12" aria-hidden="true"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"></path><path d="M20 2v4"></path><path d="M22 4h-4"></path><circle cx="4" cy="20" r="2"></circle></svg>
+        <input className="bg-transparent border-none focus:outline-none focus:ring-0 text-gray-800 placeholder:text-gray-400 w-full text-sm sm:text-[15px] font-medium outline-none" placeholder="比如：微醺的周五夜晚..." value={moodInput} onChange={(e) => setMoodInput(e.target.value)}></input>
       </div>
     </div>
-    <div className="flex flex-wrap gap-4 justify-center mb-6 z-10">
+    <div className="flex flex-wrap gap-2 sm:gap-4 justify-center mb-4 sm:mb-6 z-10">
       {[
         { label: '放松', value: '#放松', color: 'bg-emerald-400', shadow: 'shadow-emerald-400/50' },
         { label: '浪漫', value: '#浪漫', color: 'bg-pink-400', shadow: 'shadow-pink-400/50' },
@@ -76,25 +76,25 @@ const MoodInputSection = ({
           <button
             key={mood.value}
             onClick={() => setSelectedMood(isSelected ? null : mood.value)}
-            className={`flex items-center gap-2 px-6 py-2.5 rounded-full border transition-all duration-300 ${
+            className={`flex items-center gap-1.5 sm:gap-2 px-4 sm:px-6 py-2 sm:py-2.5 rounded-full border transition-all duration-300 ${
               isSelected
                 ? 'bg-white/60 border-white/80 text-gray-800 shadow-lg'
                 : 'bg-white/30 border-white/40 hover:bg-white/50 hover:border-white/60 text-gray-600'
             }`}
             style={{ backdropFilter: 'blur(12px)' }}
           >
-            <span className={`w-2 h-2 rounded-full transition-all duration-300 ${
+            <span className={`w-1.5 sm:w-2 h-1.5 sm:h-2 rounded-full transition-all duration-300 ${
               isSelected ? `${mood.color} ${mood.shadow} shadow-lg scale-110` : 'bg-gray-300'
             }`}></span>
-            <span className="text-sm font-medium">{mood.label}</span>
+            <span className="text-xs sm:text-sm font-medium">{mood.label}</span>
           </button>
         );
       })}
     </div>
-    <div className="relative flex-1 w-full flex flex-col items-center justify-center pb-16">
+    <div className="relative flex-1 w-full flex flex-col items-center justify-center pb-12 sm:pb-16">
       {/* Glass Card */}
       <div
-        className="relative z-20 w-40 h-64 overflow-hidden transition-all duration-500"
+        className="relative z-20 w-32 sm:w-40 h-48 sm:h-64 overflow-hidden transition-all duration-500"
         style={{
           background: isMixing
             ? 'linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.05) 100%)'
@@ -190,31 +190,31 @@ const MoodInputSection = ({
 
       {/* Inventory Badge */}
       <div
-        className="relative z-30 flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/70 border border-white/50 backdrop-blur-xl mt-4 cursor-pointer hover:bg-white/80 transition-colors"
+        className="relative z-30 flex items-center gap-1.5 sm:gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full bg-white/70 border border-white/50 backdrop-blur-xl mt-3 sm:mt-4 cursor-pointer hover:bg-white/80 transition-colors"
         style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}
         onClick={onEditIngredients}
       >
-        <span className="text-gray-700 text-sm font-medium">
+        <span className="text-gray-700 text-xs sm:text-sm font-medium">
           {ingredientCount} 种原料已就绪
         </span>
-        <Edit3 size={14} className="text-gray-400" />
+        <Edit3 size={12} sm:size={14} className="text-gray-400" />
       </div>
 
       {/* Generate Button */}
-      <div className="w-full max-w-xs mt-3 z-10">
+      <div className="w-full max-w-xs mt-2 sm:mt-3 z-10">
         <button
           onClick={onGenerate}
-          className="w-full h-11 rounded-xl relative overflow-hidden group shadow-md shadow-purple-200"
+          className="w-full h-10 sm:h-11 rounded-lg sm:rounded-xl relative overflow-hidden group shadow-md shadow-purple-200"
           style={{
             background: 'linear-gradient(135deg, #A78BFA 0%, #818CF8 100%)',
           }}
         >
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
           {isMixing ? (
-            <span className="animate-pulse text-sm">正在解析你的心情...</span>
+            <span className="animate-pulse text-xs sm:text-sm">正在解析你的心情...</span>
           ) : (
-            <span className="relative z-10 flex items-center justify-center gap-2 text-white font-semibold text-sm">
-              <Sparkles size={16} className="text-white" />
+            <span className="relative z-10 flex items-center justify-center gap-1.5 sm:gap-2 text-white font-semibold text-xs sm:text-sm">
+              <Sparkles size={14} sm:size={16} className="text-white" />
               开始生成
             </span>
           )}
@@ -361,19 +361,19 @@ const ResultsSection = ({
         />
       </div>
 
-      <div className="flex flex-col items-center pb-10 flex-none z-10">
-        <div className="flex gap-2.5 mb-8">
+      <div className="flex flex-col items-center pb-8 sm:pb-10 flex-none z-10">
+        <div className="flex gap-2 sm:gap-2.5 mb-6 sm:mb-8">
           {drinks.map((_, i) => (
             <button
               key={i}
               onClick={() => onIndexChange(i)}
-              className={`h-1.5 rounded-full transition-all duration-500 ${i === currentIndex ? 'bg-gray-900 w-6 shadow-sm' : 'bg-gray-300 w-1.5'}`}
+              className={`h-1.5 rounded-full transition-all duration-500 ${i === currentIndex ? 'bg-gray-900 w-5 sm:w-6 shadow-sm' : 'bg-gray-300 w-1.5'}`}
             />
           ))}
         </div>
-        <div className="flex items-center w-full px-8 gap-3">
+        <div className="flex items-center w-full px-4 sm:px-8 gap-2 sm:gap-3">
           <InteractiveButton variant="icon" style={buttonFeedback}>
-            <Maximize2 size={20} />
+            <Maximize2 size={18} sm:size={20} />
           </InteractiveButton>
           <InteractiveButton
             variant="primary"
@@ -382,7 +382,7 @@ const ResultsSection = ({
             onClick={() => onSelect(drinks[currentIndex])}
             style={{
               flex: 1,
-              height: '52px',
+              height: '48px sm:52px',
               background: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)',
               boxShadow: '0 8px 24px rgba(59, 130, 246, 0.4)'
             }}
@@ -390,7 +390,7 @@ const ResultsSection = ({
             开始制作
           </InteractiveButton>
           <InteractiveButton variant="icon" style={buttonFeedback}>
-            <Settings2 size={20} />
+            <Settings2 size={18} sm:size={20} />
           </InteractiveButton>
         </div>
       </div>
@@ -404,39 +404,39 @@ const DrinkResultCard = ({ drink, isActive, moodResult, customQuote }) => {
 
   return (
     <div
-      className={`flex-none px-3 transition-all duration-500 transform ${isActive ? 'scale-100 opacity-100 z-10' : 'scale-[0.85] opacity-30 grayscale-[30%] z-0'
+      className={`flex-none px-2 sm:px-3 transition-all duration-500 transform ${isActive ? 'scale-100 opacity-100 z-10' : 'scale-[0.85] opacity-30 grayscale-[30%] z-0'
         }`}
-      style={{ width: 'min(75vw, 400px)' }}
+      style={{ width: 'min(70vw, 340px) sm:min(75vw, 400px)' }}
     >
-      <div className="relative aspect-[3/4.5] rounded-[2.8rem] overflow-hidden shadow-[0_25px_60px_-12px_rgba(0,0,0,0.22)] bg-white border border-black/[0.02]">
+      <div className="relative aspect-[3/4.5] rounded-2xl sm:rounded-[2.8rem] overflow-hidden shadow-[0_25px_60px_-12px_rgba(0,0,0,0.22)] bg-white border border-black/[0.02]">
         <img src={drink.image} className="w-full h-full object-cover" alt={drink.name} />
         <div className="absolute inset-0 bg-gradient-to-b from-black/5 via-transparent to-black/85" />
 
-        <div className="absolute top-6 left-6">
-          <div className="bg-white/10 backdrop-blur-md border border-white/20 px-4 py-1.5 rounded-full flex items-center gap-2 text-white/90 text-[11px] font-bold tracking-wide">
-            <BriefIcon size={14} className="opacity-80 text-blue-300" />
+        <div className="absolute top-4 sm:top-6 left-4 sm:left-6">
+          <div className="bg-white/10 backdrop-blur-md border border-white/20 px-3 sm:px-4 py-1 sm:py-1.5 rounded-full flex items-center gap-1.5 sm:gap-2 text-white/90 text-[10px] sm:text-[11px] font-bold tracking-wide">
+            <BriefIcon size={12} sm:size={14} className="opacity-80 text-blue-300" />
             {drink.abv > 0 ? `微醺 | ABV ${drink.abv}%` : '无酒精'}
           </div>
         </div>
 
-        <div className="absolute inset-0 flex flex-col items-center justify-end pb-10 px-6 text-center">
-          <h2 className="text-3xl font-bold text-white mb-4 tracking-tight leading-none drop-shadow-md">{drink.name}</h2>
+        <div className="absolute inset-0 flex flex-col items-center justify-end pb-6 sm:pb-10 px-4 sm:px-6 text-center">
+          <h2 className="text-2xl sm:text-3xl font-bold text-white mb-3 sm:mb-4 tracking-tight leading-none drop-shadow-md">{drink.name}</h2>
 
           {/* Philosophy Tags & Quote */}
-          <div className="mb-6 flex flex-col items-center w-full px-2">
-            <div className="flex flex-wrap justify-center gap-2 mb-2">
+          <div className="mb-4 sm:mb-6 flex flex-col items-center w-full px-1 sm:px-2">
+            <div className="flex flex-wrap justify-center gap-1.5 sm:gap-2 mb-1.5 sm:mb-2">
               {philosophy.tags.map(tag => (
-                <span key={tag} className="px-2.5 py-[3px] rounded bg-white/10 text-white/90 border border-white/20 text-[10px] tracking-widest font-light mix-blend-screen">
+                <span key={tag} className="px-2 sm:px-2.5 py-[2px] sm:py-[3px] rounded bg-white/10 text-white/90 border border-white/20 text-[9px] sm:text-[10px] tracking-widest font-light mix-blend-screen">
                   {tag}
                 </span>
               ))}
             </div>
             {/* 渐变替换容器: 本地原始语录居中打底，一旦有大模型定制语录，通过 CSS opacity 平滑交叉过渡 */}
-            <div className="relative w-full flex justify-center min-h-[40px]">
-              <p className={`absolute text-[12px] text-white/70 font-light italic opacity-90 leading-relaxed max-w-[220px] transition-opacity duration-1000 ${customQuote ? 'opacity-0' : 'opacity-100'}`}>
+            <div className="relative w-full flex justify-center min-h-[36px] sm:min-h-[40px]">
+              <p className={`absolute text-[11px] sm:text-[12px] text-white/70 font-light italic opacity-90 leading-relaxed max-w-[180px] sm:max-w-[220px] transition-opacity duration-1000 ${customQuote ? 'opacity-0' : 'opacity-100'}`}>
                 {philosophy.quote}
               </p>
-              <p className={`absolute text-[12px] font-medium italic leading-relaxed max-w-[220px] transition-opacity duration-1000 ${customQuote ? 'opacity-100' : 'opacity-0'}`}
+              <p className={`absolute text-[11px] sm:text-[12px] font-medium italic leading-relaxed max-w-[180px] sm:max-w-[220px] transition-opacity duration-1000 ${customQuote ? 'opacity-100' : 'opacity-0'}`}
                 style={{
                   color: '#E0E7FF',
                   textShadow: '0 0 10px rgba(167, 139, 250, 0.4)'
@@ -446,45 +446,45 @@ const DrinkResultCard = ({ drink, isActive, moodResult, customQuote }) => {
             </div>
           </div>
 
-          <div className="flex items-center gap-5 mb-8">
+          <div className="flex items-center gap-4 sm:gap-5 mb-6 sm:mb-8">
             {drink.briefIngredients.map((ing, bIdx) => {
               const IconComponent = iconMap[ing.icon];
               return (
-                <div key={bIdx} className="flex flex-col items-center gap-1.5">
+                <div key={bIdx} className="flex flex-col items-center gap-1 sm:gap-1.5">
                   <div className="text-white/90">
-                    <IconComponent size={20} strokeWidth={2.5} />
+                    <IconComponent size={18} sm:size={20} strokeWidth={2.5} />
                   </div>
-                  <span className="text-[9px] font-black text-white/30 tracking-[0.2em] uppercase leading-none">{ing.label}</span>
+                  <span className="text-[8px] sm:text-[9px] font-black text-white/30 tracking-[0.2em] uppercase leading-none">{ing.label}</span>
                 </div>
               );
             })}
           </div>
 
-          <div className="flex justify-between w-full px-3 gap-3">
+          <div className="flex justify-between w-full px-2 sm:px-3 gap-2 sm:gap-3">
             <InteractiveButton
               variant="icon"
               size="icon"
               style={{
-                width: '44px',
-                height: '44px',
+                width: '40px sm:44px',
+                height: '40px sm:44px',
                 background: 'rgba(224,231,255,0.2)',
                 backdropFilter: 'blur(8px)'
               }}
             >
-              <HeartOff size={20} />
+              <HeartOff size={18} sm:size={20} />
             </InteractiveButton>
             <InteractiveButton
               variant="icon"
               size="icon"
               style={{
-                width: '44px',
-                height: '44px',
+                width: '40px sm:44px',
+                height: '40px sm:44px',
                 background: 'rgba(224,231,255,0.2)',
                 backdropFilter: 'blur(8px)',
                 color: '#FF7675'
               }}
             >
-              <Heart size={20} className="fill-current" />
+              <Heart size={18} sm:size={20} className="fill-current" />
             </InteractiveButton>
           </div>
         </div>
@@ -613,22 +613,22 @@ const ExploreSection = ({
         </div>
       </header>
 
-      {/* 列表渲染 */}
-      <div className="flex-1 px-4 pb-28 pt-2 overflow-y-auto w-full no-scrollbar">
+        {/* 列表渲染 */}
+      <div className="flex-1 px-3 sm:px-4 pb-24 sm:pb-28 pt-2 overflow-y-auto w-full no-scrollbar">
         {/* 加载状态 */}
         {apiLoading && (
-          <div className="flex flex-col items-center justify-center h-64">
-            <Loader2 size={36} className="text-indigo-400 animate-spin mb-4" />
-            <p className="text-gray-400 text-sm">正在探索美味...</p>
+          <div className="flex flex-col items-center justify-center h-56 sm:h-64">
+            <Loader2 size={32} sm:size={36} className="text-indigo-400 animate-spin mb-3 sm:mb-4" />
+            <p className="text-gray-400 text-xs sm:text-sm">正在探索美味...</p>
           </div>
         )}
 
         {/* 错误状态 */}
         {apiError && !apiLoading && (
-          <div className="flex flex-col items-center justify-center h-64 text-gray-400">
-            <p className="text-red-400 mb-2">😔 {apiError}</p>
+          <div className="flex flex-col items-center justify-center h-56 sm:h-64 text-gray-400">
+            <p className="text-red-400 mb-2 text-sm">😔 {apiError}</p>
             <button
-              className="px-4 py-2 bg-indigo-100 text-indigo-600 rounded-xl text-sm font-medium hover:bg-indigo-200 transition-colors"
+              className="px-4 py-2 bg-indigo-100 text-indigo-600 rounded-xl text-xs sm:text-sm font-medium hover:bg-indigo-200 transition-colors"
               onClick={() => onCategoryChange('all')}
             >
               重新加载
@@ -638,14 +638,14 @@ const ExploreSection = ({
 
         {/* 饮品列表 */}
         {!apiLoading && !apiError && apiDrinks.length > 0 && (
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4">
             {apiDrinks.map((drink) => (
               <SwipeableCard
                 key={drink.id}
                 onTap={() => onSelectDrink(drink)}
                 style={{
                   ...cardFeedback,
-                  borderRadius: '24px',
+                  borderRadius: '20px sm:24px',
                   overflow: 'hidden',
                   background: 'rgba(255, 255, 255, 0.45)',
                   backdropFilter: 'blur(12px)',
@@ -654,9 +654,9 @@ const ExploreSection = ({
                   minWidth: 0
                 }}
               >
-                <div className="p-3 pb-0">
+                <div className="p-2 sm:p-3 pb-0">
                   <div
-                    className="relative aspect-[4/5] bg-cover bg-center rounded-2xl overflow-hidden shadow-inner"
+                    className="relative aspect-[4/5] bg-cover bg-center rounded-xl sm:rounded-2xl overflow-hidden shadow-inner"
                     style={{ backgroundImage: `url(${drink.image})` }}
                   >
                     <button
@@ -669,18 +669,18 @@ const ExploreSection = ({
                           onLikeDrink && onLikeDrink(drink);
                         }
                       }}
-                      className="absolute top-2 right-2 w-8 h-8 bg-black/10 backdrop-blur-md rounded-full flex items-center justify-center border border-white/10 transition-transform hover:scale-110 active:scale-95"
+                      className="absolute top-2 right-2 w-7 sm:w-8 h-7 sm:h-8 bg-black/10 backdrop-blur-md rounded-full flex items-center justify-center border border-white/10 transition-transform hover:scale-110 active:scale-95"
                     >
                       <Heart
-                        size={14}
+                        size={12} sm:size={14}
                         className={`transition-all duration-200 ${favoriteDrinks.some(d => d.id === drink.id) ? 'text-[#FF7675] fill-current' : 'text-white'}`}
                       />
                     </button>
                   </div>
                 </div>
-                <div className="px-4 py-3">
-                  <h3 className="font-bold text-[15px] text-gray-800 leading-tight mb-1">{drink.name}</h3>
-                  <p className="text-[12px] text-gray-400 leading-tight line-clamp-1 font-medium italic">
+                <div className="px-3 sm:px-4 py-2 sm:py-3">
+                  <h3 className="font-bold text-sm sm:text-[15px] text-gray-800 leading-tight mb-0.5 sm:mb-1">{drink.name}</h3>
+                  <p className="text-[11px] sm:text-[12px] text-gray-400 leading-tight line-clamp-1 font-medium italic">
                     {drink.nameEn || drink.sub || drink.subName || ''}
                   </p>
                 </div>
@@ -691,41 +691,41 @@ const ExploreSection = ({
 
         {/* 空状态 */}
         {!apiLoading && !apiError && apiDrinks.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-64 text-gray-400 opacity-60">
-            <Search size={48} className="mb-4" />
-            <p>未找到相关饮品，换个词试试？</p>
+          <div className="flex flex-col items-center justify-center h-56 sm:h-64 text-gray-400 opacity-60">
+            <Search size={40} sm:size={48} className="mb-3 sm:mb-4" />
+            <p className="text-sm">未找到相关饮品，换个词试试？</p>
           </div>
         )}
       </div>
 
       {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around px-6 py-3 bg-white/80 backdrop-blur-xl border-t border-white/40 w-full">
+      <nav className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around px-4 sm:px-6 py-2 sm:py-3 bg-white/80 backdrop-blur-xl border-t border-white/40 w-full pb-safe">
         <button 
           onClick={() => onNavigate && onNavigate('mix')}
-          className="flex flex-col items-center gap-1 text-gray-400 hover:text-gray-600 transition-colors"
+          className="flex flex-col items-center gap-0.5 sm:gap-1 text-gray-400 hover:text-gray-600 transition-colors"
         >
-          <Sparkles size={20} />
-          <span className="text-[10px] font-medium">特调</span>
+          <Sparkles size={18} sm:size={20} />
+          <span className="text-[9px] sm:text-[10px] font-medium">特调</span>
         </button>
         <button 
           onClick={() => onNavigate && onNavigate('explore')}
-          className={`flex flex-col items-center gap-1 ${activeTab === 'explore' ? 'text-gray-800' : 'text-gray-400 hover:text-gray-600'} transition-colors`}
+          className={`flex flex-col items-center gap-0.5 sm:gap-1 ${activeTab === 'explore' ? 'text-gray-800' : 'text-gray-400 hover:text-gray-600'} transition-colors`}
         >
           {activeTab === 'explore' ? (
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-blue-400 flex items-center justify-center shadow-lg shadow-purple-200">
-              <Search size={18} className="text-white" />
+            <div className="w-9 sm:w-10 h-9 sm:h-10 rounded-full bg-gradient-to-br from-purple-400 to-blue-400 flex items-center justify-center shadow-lg shadow-purple-200">
+              <Search size={16} sm:size={18} className="text-white" />
             </div>
           ) : (
-            <Search size={20} />
+            <Search size={18} sm:size={20} />
           )}
-          <span className="text-[10px] font-medium">灵感</span>
+          <span className="text-[9px] sm:text-[10px] font-medium">灵感</span>
         </button>
         <button 
           onClick={() => onNavigate && onNavigate('mine')}
-          className={`flex flex-col items-center gap-1 ${activeTab === 'mine' ? 'text-gray-800' : 'text-gray-400 hover:text-gray-600'} transition-colors`}
+          className={`flex flex-col items-center gap-0.5 sm:gap-1 ${activeTab === 'mine' ? 'text-gray-800' : 'text-gray-400 hover:text-gray-600'} transition-colors`}
         >
-          <User size={20} />
-          <span className="text-[10px] font-medium">我的</span>
+          <User size={18} sm:size={20} />
+          <span className="text-[9px] sm:text-[10px] font-medium">我的</span>
         </button>
       </nav>
     </div>

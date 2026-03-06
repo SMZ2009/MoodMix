@@ -14,4 +14,7 @@ services:
         value: Qwen/Qwen2.5-72B-Instruct
       - key: PROXY_PORT
         value: 3001
-    autoDeploy: true
+      - key: HOST
+        value: 0.0.0.0
+      - key: DANGEROUSLY_DISABLE_HOST_CHECK
+        value: true

@@ -4,7 +4,7 @@ services:
     env: node
     region: oregon
     buildCommand: NODE_OPTIONS="--max-old-space-size=4096" npm install && npm run build
-    startCommand: NODE_OPTIONS="--max-old-space-size=2048" npm run serve-prod
+    startCommand: NODE_OPTIONS="--max-old-space-size=384" npm run serve-prod
     envVars:
       - key: NODE_ENV
         value: production
@@ -16,5 +16,3 @@ services:
         value: 3000
       - key: PROXY_PORT
         value: 3001
-      - key: NODE_OPTIONS
-        value: "--max-old-space-size=2048"

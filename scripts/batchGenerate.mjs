@@ -305,8 +305,9 @@ async function main() {
 
     // 2. 计算
     console.log('[2/3] 计算八维数据...');
-    const dimensionData = {};   // 完整八维
-    const vectorData = {};      // 匹配向量
+    // 注: dimensionData 已在生产环境中被移除（未使用但占用 ~57KB）
+    // 如需重新启用，请参考历史提交或文档
+    const vectorData = {};      // 匹配向量（实际使用）
     let ok = 0, fail = 0;
     let totalIng = 0, knownIng = 0;
     const unknown = new Set();
@@ -316,14 +317,7 @@ async function main() {
             const dim = computeDimensions(drink, getIngredientData);
             if (!dim) { fail++; continue; }
             const id = drink.idDrink;
-            dimensionData[id] = {
-                name: drink.strDrink,
-                category: drink.strCategory,
-                alcoholic: drink.strAlcoholic,
-                glass: drink.strGlass,
-                thumb: drink.strDrinkThumb,
-                dimensions: dim,
-            };
+            // ⬇️ 只生成向量，不保存完整八维数据
             vectorData[id] = {
                 name: drink.strDrink,
                 v: extractVector(dim),
@@ -342,31 +336,9 @@ async function main() {
     console.log();
 
     // 3. 输出
-    console.log('[3/3] 生成双层存储文件...');
+    console.log('[3/3] 生成向量存储文件...');
 
-    // dimensionData.js — 完整八维
-    const dimJS = `// 自动生成 — ${new Date().toISOString().slice(0, 10)}
-// 全部 CocktailDB 饮品的完整八维结构化数据（含哲学层文本）
-// 用于推荐语模板生成
-// 共 ${ok} 款饮品
-
-export const dimensionData = ${JSON.stringify(dimensionData, null, 2)};
-
-export default dimensionData;
-`;
-    writeFileSync(join(SRC_DATA, 'dimensionData.js'), dimJS, 'utf-8');
-    console.log(`  ✓ src/data/dimensionData.js (${(Buffer.byteLength(dimJS) / 1024).toFixed(0)} KB)`);
-
-    // drinkVectors.js — 匹配向量
-    const vecJS = `// 自动生成 — ${new Date().toISOString().slice(0, 10)}
-// 全部 CocktailDB 饮品的匹配向量
-// 用于余弦相似度 Top15 匹配
-// 共 ${ok} 款饮品
-//
-// 向量维度说明 (八维，对应八个哲学维度):
-// [味觉(主味分值0-10), 触觉(气机方向-3~3), 温度(阴阳分-5~5), 颜色(五行1-5), 时序(适饮时段0-23), 嗅觉(香气强度0-10), 比例(ABV%0-95), 动作(冥想类型1-5)]
-
-export const drinkVectors = ${JSON.stringify(vectorData, null, 2)};
+    // drinkVectors.js — 匹配向量（实际使用）
 
 /**
  * 余弦相似度计算
@@ -406,24 +378,10 @@ export default drinkVectors;
     writeFileSync(join(SRC_DATA, 'drinkVectors.js'), vecJS, 'utf-8');
     console.log(`  ✓ src/data/drinkVectors.js (${(Buffer.byteLength(vecJS) / 1024).toFixed(0)} KB)`);
 
-    // 示例输出
-    console.log('\n═══ 示例（前 3 款）═══');
-    const ids = Object.keys(dimensionData).slice(0, 3);
-    for (const id of ids) {
-        const d = dimensionData[id];
-        console.log(`\n─── ${d.name} ───`);
-        console.log(`  味觉: ${d.dimensions.taste.physical.dominant} → ${d.dimensions.taste.philosophy.therapeutic_logic}`);
-        console.log(`  触觉: ${d.dimensions.texture.philosophy.qi_type}`);
-        console.log(`  温度: ${d.dimensions.temperature.physical.serving_temp} / ${d.dimensions.temperature.philosophy.yin_yang}`);
-        console.log(`  颜色: ${d.dimensions.color.physical.primary_color} (${d.dimensions.color.philosophy.wuxing_element})`);
-        console.log(`  时序: ${d.dimensions.temporality.physical.ideal_shichen} | ${d.dimensions.temporality.physical.ideal_seasons.join('、')}`);
-        console.log(`  香气: ${d.dimensions.aroma.physical.primary_aromas.join('、')}`);
-        console.log(`  比例: ABV≈${d.dimensions.ratio.physical.estimated_abv}% (${d.dimensions.ratio.philosophy.energy_intensity})`);
-        console.log(`  动作: ${d.dimensions.ritual.physical.primary_actions.join('、')}`);
-        console.log(`  向量: [${vectorData[id].v.join(', ')}]`);
-    }
-
     console.log('\n═══ 完成 ═══');
+    console.log(`✓ ${ok} 款饮品向量生成成功`);
+    console.log(`✗ ${fail} 款饮品生成失败`);
+    console.log(`配料命中率: ${totalIng > 0 ? (knownIng / totalIng * 100).toFixed(1) : 0}% (${knownIng}/${totalIng})`);
 }
 
 main().catch(e => { console.error('Fatal:', e); process.exit(1); });

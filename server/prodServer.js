@@ -120,6 +120,95 @@ app.post('/api/analyze_mood', async (req, res) => {
   }
 });
 
+app.post('/api/generate_quotes', async (req, res) => {
+  const apiKey = process.env.SILICONFLOW_API_KEY;
+
+  if (!apiKey || apiKey === 'your_key_here') {
+    return res.status(500).json({
+      success: false,
+      error: 'API Key not configured'
+    });
+  }
+
+  const { items, variation } = req.body;
+
+  if (!items || !Array.isArray(items) || items.length === 0) {
+    return res.status(400).json({
+      success: false,
+      error: 'items is required and must be a non-empty array'
+    });
+  }
+
+  try {
+    console.log('[API] /api/generate_quotes called for', items.length, 'items');
+
+    const quotes = {};
+    const BATCH_SIZE = 3;
+
+    for (let i = 0; i < items.length; i += BATCH_SIZE) {
+      const batch = items.slice(i, i + BATCH_SIZE);
+      const batchNames = batch.map(item => item.name).join('、');
+
+      const systemPrompt = `你是一个富有诗意的酒饮文案大师。请为以下鸡尾酒生成简短富有意境的文案（8-12个中文字符）。
+要求：
+1. 直接输出文案，不要任何解释或格式
+2. 每行一个，不要编号
+3. 文案要富有诗意、意境优美
+4. 结合酒名本身的意象`;
+
+      const userMessage = `请为以下鸡尾酒生成文案：${batchNames}`;
+
+      const response = await fetch(SILICONFLOW_API_URL, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: SILICONFLOW_MODEL,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userMessage }
+          ],
+          temperature: 0.8,
+          max_tokens: 500
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error('SiliconFlow API error:', response.status, errorData);
+        continue;
+      }
+
+      const result = await response.json();
+      const aiMessage = result.choices?.[0]?.message?.content || '';
+
+      const lines = aiMessage.split('\n').filter(line => line.trim());
+      batch.forEach((item, index) => {
+        if (lines[index]) {
+          let quote = lines[index].trim();
+          if (!quote.startsWith('「') && !quote.startsWith('"') && !quote.startsWith('「')) {
+            quote = `「${quote}」`;
+          }
+          quotes[item.id] = quote;
+        }
+      });
+    }
+
+    return res.json({
+      success: true,
+      quotes
+    });
+  } catch (error) {
+    console.error('Error in /api/generate_quotes:', error);
+    return res.status(500).json({
+      success: false,
+      error: error.message || 'Internal server error'
+    });
+  }
+});
+
 // ═══════════════════════════════════════════
 // 辅助函数
 // ═══════════════════════════════════════════

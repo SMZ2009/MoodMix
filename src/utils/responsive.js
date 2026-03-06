@@ -81,11 +81,64 @@ export const useMediaQuery = (query) => {
 };
 
 export const breakpoints = {
-  mobile: 480,
+  xs: 320,
+  sm: 375,
+  md: 425,
+  lg: 768,
+  xl: 1024,
   tablet: 768,
   laptop: 1024,
   desktop: 1280,
   wide: 1536
+};
+
+export const useScreenSize = () => {
+  const { width, height } = useResponsive();
+  
+  const isVerySmall = width < 340;    // iPhone SE 尺寸
+  const isSmall = width < 400;        // 小屏手机
+  const isMedium = width >= 400 && width < 768;  // 标准手机
+  const isLarge = width >= 768 && width < 1024; // 大屏手机/平板
+  const isTablet = width >= 768;
+  const isDesktop = width >= 1024;
+  
+  const fontSize = {
+    xs: isVerySmall ? 'text-xs' : isSmall ? 'text-xs' : isMedium ? 'text-sm' : 'text-base',
+    sm: isVerySmall ? 'text-sm' : isSmall ? 'text-sm' : isMedium ? 'text-base' : 'text-lg',
+    base: isVerySmall ? 'text-base' : isSmall ? 'text-base' : isMedium ? 'text-lg' : 'text-xl',
+    lg: isVerySmall ? 'text-lg' : isSmall ? 'text-lg' : isMedium ? 'text-xl' : 'text-2xl',
+    xl: isVerySmall ? 'text-xl' : isSmall ? 'text-xl' : isMedium ? 'text-2xl' : 'text-3xl',
+    '2xl': isVerySmall ? 'text-2xl' : isSmall ? 'text-2xl' : isMedium ? 'text-3xl' : 'text-4xl',
+  };
+  
+  const spacing = {
+    xs: isVerySmall ? 'p-2' : isSmall ? 'p-2' : isMedium ? 'p-3' : 'p-4',
+    sm: isVerySmall ? 'p-3' : isSmall ? 'p-3' : isMedium ? 'p-4' : 'p-5',
+    md: isVerySmall ? 'p-4' : isSmall ? 'p-4' : isMedium ? 'p-5' : 'p-6',
+    lg: isVerySmall ? 'p-5' : isSmall ? 'p-5' : isMedium ? 'p-6' : 'p-8',
+  };
+  
+  const componentSize = {
+    button: isVerySmall ? 'h-9' : isSmall ? 'h-10' : isMedium ? 'h-11' : 'h-12',
+    input: isVerySmall ? 'h-10' : isSmall ? 'h-11' : isMedium ? 'h-12' : 'h-14',
+    icon: isVerySmall ? 'w-4 h-4' : isSmall ? 'w-5 h-5' : isMedium ? 'w-5 h-5' : 'w-6 h-6',
+    card: isVerySmall ? 'w-32' : isSmall ? 'w-36' : isMedium ? 'w-40' : 'w-48',
+  };
+  
+  return {
+    width,
+    height,
+    isVerySmall,
+    isSmall,
+    isMedium,
+    isLarge,
+    isTablet,
+    isDesktop,
+    fontSize,
+    spacing,
+    componentSize,
+    aspectRatio: width / height
+  };
 };
 
 export const getResponsiveValue = (values) => {

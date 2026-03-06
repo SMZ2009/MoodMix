@@ -53,7 +53,7 @@ const SwipeableCard = ({
     transform: isDragging ? getTransform() : (customStyle.transform || undefined),
     opacity: isDragging ? getOpacity() : (customStyle.opacity || undefined),
     cursor: 'pointer',
-    touchAction: 'none', // --- 修改点 2: 将 pan-y 改为 none，防止滑动时网页上下滚动 ---
+    touchAction: (onSwipeUp || onSwipeDown) ? 'none' : 'auto', // 只有设置了上下滑动回调时才阻止滚动
     userSelect: 'none',
     WebkitUserSelect: 'none',
     transition: isDragging ? 'none' : 'all 0.5s ease-out' // 让手动滑时更跟手，放开后有动画

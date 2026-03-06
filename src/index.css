@@ -56,8 +56,61 @@ body {
   width: 100%;
   height: 100%;
   overflow-x: hidden;
+  overflow-y: hidden;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
+}
+
+:root {
+  --header-height: 60px;
+  --bottom-nav-height: 70px;
+  --safe-area-top: env(safe-area-inset-top);
+  --safe-area-bottom: env(safe-area-inset-bottom);
+  --safe-area-left: env(safe-area-inset-left);
+  --safe-area-right: env(safe-area-inset-right);
+}
+
+@media (max-width: 340px) {
+  :root {
+    --header-height: 50px;
+    --bottom-nav-height: 60px;
+  }
+}
+
+@media (min-width: 768px) {
+  :root {
+    --header-height: 70px;
+    --bottom-nav-height: 80px;
+  }
+}
+
+@media (max-height: 600px) {
+  .min-h-screen-safe {
+    min-height: -webkit-stretch;
+    min-height: stretch;
+  }
+  
+  .pb-nav-safe {
+    padding-bottom: calc(var(--bottom-nav-height, 70px) + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+@supports (padding: env(safe-area-inset-bottom)) {
+  .pb-safe {
+    padding-bottom: calc(env(safe-area-inset-bottom) + 20px);
+  }
+  
+  .pt-safe {
+    padding-top: env(safe-area-inset-top);
+  }
+  
+  .pl-safe {
+    padding-left: env(safe-area-inset-left);
+  }
+  
+  .pr-safe {
+    padding-right: env(safe-area-inset-right);
+  }
 }
 
 body {

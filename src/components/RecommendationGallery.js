@@ -158,27 +158,13 @@ const RecommendationGallery = ({ drinks, onBack, onStartMaking, onShuffle, onNav
       </header>
 
       {/* Card Carousel */}
-      <main className="relative z-10 flex-1 flex flex-col items-center justify-start overflow-hidden">
-        {/* Image Display Area */}
-        <div className="w-full flex-1 flex items-center justify-start px-0 py-0 overflow-hidden">
-          <div
-            className="relative shadow-lg overflow-hidden"
-            style={{
-              height: '100%',
-              width: '100%',
-              backgroundImage: `url('${drinks[currentIndex]?.image}')`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-            }}
-          />
-        </div>
-
+      <main className="relative z-10 flex-1 flex items-center justify-center overflow-hidden">
         {/* Stacked Cards Container */}
-        <div className="absolute top-0 left-0 right-0 bottom-0 w-full h-full px-0 sm:px-0">
-          {/* Cards Stack */}
+        <div className="w-full h-full flex items-center justify-center px-4 sm:px-6 md:px-8">
+          {/* Cards Stack - 缩小并居中 */}
           <div 
             ref={containerRef}
-            className="absolute top-0 left-0 w-full h-full"
+            className="relative w-[90vw] max-w-md h-[65vh] max-h-[500px]"
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
@@ -194,7 +180,7 @@ const RecommendationGallery = ({ drinks, onBack, onStartMaking, onShuffle, onNav
               return (
                 <div
                   key={drink.id}
-                  className={`absolute inset-0 cursor-pointer ${isDragging ? '' : 'transition-all duration-500 cubic-bezier(0.34, 1.56, 0.64, 1)'}`}
+                  className={`absolute inset-0 cursor-pointer rounded-2xl overflow-hidden ${isDragging ? '' : 'transition-all duration-500 cubic-bezier(0.34, 1.56, 0.64, 1)'}`}
                   style={getCardStyle(index)}
                   onClick={() => {
                     if (index === currentIndex && onStartMaking) {
@@ -247,7 +233,7 @@ const CardContent = ({ drink, isActive, isLiked, moodResult, onLike, onUnlike })
 
   return (
     <div
-      className="relative overflow-hidden group w-full h-full flex flex-col"
+      className="relative overflow-hidden group w-full h-full flex flex-col rounded-2xl"
       style={{
         boxShadow: isActive
           ? '0 20px 50px -12px rgba(0, 0, 0, 0.35)'

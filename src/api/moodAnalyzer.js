@@ -191,7 +191,7 @@ const DEFAULT_ANALYSIS = {
  * @returns {Promise<object>} 六维分析结果
  */
 export async function analyzeMood(userInput, options = {}) {
-    const { timeout = 45000, maxRetries = 2 } = options;
+    const { timeout = 60000, maxRetries = 2 } = options;
 
     // 1. 相关性检测
     const relevanceCheck = checkRelevance(userInput);
@@ -253,6 +253,7 @@ export async function analyzeMood(userInput, options = {}) {
 
         } catch (error) {
             attempt++;
+            console.error('[MoodAnalyzer] Error details:', error.name, error.message);
             if (error.name === 'AbortError') {
                 console.warn('[MoodAnalyzer] 分析超时，直接使用本地降级方案');
                 // 前端已经决定的硬超时，不进行重试，或者可以设定为重试1次

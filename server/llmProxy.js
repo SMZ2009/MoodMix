@@ -21,10 +21,13 @@ require('dotenv').config({ path: path.resolve(__dirname, '..', '.env') });
 const app = express();
 const PORT = process.env.PORT || process.env.PROXY_PORT || 3001;
 
+// 信任代理（用于云平台如Render.com）
+app.set('trust proxy', 1);
+
 // 中间件
 app.use(cors({
-  origin: '*',
-  credentials: true
+  origin: true,  // 允许所有origin
+  credentials: false  // 不允许credentials
 }));
 app.use(express.json());
 

@@ -197,7 +197,7 @@ const MoodInputSection = ({
         <span className="text-gray-700 text-xs sm:text-sm font-medium">
           {ingredientCount} 种原料已就绪
         </span>
-        <Edit3 size={12} sm:size={14} className="text-gray-400" />
+        <Edit3 size={14} className="text-gray-400" />
       </div>
 
       {/* Generate Button */}
@@ -214,7 +214,7 @@ const MoodInputSection = ({
             <span className="animate-pulse text-xs sm:text-sm">正在解析你的心情...</span>
           ) : (
             <span className="relative z-10 flex items-center justify-center gap-1.5 sm:gap-2 text-white font-semibold text-xs sm:text-sm">
-              <Sparkles size={14} sm:size={16} className="text-white" />
+              <Sparkles size={16} className="text-white" />
               开始生成
             </span>
           )}
@@ -373,7 +373,7 @@ const ResultsSection = ({
         </div>
         <div className="flex items-center w-full px-4 sm:px-8 gap-2 sm:gap-3">
           <InteractiveButton variant="icon" style={buttonFeedback}>
-            <Maximize2 size={18} sm:size={20} />
+            <Maximize2 size={20} />
           </InteractiveButton>
           <InteractiveButton
             variant="primary"
@@ -390,7 +390,7 @@ const ResultsSection = ({
             开始制作
           </InteractiveButton>
           <InteractiveButton variant="icon" style={buttonFeedback}>
-            <Settings2 size={18} sm:size={20} />
+            <Settings2 size={20} />
           </InteractiveButton>
         </div>
       </div>
@@ -414,7 +414,7 @@ const DrinkResultCard = ({ drink, isActive, moodResult, customQuote }) => {
 
         <div className="absolute top-4 sm:top-6 left-4 sm:left-6">
           <div className="bg-white/10 backdrop-blur-md border border-white/20 px-3 sm:px-4 py-1 sm:py-1.5 rounded-full flex items-center gap-1.5 sm:gap-2 text-white/90 text-[10px] sm:text-[11px] font-bold tracking-wide">
-            <BriefIcon size={12} sm:size={14} className="opacity-80 text-blue-300" />
+            <BriefIcon size={14} className="opacity-80 text-blue-300" />
             {drink.abv > 0 ? `微醺 | ABV ${drink.abv}%` : '无酒精'}
           </div>
         </div>
@@ -452,7 +452,7 @@ const DrinkResultCard = ({ drink, isActive, moodResult, customQuote }) => {
               return (
                 <div key={bIdx} className="flex flex-col items-center gap-1 sm:gap-1.5">
                   <div className="text-white/90">
-                    <IconComponent size={18} sm:size={20} strokeWidth={2.5} />
+                    <IconComponent size={20} strokeWidth={2.5} />
                   </div>
                   <span className="text-[8px] sm:text-[9px] font-black text-white/30 tracking-[0.2em] uppercase leading-none">{ing.label}</span>
                 </div>
@@ -471,7 +471,7 @@ const DrinkResultCard = ({ drink, isActive, moodResult, customQuote }) => {
                 backdropFilter: 'blur(8px)'
               }}
             >
-              <HeartOff size={18} sm:size={20} />
+              <HeartOff size={20} />
             </InteractiveButton>
             <InteractiveButton
               variant="icon"
@@ -484,7 +484,7 @@ const DrinkResultCard = ({ drink, isActive, moodResult, customQuote }) => {
                 color: '#FF7675'
               }}
             >
-              <Heart size={18} sm:size={20} className="fill-current" />
+              <Heart size={20} className="fill-current" />
             </InteractiveButton>
           </div>
         </div>
@@ -618,7 +618,7 @@ const ExploreSection = ({
         {/* 加载状态 */}
         {apiLoading && (
           <div className="flex flex-col items-center justify-center h-56 sm:h-64">
-            <Loader2 size={32} sm:size={36} className="text-indigo-400 animate-spin mb-3 sm:mb-4" />
+            <Loader2 size={36} className="text-indigo-400 animate-spin mb-4" />
             <p className="text-gray-400 text-xs sm:text-sm">正在探索美味...</p>
           </div>
         )}
@@ -672,7 +672,7 @@ const ExploreSection = ({
                       className="absolute top-2 right-2 w-7 sm:w-8 h-7 sm:h-8 bg-black/10 backdrop-blur-md rounded-full flex items-center justify-center border border-white/10 transition-transform hover:scale-110 active:scale-95"
                     >
                       <Heart
-                        size={12} sm:size={14}
+                        size={14}
                         className={`transition-all duration-200 ${favoriteDrinks.some(d => d.id === drink.id) ? 'text-[#FF7675] fill-current' : 'text-white'}`}
                       />
                     </button>
@@ -692,7 +692,7 @@ const ExploreSection = ({
         {/* 空状态 */}
         {!apiLoading && !apiError && apiDrinks.length === 0 && (
           <div className="flex flex-col items-center justify-center h-56 sm:h-64 text-gray-400 opacity-60">
-            <Search size={40} sm:size={48} className="mb-3 sm:mb-4" />
+            <Search size={48} className="mb-4" />
             <p className="text-sm">未找到相关饮品，换个词试试？</p>
           </div>
         )}
@@ -704,7 +704,7 @@ const ExploreSection = ({
           onClick={() => onNavigate && onNavigate('mix')}
           className="flex flex-col items-center gap-0.5 sm:gap-1 text-gray-400 hover:text-gray-600 transition-colors"
         >
-          <Sparkles size={18} sm:size={20} />
+          <Sparkles size={20} />
           <span className="text-[9px] sm:text-[10px] font-medium">特调</span>
         </button>
         <button 
@@ -713,10 +713,10 @@ const ExploreSection = ({
         >
           {activeTab === 'explore' ? (
             <div className="w-9 sm:w-10 h-9 sm:h-10 rounded-full bg-gradient-to-br from-purple-400 to-blue-400 flex items-center justify-center shadow-lg shadow-purple-200">
-              <Search size={16} sm:size={18} className="text-white" />
+              <Search size={18} className="text-white" />
             </div>
           ) : (
-            <Search size={18} sm:size={20} />
+            <Search size={20} />
           )}
           <span className="text-[9px] sm:text-[10px] font-medium">灵感</span>
         </button>
@@ -724,7 +724,7 @@ const ExploreSection = ({
           onClick={() => onNavigate && onNavigate('mine')}
           className={`flex flex-col items-center gap-0.5 sm:gap-1 ${activeTab === 'mine' ? 'text-gray-800' : 'text-gray-400 hover:text-gray-600'} transition-colors`}
         >
-          <User size={18} sm:size={20} />
+          <User size={20} />
           <span className="text-[9px] sm:text-[10px] font-medium">我的</span>
         </button>
       </nav>

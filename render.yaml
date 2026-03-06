@@ -13,6 +13,6 @@ services:
       - key: SILICONFLOW_MODEL
         value: Qwen/Qwen2.5-72B-Instruct
       - key: PORT
-        value: 3000
+        value: 10000
       - key: PROXY_PORT
         value: 3001

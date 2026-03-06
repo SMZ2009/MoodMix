@@ -1,10 +1,10 @@
 services:
   - type: web
-    name: moodmix-api
+    name: moodmix-frontend
     env: node
     region: oregon
-    buildCommand: echo "Skipping frontend build for API server"
-    startCommand: node server/llmProxy.js
+    buildCommand: npm install && npm run build
+    startCommand: npm run serve-prod
     envVars:
       - key: NODE_ENV
         value: production
@@ -12,12 +12,8 @@ services:
         sync: false
       - key: SILICONFLOW_MODEL
         value: Qwen/Qwen2.5-72B-Instruct
+      - key: PORT
+        value: 3000
       - key: PROXY_PORT
         value: 3001
-    autoDeploy: true
-
-  - type: static
-    name: moodmix-frontend
-    buildCommand: npm run build
-    staticPublishPath: ./build
     autoDeploy: true

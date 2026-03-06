@@ -158,23 +158,9 @@ const RecommendationGallery = ({ drinks, onBack, onStartMaking, onShuffle, onNav
       </header>
 
       {/* Card Carousel */}
-      <main className="relative z-10 flex-1 flex flex-col items-center justify-start overflow-hidden">
-        {/* Image Display Area */}
-        <div className="w-full flex-1 flex items-center justify-start px-0 py-0 overflow-hidden">
-          <div
-            className="relative shadow-lg overflow-hidden"
-            style={{
-              height: '100%',
-              width: '100%',
-              backgroundImage: `url('${drinks[currentIndex]?.image}')`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-            }}
-          />
-        </div>
-
+      <main className="relative z-10 flex-1 flex items-center justify-center overflow-hidden">
         {/* Stacked Cards Container */}
-        <div className="absolute top-0 left-0 right-0 bottom-0 w-full h-full flex items-center justify-center px-4 sm:px-8">
+        <div className="w-full h-full flex items-center justify-center px-4 sm:px-8">
           {/* Cards Stack - 缩小并居中 */}
           <div 
             ref={containerRef}

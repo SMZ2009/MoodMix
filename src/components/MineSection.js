@@ -82,7 +82,7 @@ const MineSection = ({ userInventory, onUpdateInventory, favorites, onSelectDrin
     }
 
     return (
-        <div className="bg-dreamy-gradient w-full max-w-4xl mx-auto min-h-screen pb-32">
+        <div className="bg-dreamy-gradient w-full max-w-4xl mx-auto min-h-screen h-screen pb-32 overflow-hidden">
             {/* 头部区域 */}
             <div className="flex flex-col items-center pt-8 pb-4 px-6 bg-white/30 backdrop-blur-md border-b border-white/20">
                 {/* 头像 - 点击修改 */}

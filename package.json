@@ -27,7 +27,7 @@
     "tailwindcss": "^3.4.0"
   },
   "scripts": {
-    "start": "cross-env PORT=3000 react-scripts start",
+    "start": "if [ \"$NODE_ENV\" = \"production\" ]; then node server/llmProxy.js; else cross-env PORT=3000 react-scripts start; fi",
     "server": "node server/llmProxy.js",
     "build": "react-scripts build",
     "test": "react-scripts test",

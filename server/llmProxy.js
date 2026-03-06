@@ -19,7 +19,7 @@ const path = require('path');
 require('dotenv').config({ path: path.resolve(__dirname, '..', '.env') });
 
 const app = express();
-const PORT = process.env.PROXY_PORT || 3001;
+const PORT = process.env.PORT || process.env.PROXY_PORT || 3001;
 
 // 中间件
 app.use(cors({

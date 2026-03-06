@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: moodmix
+    env: node
+    region: oregon
+    buildCommand: npm run build
+    startCommand: node server/llmProxy.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SILICONFLOW_API_KEY
+        sync: false
+      - key: SILICONFLOW_MODEL
+        value: Qwen/Qwen2.5-72B-Instruct
+      - key: PROXY_PORT
+        value: 3001
+    autoDeploy: true

@@ -27,9 +27,9 @@
     "tailwindcss": "^3.4.0"
   },
   "scripts": {
-    "start": "npm run build && node server/prodServer.js",
+    "start": "node server/prodServer.js",
     "server": "node server/llmProxy.js",
-    "build": "cross-env NODE_OPTIONS=\"--max-old-space-size=4096\" react-scripts build",
+    "build": "cross-env GENERATE_SOURCEMAP=false CI=true react-scripts build",
     "serve-prod": "node server/prodServer.js",
     "test": "cross-env NODE_OPTIONS=\"--max-old-space-size=2048\" react-scripts test",
     "eject": "react-scripts eject"

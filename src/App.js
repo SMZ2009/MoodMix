@@ -1609,7 +1609,7 @@ const DakaModal = ({ drink, onClose, onSave }) => {
 export default App;
 
 const NavigationBar = ({ activeTab, onTabChange }) => (
-  <nav className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around px-6 py-3 bg-white/80 backdrop-blur-xl border-t border-white/40 w-full">
+  <nav className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around px-6 py-3 bg-white/80 backdrop-blur-xl border-t border-white/40 w-full max-w-4xl mx-auto">
     <button 
       onClick={() => onTabChange('mix')}
       className={`flex flex-col items-center gap-1 ${activeTab === 'mix' ? 'text-gray-800' : 'text-gray-400 hover:text-gray-600'} transition-colors`}

@@ -180,12 +180,10 @@ function convertMeasureToChinese(measure) {
     
     // 检测单位
     let detectedUnit = null;
-    let unitKey = '';
     for (const [key, config] of Object.entries(UNIT_CONVERSIONS)) {
         const regex = new RegExp(`\\b${key}\\b`, 'i');
         if (regex.test(s)) {
             detectedUnit = config;
-            unitKey = key;
             break;
         }
     }

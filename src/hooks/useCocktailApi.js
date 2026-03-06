@@ -70,7 +70,7 @@ export function useCocktailApi() {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [checkCacheVersion]);
 
     /**
      * 搜索饮品（带防抖）

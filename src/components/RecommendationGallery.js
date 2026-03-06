@@ -174,11 +174,11 @@ const RecommendationGallery = ({ drinks, onBack, onStartMaking, onShuffle, onNav
         </div>
 
         {/* Stacked Cards Container */}
-        <div className="absolute top-0 left-0 right-0 bottom-0 w-full h-full px-0 sm:px-0">
-          {/* Cards Stack */}
+        <div className="absolute top-0 left-0 right-0 bottom-0 w-full h-full flex items-center justify-center px-4 sm:px-8">
+          {/* Cards Stack - 缩小并居中 */}
           <div 
             ref={containerRef}
-            className="absolute top-0 left-0 w-full h-full"
+            className="relative w-[85%] h-[75%] max-w-md"
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
@@ -194,7 +194,7 @@ const RecommendationGallery = ({ drinks, onBack, onStartMaking, onShuffle, onNav
               return (
                 <div
                   key={drink.id}
-                  className={`absolute inset-0 cursor-pointer ${isDragging ? '' : 'transition-all duration-500 cubic-bezier(0.34, 1.56, 0.64, 1)'}`}
+                  className={`absolute inset-0 cursor-pointer rounded-2xl overflow-hidden ${isDragging ? '' : 'transition-all duration-500 cubic-bezier(0.34, 1.56, 0.64, 1)'}`}
                   style={getCardStyle(index)}
                   onClick={() => {
                     if (index === currentIndex && onStartMaking) {
@@ -247,7 +247,7 @@ const CardContent = ({ drink, isActive, isLiked, moodResult, onLike, onUnlike })
 
   return (
     <div
-      className="relative overflow-hidden group w-full h-full flex flex-col"
+      className="relative overflow-hidden group w-full h-full flex flex-col rounded-2xl"
       style={{
         boxShadow: isActive
           ? '0 20px 50px -12px rgba(0, 0, 0, 0.35)'

@@ -188,7 +188,7 @@ app.get('*', (req, res) => {
 // 启动服务器
 // ═══════════════════════════════════════════
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   const hasKey = process.env.SILICONFLOW_API_KEY && process.env.SILICONFLOW_API_KEY !== 'your_key_here';
   console.log(`\n🍹 MoodMix 生产服务器已启动`);
   console.log(`   端口: ${PORT}`);
@@ -197,5 +197,5 @@ app.listen(PORT, () => {
   console.log(`   模型: ${SILICONFLOW_MODEL}`);
   console.log(`   API Key: ${hasKey ? '✅ 已配置' : '❌ 未配置'}`);
   console.log(`   环境: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`   访问地址: http://localhost:${PORT}\n`);
+  console.log(`   访问地址: http://0.0.0.0:${PORT}\n`);
 });

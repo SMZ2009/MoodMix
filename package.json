@@ -29,8 +29,8 @@
   "scripts": {
     "start": "cross-env PORT=3000 react-scripts start",
     "server": "node server/llmProxy.js",
-    "build": "react-scripts build",
-    "serve-prod": "node server/prodServer.js",
+    "build": "cross-env NODE_OPTIONS=\"--max-old-space-size=4096\" react-scripts build",
+    "serve-prod": "node --max-old-space-size=4096 server/prodServer.js",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },

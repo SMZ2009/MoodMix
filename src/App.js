@@ -14,6 +14,7 @@ import RecommendationGallery from './components/RecommendationGallery';
 
 import { analyzeMood } from './api/moodAnalyzer';
 import { evaluateAndSortDrinks } from './engine/vectorEngine';
+import { executeRecommendationPipeline, extractRecommendationResult } from './agents';
 import { generatePhilosophyTags } from './engine/philosophyTags';
 import { fetchLiveQuotes } from './api/quoteGenerator';
 import MineSection from './components/MineSection';
@@ -1220,41 +1221,66 @@ const App = () => {
     }
 
     try {
-      // 调用六维心境分析与推理代理
-      const [aiResult] = await Promise.all([
-        analyzeMood(finalInputForAI),
-        minDelay
-      ]);
+      // 🚀 使用多Agent系统执行推荐流程
+      const agentPromise = executeRecommendationPipeline(finalInputForAI, {
+        inventory: sessionIngredients,
+        allDrinks: apiDrinks,
+        currentTime: new Date().toISOString()
+      });
 
-      console.log('六维心境分析结果:', aiResult);
+      const [agentResult] = await Promise.all([agentPromise, minDelay]);
+      
+      console.log('多Agent系统执行结果:', agentResult);
       clearTimeout(longWaitTimer);
 
+      // 检查Agent 1的验证错误（需要用户重新输入）
+      const agent1Output = agentResult.context.getOutput('SemanticDistiller');
+      if (agent1Output && !agent1Output.success && agent1Output.requiresReinput) {
+        clearTimeout(longWaitTimer);
+        setMixMode('home');
+        alert(agent1Output.userMessage || '输入格式不正确，请重新输入');
+        return;
+      }
+
+      // 提取推荐结果
+      const recommendation = extractRecommendationResult(agentResult.context);
+      console.log('推荐结果:', recommendation);
+
       // 检查是否为极度负面需要关怀
-      if (aiResult.isNegative) {
+      const moodData = agentResult.context.getIntermediate('moodData');
+      if (moodData?.isNegative) {
         setMixMode('home');
         setShowInterventionModal(true);
         return;
       }
 
-      // 执行第二步&第三步：双轨过滤与动态向量夹角排序
-      const candidateSource = apiDrinks;
-      const pool = evaluateAndSortDrinks(aiResult, candidateSource, sessionIngredients);
+      // 获取匹配结果
+      const matches = agentResult.context.getIntermediate('matches') || [];
+      
+      // 转换为原有格式
+      const pool = matches.map(m => ({
+        ...m.drink,
+        similarity: m.similarity,
+        matchDetails: m.matchDetails
+      }));
 
-      setMoodResult(aiResult);
+      setMoodResult(moodData);
       setRecommendationPool(pool);
       setCurrentBatchIndex(0);
-      setCurrentCardIndex(0); // 预留给可能需要的底层联动
+      setCurrentCardIndex(0);
       setMixMode('home');
       setShowRecommendationGallery(true);
 
-      // ✅ [Stage 9 Plan A] 非阻塞流式异步大模型文案润色
-      fetchLiveQuotes(pool, aiResult, 15).then((quotesMap) => {
-        if (Object.keys(quotesMap).length > 0) {
-          setCustomQuotes(prev => ({ ...prev, ...quotesMap }));
-        }
-      }).catch(err => {
-        console.warn('Live quote generation failed non-fatally', err);
-      });
+      // ✅ 非阻塞流式异步大模型文案润色
+      if (pool.length > 0) {
+        fetchLiveQuotes(pool, moodData, 15).then((quotesMap) => {
+          if (Object.keys(quotesMap).length > 0) {
+            setCustomQuotes(prev => ({ ...prev, ...quotesMap }));
+          }
+        }).catch(err => {
+          console.warn('Live quote generation failed non-fatally', err);
+        });
+      }
 
     } catch (error) {
       console.error('分析/推荐出错:', error);

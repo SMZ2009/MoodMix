@@ -3,8 +3,8 @@ services:
     name: moodmix-frontend
     env: node
     region: oregon
-    buildCommand: npm install && npm run build
-    startCommand: npm run serve-prod
+    buildCommand: NODE_OPTIONS="--max-old-space-size=4096" npm install && npm run build
+    startCommand: NODE_OPTIONS="--max-old-space-size=4096" npm run serve-prod
     envVars:
       - key: NODE_ENV
         value: production

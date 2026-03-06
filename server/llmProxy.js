@@ -22,8 +22,17 @@ const app = express();
 const PORT = process.env.PROXY_PORT || 3001;
 
 // 中间件
-app.use(cors());
+app.use(cors({
+  origin: '*',
+  credentials: true
+}));
 app.use(express.json());
+
+// 处理host header
+app.use((req, res, next) => {
+  // 允许所有host header
+  next();
+});
 
 // 静态文件服务（用于生产环境）
 if (process.env.NODE_ENV === 'production') {

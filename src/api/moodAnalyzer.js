@@ -217,6 +217,7 @@ export async function analyzeMood(userInput, options = {}) {
     let attempt = 0;
     while (attempt <= maxRetries) {
         try {
+            console.log('[MoodAnalyzer] Attempting API call, attempt:', attempt + 1);
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), timeout);
 
@@ -240,6 +241,7 @@ export async function analyzeMood(userInput, options = {}) {
             const result = await response.json();
 
             if (!result.success || !result.data) {
+                console.error('[MoodAnalyzer] API returned error:', result.error);
                 throw new Error(result.error || '返回数据格式异常');
             }
 

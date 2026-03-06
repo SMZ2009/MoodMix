@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Edit3, ChevronRight, ArrowLeft, Camera, Trash2 } from 'lucide-react';
+import { Edit3, ChevronRight, ArrowLeft, Camera, Trash2, Heart } from 'lucide-react';
 import { SwipeableCard } from './ui';
 import IngredientManager from './IngredientManager';
 
@@ -231,28 +231,47 @@ const MineSection = ({ userInventory, onUpdateInventory, favorites, onSelectDrin
                 </div>
 
             <div className="px-6 py-4">
-                {mineTab === 'favorites' && (
-                    <div className="grid grid-cols-2 gap-3 pb-10" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
+                        {mineTab === 'favorites' && (
+                    <div className="grid grid-cols-2 gap-3 sm:gap-4 pb-10">
                             {favorites.map((drink) => (
                                 <SwipeableCard
                                     key={drink.id}
                                     onTap={() => onSelectDrink(drink)}
-                                    className="flex flex-col w-full"
-                                    style={{ ...cardFeedback, minWidth: 0 }}
+                                    style={{
+                                        ...cardFeedback,
+                                        borderRadius: '20px sm:24px',
+                                        overflow: 'hidden',
+                                        background: 'rgba(255, 255, 255, 0.45)',
+                                        backdropFilter: 'blur(12px)',
+                                        border: '1px solid rgba(255, 255, 255, 0.6)',
+                                        boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.07)',
+                                        minWidth: 0
+                                    }}
                                 >
-                                    <div className="relative aspect-square rounded-[1.5rem] overflow-hidden shadow-sm bg-gray-200" style={{ minWidth: 0, width: '100%' }}>
-                                        <img
-                                            alt={drink.name}
-                                            className="absolute inset-0 w-full h-full object-cover"
-                                            src={drink.image}
-                                        />
-                                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-90" />
-                                        <div className="absolute bottom-3 left-3 right-3 text-left">
-                                            <h4 className="text-white font-bold text-xs truncate">{drink.name}</h4>
-                                            <p className="text-white/60 text-[9px] truncate leading-tight">
-                                                {drink.subName || drink.sub}
-                                            </p>
+                                    <div className="p-2 sm:p-3 pb-0">
+                                        <div
+                                            className="relative aspect-[4/5] bg-cover bg-center rounded-xl sm:rounded-2xl overflow-hidden shadow-inner"
+                                            style={{ backgroundImage: `url(${drink.image})` }}
+                                        >
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    // 这里可以添加取消收藏的逻辑
+                                                }}
+                                                className="absolute top-2 right-2 w-7 sm:w-8 h-7 sm:h-8 bg-black/10 backdrop-blur-md rounded-full flex items-center justify-center border border-white/10 transition-transform hover:scale-110 active:scale-95"
+                                            >
+                                                <Heart
+                                                    size={14}
+                                                    className="text-[#FF7675] fill-current"
+                                                />
+                                            </button>
                                         </div>
+                                    </div>
+                                    <div className="px-3 sm:px-4 py-2 sm:py-3">
+                                        <h3 className="font-bold text-sm sm:text-[15px] text-gray-800 leading-tight mb-0.5 sm:mb-1">{drink.name}</h3>
+                                        <p className="text-[11px] sm:text-[12px] text-gray-400 leading-tight line-clamp-1 font-medium italic">
+                                            {drink.subName || drink.sub}
+                                        </p>
                                     </div>
                                 </SwipeableCard>
                             ))}

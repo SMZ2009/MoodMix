@@ -4,24 +4,77 @@
 **MoodMix** 是一款创新的 AI 驱动“心境饮品搭配”应用。它能够将用户输入的抽象心情描述（例如：“压力很大的周五夜晚”、“想找点清新的感觉”），利用大语言模型（LLM）精准解析为结构化的味觉和体感维度数据，进而通过专门的推荐引擎运算，与酒水库（鸡尾酒或无酒精饮品）进行高维度匹配，推荐出最符合用户当下情绪的饮品。
 
 ## 2. 宏观系统架构 (System Architecture)
-项目采用了**前后端分离 + 智能体代理（Agent Proxy）**的架构范式：
+项目采用了**前后端分离 + 多智能体协作（Multi-Agent System）**的架构范式：
 
 *   **前端（Frontend / Client）**：基于 React (Create React App + TailwindCSS) 构建，承担着所有的富交互（动画特效、防抖输入、滑动匹配界面）以及核心算法执行的任务。
+*   **多智能体系统（Multi-Agent System）**：核心推荐逻辑由5个专职Agent顺序协作完成，每个Agent负责特定的认知任务，通过共享上下文传递状态。
 *   **微后端（Backend Proxy）**：一个轻量化的 Express.js Node 服务，担任智能体交互网关，负责向外部大模型（如 SiliconFlow）转发 Prompt，隐藏真实 API Keys，并在模型异常时执行降级和容灾策略。
 *   **外部依赖集成库（Integrations）**：依赖第三方开放数据 TheCocktailDB 进行外部饮品补充，并集成免费的记忆翻译 API 改善本地化体验。
+
+### 2.1 多智能体系统架构 (Multi-Agent Architecture)
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         MoodMix Multi-Agent System                          │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐                  │
+│  │   Agent 1    │───▶│   Agent 2    │───▶│   Agent 3    │                  │
+│  │ 语义蒸馏器   │    │ 辨证分析师   │    │ 向量翻译官   │                  │
+│  │(NLU Sensor)  │    │(Diagnostician)│   │(Translator)  │                  │
+│  └──────────────┘    └──────────────┘    └──────────────┘                  │
+│         │                   │                   │                          │
+│         ▼                   ▼                   ▼                          │
+│    6维JSON数据      诊断结论+策略       8维需求向量                        │
+│                                                                             │
+│                              │                                              │
+│                              ▼                                              │
+│                    ┌──────────────────┐                                    │
+│                    │  Vector Search   │  (纯数学计算，非Agent)              │
+│                    │  加权余弦相似度   │                                    │
+│                    └──────────────────┘                                    │
+│                              │                                              │
+│                              ▼                                              │
+│                    ┌──────────────────┐                                    │
+│                    │    Agent 4       │                                    │
+│                    │  创意文案师      │                                    │
+│                    │ (Copywriter)     │                                    │
+│                    └──────────────────┘                                    │
+│                              │                                              │
+│                              ▼                                              │
+│                    ┌──────────────────┐                                    │
+│                    │    Agent 5       │                                    │
+│                    │  验证优化师      │                                    │
+│                    │ (Validator)      │                                    │
+│                    └──────────────────┘                                    │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+| Agent | 名称 | 角色 | 核心职责 | 输入 | 输出 |
+|:-----:|:-----|:-----|:---------|:-----|:-----|
+| 1 | **SemanticDistiller** | NLU传感器 | 非结构化语义识别，提取6维数据 | 用户原始语段 | 结构化6维JSON |
+| 2 | **PatternAnalyzer** | 辨证分析师 | 五行归纳，确定调理策略 | 6维JSON | 诊断结论+策略 |
+| 3 | **VectorTranslator** | 向量翻译官 | 跨模态映射，生成目标向量 | 诊断结论 | 8维向量+动态权重 |
+| 4 | **CreativeCopywriter** | 创意文案师 | 因果叙事，哲学润色 | 匹配饮品+用户状态 | UI文案 |
+| 5 | **ValidatorOptimizer** | 验证优化师 | 一致性验证，质量评分 | 全流程输出 | 验证报告 |
 
 ## 3. 核心目录与职能切分 (Directory Structure & Concerns)
 
 在此系统的近期演进中，严格秉承了 **Separation of Concerns (KISS原则)**，按照职能进行深度解耦：
 
 ```text
-moodmix-0228/
+moodmix/
 ├── server/
-│   └── llmProxy.js             # 【安全代理层】承载 /api/analyze_mood，对接大模型
+│   └── llmProxy.js             # 【安全代理层】承载 /api/analyze_mood 和 /api/generate_copy，对接大模型
 ├── scripts/
 │   ├── batchGenerate.mjs       # 【构建脚本】离线引擎：将配料组合静态推导为饮品八维向量
 │   └── ingredientKnowledgeBase.js 
 ├── src/                        # 前端源码核心区
+│   ├── agents/                 # 【多智能体系统】核心推荐工作流的5个Agent实现
+│   │   ├── core/               # Agent基础设施：BaseAgent、AgentContext、AgentOrchestrator
+│   │   ├── specialized/        # 5个专用Agent实现
+│   │   └── index.js            # 统一导出与快速接口
 │   ├── api/                    # 【通信中心】对外集成：LLM 请求、TheCocktailDB 请求、翻译请求
 │   ├── engine/                 # 【算法引擎】匹配运算中心：动态加权向量匹配、六维至八维余弦相似度推演、东方哲学降维映射
 │   ├── store/                  # 【持久化仓库】本地缓存与数据管理：收藏夹、库存库、翻译缓存
@@ -38,6 +91,8 @@ moodmix-0228/
 ### 4.1. 心境解析与智能推荐链路 (Mix Tab Flow)
 这是该应用最具差异化表现的核心闭环。它抛弃了传统的“标签匹配”系统，转而构建了一座连接**人类发散情感**与**饮品物理参数**的桥梁，而这座桥梁的内在驱动核则是**东方哲学（五行生克与阴阳气机）**。
 
+整个推荐流程由**5个Agent顺序协作**完成，每个Agent负责特定的认知任务，通过共享上下文传递状态。这种架构实现了关注点分离，每个Agent可独立开发、测试和优化。
+
 #### 第一步：大模型结构化解析 (llmProxy)
 用户输入任意自然语言的心情描述后，微后端代理层会对大语言模型下达强制指令（JSON Schema），要求 LLM 扮演中医与心理学家的双重角色。系统通过东方哲学体系，精准剥离出以下**“六维生理/心理诊断特征”**：
 
@@ -52,7 +107,25 @@ moodmix-0228/
 
 > *注：此外，以上每个维度域都会额外输出一个 `intensity`（0.0 - 1.0 的强度信号），用来刻画该维度当下对用户而言的“急迫程度”。*
 
-#### 第二步：抽象空间至物理空间的降维映射 (6D -> 8D Vector Mapping)
+> **Agent 1 (SemanticDistiller)** 负责执行此步骤，将非结构化用户输入转化为结构化6维数据。
+
+#### 第二步：辨证分析与策略确定 (Pattern Analysis)
+**Agent 2 (PatternAnalyzer)** 基于6维数据进行中医辨证分析：
+- **极性判定**：判断当前状态为正向(共鸣策略)或负向(纠偏/对冲策略)
+- **五行归纳**：将情绪/躯体映射到五行脏腑体系
+- **策略选择**：确定调理策略类型（共鸣/纠偏/对冲）
+
+输出包括：诊断结论、五行关系分析、调理策略定义。
+
+#### 第三步：抽象空间至物理空间的降维映射 (6D -> 8D Vector Mapping)
+**Agent 3 (VectorTranslator)** 将诊断结论翻译为可计算的数学表示：
+- 构建**8维目标向量** `[taste, texture, temperature, color, temporality, aroma, ratio, action]`
+- 计算**动态权重** `W_final,i = Normalize(W_base,i + Σ(κ_j→i × I_j))`
+
+其中：
+- `κ` (Kappa) 为维度敏感度系数：躯体2.0、诉求1.8、情绪1.5、认知1.2
+- `I` (Intensity) 为各维度信号强度
+
 大模型吐出的虽然是 6 个高度凝练的抽象维度（如情绪、躯体、时序等），但其内部通过 Prompt 约束，已精准携带着走向杯中物理状态的子指标（`drinkMapping`）。因此在进入相似度计算前，系统会将用户的 6D 心境转化为对标饮品库的 **8D 标准特征向量 (User Vector)**：
 - **味觉 (Taste, 0-10)**：提取自 `emotion.drinkMapping.tasteScore`
 - **颜色 (Color, 1-5)**：提取自 `emotion.drinkMapping.colorCode`
@@ -63,33 +136,38 @@ moodmix-0228/
 - **烈度占比 (Ratio/ABV, 0-95)**：提取自 `socialContext.drinkMapping.ratioScore`
 - **动作感 (Action, 1-5)**：提取自 `demand.drinkMapping.actionScore`
 
-#### 第三步：向量引擎加权推演 (engine/vectorEngine.js)
-拿到 1 对 1 完全对齐的 8 维需求坐标，以及大模型各维度自带的强度信号（Intensity）后，匹配交由前端的纯本地**离线向量引擎**去执行严厉的数学过滤：
+#### 第四步：向量引擎加权推演 (Vector Search)
+拿到 1 对 1 完全对齐的 8 维需求坐标，以及动态权重后，匹配交由前端的纯本地**离线向量引擎**去执行严厉的数学过滤（此步骤非Agent，纯数学计算）：
 
-1. **Kappa 敏感度常数放大**：人的体感永远比心理更急迫。系统内部预赋了生理优先权矩阵：躯体 `somatic: 2.0`、诉求 `demand: 1.8`、情绪 `emotion: 1.5`、认知 `cognitive: 1.2` 等。
-2. **动态赋权 (Dynamic Weights, W_final)**：
-   基础权重（8 维各维度 W_base 默认设为 1.0），再融合大模型送来的这 6 个外围 `intensity` 信号，按照矩阵投射公式交叉加注计算（例如 `W_texture += KAPPA.somatic * I_som`）。
-   这样，当下最急迫的需求域所对应的多项物理参数权重会被指数级放大。
-3. **加权余弦相似度 (Weighted Cosine Similarity)**：
-   使用动态计算好的 8 维大数组 `W_final`，对本地 400+ 杯含有对等 8 维数值特征库的饮品执行加权空间夹角运算；其中如环形轴数据“时间 (0-24h环)”及定界数据“温度”会再通过非线性的差异算法转换为量级正收益补偿，得出精确到百分比的 **Similarity Score**。
+1. **加权余弦相似度 (Weighted Cosine Similarity)**：
+   使用动态计算好的 8 维权重数组 `W_final`，对本地 400+ 杯含有对等 8 维数值特征库的饮品执行加权空间夹角运算；其中如环形轴数据"时间 (0-24h环)"及定界数据"温度"会再通过非线性的差异算法转换为量级正收益补偿，得出精确到百分比的 **Similarity Score**。
+2. **双轨制融合排序**：
+   采用**附加分代数系统 (Bonus Score System)**，根据缺料数量注入动态 Bonus（缺0项+0.15，缺1项+0.08，缺2项+0.03），实现"可做度"与"适配度"的平滑融合。
 
-#### 第四步：融合双轨制与动态激励排序 (Unified Blended Sorting)
-针对“材料缺失”与“适配度”这两个维度的博弈，系统抛弃了生硬的 A/B 轨分流，转而采用一种更平滑的**附加分代数系统 (Bonus Score System)**：
-1. **打破硬过滤边界**：所有饮品不再被切分为“可做”与“不可做”，而是通过 `allDrinks` 统一排序。
-2. **库存加权激励**：在计算完余弦相似度后，系统会根据缺料数量注入动态 Bonus：
-   - 缺 0 项：`+0.15` (极高激励)
-   - 缺 1 项：`+0.08`
-   - 缺 2 项：`+0.03`
-   - 缺 3+ 项：不再给予额外分。
-3. **分水岭自适应**：这种做法保证了即使一杯推荐酒相似度极高但缺 1 种料，它依然能排在相似度一般但材料齐全的酒之后，实现了列表连续性的平滑过渡。
+#### 第五步：东方哲学与动态意境文案生成 (Creative Copywriting)
+**Agent 4 (CreativeCopywriter)** 负责生成有温度的UI文案：
 
-#### 第五步：东方哲学与动态意境 Hydration (Live LLM Quotes)
 为了让推荐更具灵魂，系统引入了**“由表及里”**的两阶段文案渲染策略：
 1. **本地骨架文案 (Static Fallback)**：基于 [philosophyTags.js](file:///d:/AI/MixLab/moodmix-0228/src/engine/philosophyTags.js) 中的五行生克矩阵，根据 Drink Qi 和 User Qi 的相互关系（生/克/同等）秒出本地预设短评，保证界面 0 延迟响应。
-2. **大模型动态 Hydration**：在前端展示的同时，异步向后端 [generate_quotes](file:///d:/AI/MixLab/moodmix-0228/server/llmProxy.js) 发起 Batch 请求。
-   - **极简大锅炖 (Batch Prompt)**：将 Top 15 杯酒一次性批处理，让 LLM 针对每一杯生成高度契合其名字及五行逻辑的“量身定制诗词”。
-   - **哈希缓存滚雪球 (Fingerprint Caching)**：利用 `drinkName + wuxingLogic` 作为联合指纹存储于 `localStorage`。已生成过的诗句终身复用，实现 0 Token 二次消耗。
+2. **大模型动态 Hydration**：在前端展示的同时，异步向后端 `/api/generate_copy` 发起请求。
+   - **因果叙事**：将匹配分值转化为有温度的解释
+   - **哲学润色**：利用东方哲学风格生成专属调理语录
+   - **动态变体**：每次生成不同的文案，确保不重复
 3. **视觉平滑替换**：后端诗句返回后，前端通过 CSS opacity 渐变完成从“标准文案”到“大师短诗”的平滑焕新。
+
+#### 第六步：全流程验证与质量评分 (Validation & Optimization)
+**Agent 5 (ValidatorOptimizer)** 作为质量守门员，执行以下验证：
+
+1. **一致性验证**：检查Agent链是否逻辑自洽
+   - 情绪极性与策略是否匹配（负面情绪不应使用共鸣策略）
+   - 五行映射是否一致
+2. **冲突检测**：发现维度间的矛盾
+   - 向量维度是否在有效范围内
+   - 权重是否正确归一化
+3. **质量评分**：计算整体质量分数 (0-100%)
+4. **自动优化**：修复可识别的问题（如权重归一化、向量越界截断）
+
+输出验证报告，标记是否需要人工复核。
 
 ### 4.2. 外部灵感库探测链路 (Explore Tab Flow)
 1.  **异步数据池对接**：通过 `api/exploreDrinks.js` 以高并发防抖的形式，连接 TheCocktailDB 的 API。
@@ -100,7 +178,40 @@ moodmix-0228/
 1.  **脱离人工标注**：该应用舍弃了繁重的逐一为饮品打分模式。采用创新的**底层配料知识驱动**（Ingredient Knowledge Base）。
 2.  **逆向配方求导**：在每次构建或录入新酒谱时，脚本会提取配方中的毫升数占比作为配重。将每一种例如“朗姆酒”或“柠檬汁”的基础味蕾指标提取，并在剔除装饰物料（如 Garnish 薄荷叶、盐边等）后执行加权计算，进而自下而上地自动化求证出这杯饮品的八阶风味特征。
 
-## 5. 项目设计原则回顾
+## 5. 多智能体系统设计原则 (Multi-Agent Design Principles)
+
+### 5.1 关注点分离 (Separation of Concerns)
+每个Agent只负责一个明确的认知任务：
+- **SemanticDistiller**：专注于NLU，不关心后续如何使用数据
+- **PatternAnalyzer**：专注于辨证逻辑，不依赖具体实现细节
+- **VectorTranslator**：专注于数学映射，独立于业务逻辑
+- **CreativeCopywriter**：专注于文案生成，可复用模板或LLM
+- **ValidatorOptimizer**：专注于质量验证，不修改业务逻辑
+
+### 5.2 共享上下文 (Shared Context)
+Agent间通过 `AgentContext` 对象传递状态：
+```javascript
+context.setIntermediate('moodData', result);        // Agent 1 输出
+data = context.getIntermediate('moodData');         // Agent 2 输入
+```
+这种设计避免了复杂的参数传递，同时保留了完整的执行轨迹便于调试。
+
+### 5.3 独立降级 (Independent Fallback)
+每个Agent都有独立的错误处理和降级机制：
+- Agent 1 失败 → 使用本地关键词分析
+- Agent 4 失败 → 使用模板文案
+- Agent 5 失败 → 返回警告但不阻断流程
+
+### 5.4 可观测性 (Observability)
+每个Agent输出结构化日志：
+```
+[AgentName] 执行完成 (duration ms)
+   - 关键输出1: value1
+   - 关键输出2: value2
+```
+开发者视图可清晰追踪每一步的执行结果。
+
+## 6. 项目设计原则回顾
 - **无状态化组件 (Stateless Preferred)**：通过自上而下传递 props 使呈现层高度纯粹，降低意外渲染。
 - **最小破环面积 (Blast Radius)**：所有的功能扩充都尽量封闭在一套体系内（例如引擎分离），防止主线程 `App.js` 由于代码行数的膨胀导致认知过载。
   - **全链路超时与重试机制 (Resilient API)**：

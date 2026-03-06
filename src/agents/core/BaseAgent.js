@@ -145,7 +145,6 @@ export class BaseAgent {
    * 结构化日志输出
    */
   log(level, message, data = null) {
-    const timestamp = new Date().toISOString();
     const prefix = `[${this.name}]`;
     
     switch (level) {

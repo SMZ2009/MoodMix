@@ -27,7 +27,6 @@ export class CreativeCopywriter extends BaseAgent {
    */
   validateInput(context) {
     const matches = context.getIntermediate('matches');
-    const vectorResult = context.getIntermediate('vectorResult');
     
     if (!matches || matches.length === 0) {
       return { valid: false, reason: 'No matched drinks available' };

@@ -12,7 +12,6 @@ import HelperModal from './components/HelperModal';
 import FocusModeView from './components/FocusModeView';
 import RecommendationGallery from './components/RecommendationGallery';
 
-import { analyzeMood } from './api/moodAnalyzer';
 import { evaluateAndSortDrinks } from './engine/vectorEngine';
 import { executeRecommendationPipeline, extractRecommendationResult } from './agents';
 import { generatePhilosophyTags } from './engine/philosophyTags';

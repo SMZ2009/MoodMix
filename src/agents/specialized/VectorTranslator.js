@@ -163,6 +163,9 @@ export class VectorTranslator extends BaseAgent {
         case 7: // action - 受 demand 影响
           adjustment = kappa.demand * intensities.demand;
           break;
+        
+        default:
+          break;
       }
       
       return base + adjustment;

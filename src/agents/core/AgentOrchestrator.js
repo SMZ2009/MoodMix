@@ -139,6 +139,9 @@ export class AgentOrchestrator {
             console.log(`│    - 发现问题: ${validation.issues.length}个`);
           }
           break;
+        
+        default:
+          break;
       }
     } else {
       console.log(`│ ❌ Failed: ${result.error}`);

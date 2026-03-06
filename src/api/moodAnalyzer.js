@@ -258,9 +258,9 @@ export async function analyzeMood(userInput, options = {}) {
             } else {
                 console.error(`[MoodAnalyzer] 分析失败 (尝试 ${attempt}/${maxRetries + 1}):`, error.message);
                 if (attempt <= maxRetries) {
-                    // 等待一小段时间后重试
-                    console.log(`[MoodAnalyzer] 等待 ${attempt * 1000}ms 后进行重试...`);
-                    await new Promise(resolve => setTimeout(resolve, attempt * 1000));
+                    const retryDelay = attempt * 1000;
+                    console.log(`[MoodAnalyzer] 等待 ${retryDelay}ms 后进行重试...`);
+                    await new Promise(resolve => setTimeout(resolve, retryDelay));
                     continue;
                 }
             }

@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import {
-  ChevronLeft, Heart, HelpCircle, Play, Flame, Search, Bell,
+  ChevronLeft, Heart, HelpCircle, Flame, Search, Bell,
   Martini, User, Settings2, Maximize2,
   Wine, Droplets, ThermometerSnowflake, Edit3,
   Sparkles, Lightbulb, GlassWater,
@@ -28,14 +28,6 @@ const iconMap = {
   GlassWater,
   Flame
 };
-
-const MOOD_TAGS = [
-  { label: '#放松', value: '#放松' },
-  { label: '#狂欢', value: '#狂欢' },
-  { label: '#浪漫', value: '#浪漫' },
-  { label: '#独处', value: '#独处' },
-  { label: '#难受', value: '#难受' }
-];
 
 // 默认分类（API 加载后会被替换）
 const DEFAULT_EXPLORE_CATEGORIES = [
@@ -938,7 +930,6 @@ const App = () => {
   const [dakaDrinks, setDakaDrinks] = useState([]);
   const [showDakaModal, setShowDakaModal] = useState(false);
   const [dakaDrink, setDakaDrink] = useState(null);
-  const [dakaNotes, setDakaNotes] = useState({});
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deletingNoteId, setDeletingNoteId] = useState(null);
 
@@ -981,12 +972,6 @@ const App = () => {
   const handleCancelDeleteNote = () => {
     setShowDeleteConfirm(false);
     setDeletingNoteId(null);
-  };
-
-  const handleDeleteDakaNote = (drinkId) => {
-    collectionStorage.removeDakaNote(drinkId);
-    const updatedDakaDrinks = collectionStorage.getDakaNotes();
-    setDakaDrinks(updatedDakaDrinks);
   };
 
   // ─── TheCocktailDB API Hook ───
@@ -1289,9 +1274,6 @@ const App = () => {
 
     // Generate recommendations after intervention
     setTimeout(async () => {
-      let pool = [];
-      const hour = new Date().getHours();
-
       // 使用传入的 type 参数而不是 state 中的 interventionType（因为 state 更新是异步的）
       const currentInterventionType = type || interventionType;
 

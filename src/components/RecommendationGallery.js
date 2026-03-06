@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, HelpCircle, Shuffle, Settings2, Heart, Wine, Lightbulb, User, Droplets, GlassWater, Snowflake, Sparkles, Check, AlertCircle } from 'lucide-react';
+import { ChevronLeft, Shuffle, Heart, Wine, Droplets, GlassWater, Snowflake, Check, AlertCircle } from 'lucide-react';
 import { generatePhilosophyTags } from '../engine/philosophyTags';
 
 const RecommendationGallery = ({ drinks, onBack, onStartMaking, onShuffle, onNavigate, onLikeDrink, onUnlikeDrink, favoriteDrinks = [], moodResult = null }) => {

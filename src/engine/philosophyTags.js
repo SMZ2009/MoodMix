@@ -280,8 +280,7 @@ export function generatePhilosophyTags(dimensions, moodData = null, drinkName = 
 
     // 获取五行相互作用结果矩阵
     const relationResult = WUXING_RELATIONS[drinkQi][userQi];
-    const relationType = relationResult.relation; // 生, 克, 同, 被生, 被克
-    const logicDesc = relationResult.logic;       // "木生火", "金克木"
+    const relationType = relationResult.relation;
 
     // 构造 Tags (Minimalist Poetic Style)
     const tags = [];

@@ -57,6 +57,8 @@ app.post('/api/analyze_mood', async (req, res) => {
 
   const { user_input, current_time } = req.body;
 
+  console.log('[API] /api/analyze_mood called, user_input:', user_input);
+
   if (!user_input) {
     return res.status(400).json({
       success: false,
@@ -68,6 +70,8 @@ app.post('/api/analyze_mood', async (req, res) => {
     // 构建 system prompt
     const systemPrompt = buildSystemPrompt();
     const userMessage = buildUserMessage(user_input, current_time);
+
+    console.log('[API] Calling SiliconFlow API, model:', SILICONFLOW_MODEL);
 
     // 调用 SiliconFlow API
     const response = await fetch(SILICONFLOW_API_URL, {

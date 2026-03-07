@@ -50,7 +50,7 @@ const MoodInputSection = ({
   moodInput, setMoodInput, selectedMood, setSelectedMood, onGenerate, buttonFeedback, isMixing,
   ingredientCount, onEditIngredients, onNavigate, activeTab
 }) => (
-  <div className="flex-1 flex flex-col items-center px-4 sm:px-6 pt-5 sm:pt-6 pb-16 sm:pb-20 bg-dreamy-gradient w-full min-h-screen h-screen relative overflow-hidden">
+  <div className="flex-1 flex flex-col items-center px-4 sm:px-6 pt-5 sm:pt-6 pb-16 sm:pb-20 bg-dreamy-gradient w-full min-h-screen h-screen relative overflow-hidden max-w-4xl mx-auto">
     {/* Background Blobs */}
     <div className="absolute top-0 left-1/4 w-64 sm:w-96 h-64 sm:h-96 bg-purple-200/40 rounded-full blur-[100px] pointer-events-none mix-blend-multiply"></div>
     <div className="absolute top-1/4 right-0 w-56 sm:w-80 h-56 sm:h-80 bg-blue-200/40 rounded-full blur-[80px] pointer-events-none mix-blend-multiply"></div>
@@ -316,7 +316,7 @@ const ResultsSection = ({
   }, [onIndexChange]);
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden relative bg-dreamy-gradient h-screen">
+    <div className="flex-1 flex flex-col overflow-hidden relative bg-dreamy-gradient h-screen max-w-4xl mx-auto">
       <header className="flex items-center justify-between p-5 pt-8 flex-none z-20">
         <InteractiveButton
           variant="icon"
@@ -1436,7 +1436,7 @@ const App = () => {
   return (
     <div
       ref={mainContentRef}
-      className={`min-h-screen font-sans w-full relative shadow-2xl flex flex-col transition-colors duration-700 overflow-y-auto ${getBackgroundClass()}`}
+      className={`min-h-screen font-sans w-full max-w-4xl mx-auto relative shadow-2xl flex flex-col transition-colors duration-700 overflow-y-auto ${getBackgroundClass()}`}
       tabIndex={-1}
     >
       <main className={`flex-1 flex flex-col w-full relative`}>

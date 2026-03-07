@@ -119,7 +119,7 @@ const RecommendationGallery = ({ drinks, onBack, onStartMaking, onShuffle, onNav
   };
 
   return (
-    <div className="relative flex h-screen w-full flex-col overflow-hidden bg-dreamy-gradient">
+    <div className="relative flex h-screen w-full max-w-4xl mx-auto flex-col overflow-hidden bg-dreamy-gradient">
       {/* Animated Background Elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-[-20%] left-[-10%] h-[600px] w-[600px] rounded-full bg-gradient-to-br from-purple-200/40 to-blue-200/20 blur-[120px] animate-pulse mix-blend-multiply" style={{ animationDuration: '4s' }} />

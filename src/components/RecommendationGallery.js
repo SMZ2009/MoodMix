@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ChevronLeft, Shuffle, Heart, Wine, Droplets, GlassWater, Snowflake, Check, AlertCircle } from 'lucide-react';
 import { generatePhilosophyTags } from '../engine/philosophyTags';
 
-const RecommendationGallery = ({ drinks, onBack, onStartMaking, onShuffle, onNavigate, onLikeDrink, onUnlikeDrink, favoriteDrinks = [], moodResult = null }) => {
+const RecommendationGallery = ({ drinks, onBack, onStartMaking, onShuffle, onNavigate, onLikeDrink, onUnlikeDrink, favoriteDrinks = [], moodResult = null, customQuotes = {} }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [touchStart, setTouchStart] = useState(null);
   const [touchEnd, setTouchEnd] = useState(null);
@@ -190,11 +190,12 @@ const RecommendationGallery = ({ drinks, onBack, onStartMaking, onShuffle, onNav
                     }
                   }}
                 >
-                  <CardContent
+                <CardContent
                     drink={drink}
                     isActive={index === currentIndex}
                     isLiked={favoriteDrinks.some(d => d.id === drink.id)}
                     moodResult={moodResult}
+                    customQuote={customQuotes?.[drink.id]}
                     onLike={() => {
                       if (onLikeDrink) onLikeDrink(drink);
                     }}
@@ -228,7 +229,7 @@ const RecommendationGallery = ({ drinks, onBack, onStartMaking, onShuffle, onNav
 };
 
 // Enhanced Card Content Component
-const CardContent = ({ drink, isActive, isLiked, moodResult, onLike, onUnlike }) => {
+const CardContent = ({ drink, isActive, isLiked, moodResult, customQuote, onLike, onUnlike }) => {
   const philosophy = generatePhilosophyTags(drink.dimensions, moodResult, drink.name);
 
   return (
@@ -336,6 +337,16 @@ const CardContent = ({ drink, isActive, isLiked, moodResult, onLike, onUnlike })
             ))}
           </div>
         </div>
+
+        {/* Custom Quote from LLM */}
+        {customQuote && (
+          <p 
+            className="text-xs text-indigo-200 italic leading-relaxed mb-2 px-2"
+            style={{ textShadow: '0 0 8px rgba(165, 180, 252, 0.3)' }}
+          >
+            {customQuote}
+          </p>
+        )}
 
         {/* Ingredients */}
         {(drink.briefIngredients || (drink.ingredients && drink.ingredients.length > 0)) && (

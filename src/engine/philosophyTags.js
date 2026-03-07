@@ -1,362 +1,555 @@
 /**
- * 东方哲学标签生成器 (Philosophy Tags Generator v2.0 - 五行生克版)
- * 抛弃随机伪散列，基于用户心境(User_Qi)与饮品物理特性(Drink_Qi)的底层五行映射。
+ * 东方哲学标签与推荐语生成器 v4.0
+ * 
+ * 设计原则：
+ *   标签和推荐语共同讲述一个 "辨证施饮" 故事链：
+ *   你现在怎么了 → 需要什么调理 → 这杯酒喝起来什么感觉
+ * 
+ * 三枚标签连读示例：
+ *   「心绪浮躁」→「以水沉降」→「清冽·安神」
+ *   「郁气难舒」→「借金疏散」→「辛香·开窍」
+ *   「兴致正浓」→「同火共振」→「烈感·上扬」
  */
 
-// === 1. 五行生克推演矩阵 ===
-// 关系定义：[Drink_Qi][User_Qi] 
-// 含义：这杯酒(Drink) 对 用户(User) 起了什么作用？
-// 生 (Drink生User) / 被生 (User生Drink) / 克 (Drink克User) / 被克 (User克Drink) / 同 (同气相求)
-const WUXING_RELATIONS = {
-    // 饮品为木 (酸收条达)
-    '木': {
-        '水': { relation: '被生', logic: '水生木', desc: '以生发之气，唤醒沉迷的深渊' },
-        '火': { relation: '生', logic: '木生火', desc: '顺着火势，把体内淤堵一并散尽' },
-        '木': { relation: '同', logic: '木遇木', desc: '同气相求，让躁动找到最佳出口' },
-        '金': { relation: '被克', logic: '金克木', desc: '以酸楚的生机，破除肃杀的死局' },
-        '土': { relation: '克', logic: '木克土', desc: '像竹根破石，以锐利之酸劈开泥沼' },
-    },
-    // 饮品为火 (辛热升散)
-    '火': {
-        '木': { relation: '被生', logic: '木生火', desc: '借你的火种，点燃这杯灼热的狂欢' },
-        '土': { relation: '生', logic: '火生土', desc: '以温热之力，烘暖冰冷的郁结' },
-        '火': { relation: '同', logic: '火遇火', desc: '不灭你的火，以火引火，烧透方休' },
-        '水': { relation: '被克', logic: '水克火', desc: '以极端的灼热，对抗彻骨的寒凉' },
-        '金': { relation: '克', logic: '火克金', desc: '烈火熔金，强制化解紧绷的防线' },
-    },
-    // 饮品为土 (甘厚养中)
-    '土': {
-        '火': { relation: '被生', logic: '火生土', desc: '承接所有的升散，将它们落地为安' },
-        '金': { relation: '生', logic: '土生金', desc: '厚德载物，孕育出重新出发的锋芒' },
-        '土': { relation: '同', logic: '土遇土', desc: '两相宽厚，在这里你可以绝对安全' },
-        '木': { relation: '被克', logic: '木克土', desc: '以甘厚之味，把所有锋利悉数裹住' },
-        '水': { relation: '克', logic: '土克水', desc: '筑起堤坝，拦住四散溃逃的精力' },
-    },
-    // 饮品为金 (辛凉肃清)
-    '金': {
-        '土': { relation: '被生', logic: '土生金', desc: '从浑浊泥土中，萃取出最纯粹的凛冽' },
-        '水': { relation: '生', logic: '金生水', desc: '以收敛之气，化为滋养心神的第一滴露' },
-        '金': { relation: '同', logic: '金遇金', desc: '极致的孤冷，是此刻最懂你的知音' },
-        '火': { relation: '被克', logic: '火克金', desc: '借肃杀之心，强行切断内心的灼烧' },
-        '木': { relation: '克', logic: '金克木', desc: '像秋面西风，以肃杀之气收住疯长' },
-    },
-    // 饮品为水 (苦寒沉降)
-    '水': {
-        '金': { relation: '被生', logic: '金生水', desc: '承接所有锋芒，化作绕指的柔波' },
-        '木': { relation: '生', logic: '水生木', desc: '像根下的深泉，以沉静养住躁动' },
-        '水': { relation: '同', logic: '水遇水', desc: '深海的拥抱，让疲惫彻底下沉' },
-        '土': { relation: '被克', logic: '土克水', desc: '以苦寒的底色，湿润板结的内心' },
-        '火': { relation: '克', logic: '水克火', desc: '以彻骨的冰潭，强制扑灭无名邪火' },
-    }
-};
+import { determineDrinkWuXing } from './wuxingMapper';
 
-// === 2. 五行话术文案库 (Minimalist Poetic Style) ===
-// 结构：quotes[User_Qi][Relation] -> []
-// 原则：8-12字，诗意凝练，节奏感强
-const QUOTE_LIBRARY = {
-    '木': { // 用户情绪属木（怒/烦躁/想发泄）
-        '生': [
-            '「借烈散郁，酣畅淋漓」',
-            '「火势燎原，烦忧尽散」',
-            '「一饮灼心，郁结皆空」'
-        ],
-        '克': [
-            '「辛凉收锋，躁气自平」',
-            '「凛冽入喉，烦丝斩断」',
-            '「清凉一饮，边界自守」'
-        ],
-        '同': [
-            '「同气相求，锋芒共释」',
-            '「酸涩共振，懂你所向」',
-            '「陪你劈开，这漫漫长夜」'
-        ],
-        '被生': [
-            '「苦水沉降，锚定心神」',
-            '「深泉静养，躁气自消」',
-            '「沉静之味，悬崖之锚」'
-        ],
-        '被克': [
-            '「甘柔化锋，一饮皆平」',
-            '「甜润入心，怒火自熄」',
-            '「宽厚之味，安稳降落」'
-        ]
-    },
-    '火': { // 用户情绪属火（喜/亢奋/嗨/气血上冲）
-        '生': [
-            '「甘润落地，飘然归宁」',
-            '「甜厚承接，亢奋有终」',
-            '「温润入腹，心神自安」'
-        ],
-        '克': [
-            '「苦寒一饮，邪火自熄」',
-            '「冰潭入喉，躁动皆止」',
-            '「极冷镇心，狂热自平」'
-        ],
-        '同': [
-            '「以火引火，烧透方休」',
-            '「烈火烹油，今夜无刹」',
-            '「同频灼热，致敬狂欢」'
-        ],
-        '被生': [
-            '「酸爽添柴，火势更旺」',
-            '「生机托举，灵魂高飞」',
-            '「果香一点，火上浇花」'
-        ],
-        '被克': [
-            '「烈火熔金，破局有方」',
-            '「以热破冰，锋芒毕露」',
-            '「灼热之势，融化冰层」'
-        ]
-    },
-    '土': { // 用户情绪属土（思/焦虑/内耗/郁结）
-        '生': [
-            '「甘中藏锋，破茧而出」',
-            '「甜润护刃，刺破虚妄」',
-            '「厚德载物，锋芒渐露」'
-        ],
-        '克': [
-            '「酸锐破网，困局自开」',
-            '「竹根破石，泥沼自散」',
-            '「酸收之味，撕开焦虑」'
-        ],
-        '同': [
-            '「两相宽厚，卸下防备」',
-            '「甜润包容，接纳狼狈」',
-            '「柔软筑墙，挡风遮雨」'
-        ],
-        '被生': [
-            '「温热落地，焦虑归宁」',
-            '「火种入心，淤堵自化」',
-            '「烤暖思绪，温暖归宿」'
-        ],
-        '被克': [
-            '「苦堤拦水，精力归拢」',
-            '「深海静流，淹没喧嚣」',
-            '「物理下沉，心智自稳」'
-        ]
-    },
-    '金': { // 用户情绪属金（悲/低落/空）
-        '生': [
-            '「收敛成露，滋养心神」',
-            '「悲凉凝结，沉潜成诗」',
-            '「落花成酿，舍不得尽」'
-        ],
-        '克': [
-            '「烈酒一盏，斩断忧思」',
-            '「灼热穿喉，打断悲歌」',
-            '「以暴制暴，忧思尽断」'
-        ],
-        '同': [
-            '「孤冷相遇，无言相懂」',
-            '「辛凉碰杯，破碎共鸣」',
-            '「不劝快乐，陪你枯坐」'
-        ],
-        '被生': [
-            '「土中萃冽，懂你所悲」',
-            '「甘甜御寒，风雪稍歇」',
-            '「悲凉尽头，一丝回甘」'
-        ],
-        '被克': [
-            '「酸生悸动，枯木逢春」',
-            '「生发之味，死局自破」',
-            '「刺痛为证，曾经活过」'
-        ]
-    },
-    '水': { // 用户情绪属水（恐/疲惫/虚/透支）
-        '生': [
-            '「生发之气，深渊开花」',
-            '「顺水推舟，疲惫化养」',
-            '「木赖水生，躯壳开花」'
-        ],
-        '克': [
-            '「甘厚筑堤，挡住无力」',
-            '「甜润绵长，填平沟壑」',
-            '「脾胃之暖，对抗彻骨」'
-        ],
-        '同': [
-            '「深海拥抱，允许下沉」',
-            '「同向寒渊，累了就沉」',
-            '「苦寒相依，懂你所疲」'
-        ],
-        '被生': [
-            '「锋芒化波，温柔绕指」',
-            '「肃杀成冰，身躯自凝」',
-            '「收拢心神，苦水回正」'
-        ],
-        '被克': [
-            '「灼热驱寒，骨中寒夜散」',
-            '「冰火拉扯，生命回升」',
-            '「沸煮深寒，热汗重生」'
-        ]
-    }
+// ============================================================
+//  常量与映射表
+// ============================================================
+
+const WUXING_CN = { wood: '木', fire: '火', earth: '土', metal: '金', water: '水' };
+
+/**
+ * 五行相生相克关系 → 用户可感知的 4 字动词短语
+ * key = 关系类型, value = 函数(drinkElement) => 标签文本
+ * 
+ * 设计要点：
+ *   - 每个短语以"以/借/同"开头，统一语感
+ *   - 动词必须暗示调理方向（升/降/散/收/润/泄）
+ *   - 总长度控制在 4-6 个汉字，不超过 7 个
+ */
+const RELATION_PHRASES = {
+    '生':   (el) => `借${el}生发`,   // 用户生饮品：用户的能量往外走，借饮品顺势升发
+    '被生': (el) => `以${el}滋养`,   // 饮品生用户：饮品补给用户
+    '克':   (el) => `以${el}制衡`,   // 饮品克用户：饮品约束用户过亢的气
+    '被克': (el) => `借${el}收敛`,   // 用户克饮品：用户主动收束
+    '同':   (el) => `同${el}共振`,   // 同行：放大当前状态
 };
 
 /**
- * 确定用户的五行属性 (天时病灶)
+ * 六维 → 用户可感知的"状态描述词"
+ * 
+ * 设计要点：
+ *   - 不用中医术语（不说"肝气郁结"），说人话（"郁气难舒"）
+ *   - 正向/负向各一套，由 polarity 决定走哪条
+ *   - 每个词都要让用户觉得"对，说的就是我现在的状态"
  */
-function determineUserWuXing(moodData) {
-    if (!moodData) return '土'; // 默认状态(平和平庸)
+const STATE_DESCRIPTORS = {
+    emotion: {
+        positive: {
+            wood:  '心气舒展',
+            fire:  '兴致正浓',
+            earth: '踏实安稳',
+            metal: '清醒自在',
+            water: '沉静深远',
+        },
+        negative: {
+            wood:  '郁气难舒',
+            fire:  '心绪浮躁',
+            earth: '倦怠沉闷',
+            metal: '感伤低落',
+            water: '不安焦虑',
+        },
+    },
+    somatic: {
+        positive: {
+            hot:  '身暖气足',
+            cold: '体凉神清',
+            neutral: '身心安适',
+        },
+        negative: {
+            hot:  '燥热难安',
+            cold: '寒凉乏力',
+            neutral: '气虚体倦',
+        },
+    },
+    cognitive: {
+        positive: '思路通透',
+        negative: '神思困顿',
+        scattered: '思绪纷飞',
+    },
+    demand: {
+        release:  '想要释放',
+        calm:     '想要安静',
+        energize: '想要提神',
+        social:   '想要热闹',
+        comfort:  '想要慰藉',
+    },
+};
 
-    const intensities = {
-        somatic: moodData.somatic?.physical?.intensity || 0,
-        emotion: moodData.emotion?.physical?.intensity || 0,
-        cognitive: moodData.cognitive?.physical?.intensity || 0,
-        demand: moodData.demand?.physical?.intensity || 0,
-        time: moodData.time?.physical?.intensity || 0
+/**
+ * 体感组合表：(温度区间, 质地区间) → 体感短语
+ * 
+ * 设计要点：
+ *   - 两个维度交叉，覆盖所有常见情况，避免大量 if-else
+ *   - 格式统一为 "XX·YY"，4-6 字
+ *   - "·" 前描述入口第一感，"·" 后描述饮后走向
+ */
+const SENSORY_MATRIX = {
+    // temp: cold(-5~-2), cool(-2~0), neutral(0~1), warm(1~3), hot(3~5)
+    // texture: thin(-3~-1), smooth(-1~1), thick(1~3)
+    'cold_thin':    '清冽·沉降',
+    'cold_smooth':  '冰润·收束',
+    'cold_thick':   '冰感·绵密',
+    'cool_thin':    '微凉·通透',
+    'cool_smooth':  '凉爽·顺滑',
+    'cool_thick':   '凉润·醇厚',
+    'neutral_thin': '清淡·轻盈',
+    'neutral_smooth':'柔和·平稳',
+    'neutral_thick': '醇厚·饱满',
+    'warm_thin':    '温透·升散',
+    'warm_smooth':  '温润·舒展',
+    'warm_thick':   '温厚·绵长',
+    'hot_thin':     '灼烈·冲击',
+    'hot_smooth':   '热感·蔓延',
+    'hot_thick':    '浓烈·深沉',
+};
+
+/**
+ * 味觉修饰词：当味觉特征突出时，替换或增强体感标签
+ */
+const TASTE_MODIFIERS = {
+    sour:  { threshold: 4, word: '酸爽', effect: '开窍' },
+    sweet: { threshold: 5, word: '甘润', effect: '缓释' },
+    bitter:{ threshold: 4, word: '微苦', effect: '清心' },
+    spicy: { threshold: 3, word: '辛香', effect: '升提' },
+};
+
+// ============================================================
+//  标签生成函数
+// ============================================================
+
+/**
+ * 标签1：辨证标签 —— "你现在怎么了"
+ * 
+ * 逻辑：
+ *   1. 取 intensity 最高的维度作为主诉
+ *   2. 根据 polarity (正/负) 选择描述词
+ *   3. 如果有次高维度且 intensity > 0.6，附加补充
+ * 
+ * @param {Object} moodData - Agent 1 输出的六维数据
+ * @param {Object} patternAnalysis - Agent 2 输出的辨证结论
+ * @returns {string} 如 "郁气难舒" / "心绪浮躁，神思困顿"
+ */
+function generateDiagnosisTag(moodData, patternAnalysis) {
+    if (!moodData || !patternAnalysis) {
+        return '待辨证';
+    }
+
+    const polarity = patternAnalysis?.polarity?.type || 'negative';
+    const userWuxing = patternAnalysis?.wuxing?.user || 'earth';
+
+    // 收集各维度的 intensity
+    const dims = [
+        { key: 'emotion',   intensity: moodData.emotion?.intensity ?? 0.5 },
+        { key: 'somatic',   intensity: moodData.somatic?.intensity ?? 0.3 },
+        { key: 'cognitive',  intensity: moodData.cognitive?.intensity ?? 0.3 },
+        { key: 'demand',    intensity: moodData.demand?.intensity ?? 0.3 },
+    ];
+
+    // 按 intensity 降序
+    dims.sort((a, b) => b.intensity - a.intensity);
+    const primary = dims[0];
+    const secondary = dims[1];
+
+    // --- 主诉标签 ---
+    let mainTag = '';
+
+    if (primary.key === 'emotion') {
+        const pool = polarity === 'positive'
+            ? STATE_DESCRIPTORS.emotion.positive
+            : STATE_DESCRIPTORS.emotion.negative;
+        mainTag = pool[userWuxing] || pool.earth;
+
+    } else if (primary.key === 'somatic') {
+        // 判断寒热
+        const tempVal = moodData.somatic?.drinkMapping?.temperature ?? 0;
+        const heatKey = tempVal > 1 ? 'hot' : tempVal < -1 ? 'cold' : 'neutral';
+        const pool = polarity === 'positive'
+            ? STATE_DESCRIPTORS.somatic.positive
+            : STATE_DESCRIPTORS.somatic.negative;
+        mainTag = pool[heatKey] || pool.neutral;
+
+    } else if (primary.key === 'cognitive') {
+        const cogState = moodData.cognitive?.physical?.state || '';
+        if (cogState.includes('散') || cogState.includes('乱')) {
+            mainTag = STATE_DESCRIPTORS.cognitive.scattered;
+        } else {
+            mainTag = polarity === 'positive'
+                ? STATE_DESCRIPTORS.cognitive.positive
+                : STATE_DESCRIPTORS.cognitive.negative;
+        }
+
+    } else if (primary.key === 'demand') {
+        // 从 demand 的物理映射推断诉求类型
+        const actionScore = moodData.demand?.drinkMapping?.actionScore ?? 2;
+        if (actionScore >= 4) mainTag = STATE_DESCRIPTORS.demand.release;
+        else if (actionScore <= 1) mainTag = STATE_DESCRIPTORS.demand.calm;
+        else mainTag = STATE_DESCRIPTORS.demand.comfort;
+    }
+
+    // --- 如果次要维度也很强 (intensity > 0.6)，附加补充 ---
+    if (secondary && secondary.intensity > 0.6 && primary.intensity - secondary.intensity < 0.2) {
+        let subTag = '';
+        if (secondary.key === 'cognitive') {
+            const cogState = moodData.cognitive?.physical?.state || '';
+            if (cogState.includes('散') || cogState.includes('乱')) {
+                subTag = STATE_DESCRIPTORS.cognitive.scattered;
+            } else {
+                subTag = polarity === 'positive'
+                    ? STATE_DESCRIPTORS.cognitive.positive
+                    : STATE_DESCRIPTORS.cognitive.negative;
+            }
+        } else if (secondary.key === 'somatic') {
+            const tempVal = moodData.somatic?.drinkMapping?.temperature ?? 0;
+            const heatKey = tempVal > 1 ? 'hot' : tempVal < -1 ? 'cold' : 'neutral';
+            subTag = (polarity === 'positive'
+                ? STATE_DESCRIPTORS.somatic.positive
+                : STATE_DESCRIPTORS.somatic.negative)[heatKey];
+        }
+        // 如果有有效的次要标签，且和主标签不重复
+        if (subTag && subTag !== mainTag) {
+            return `${mainTag}，${subTag}`;
+        }
+    }
+
+    return mainTag || '气机待调';
+}
+
+/**
+ * 标签2：策略标签 —— "需要什么调理"
+ * 
+ * 逻辑：
+ *   1. 确定用户五行和饮品五行的关系
+ *   2. 输出一个动作短语，格式 "以X调Y" / "借X生发"
+ *   3. 控制在 4-6 字，不超过 7 字
+ *
+ * @param {Object} patternAnalysis - Agent 2 输出
+ * @param {string} drinkWuXing - 饮品五行 (英文 key)
+ * @returns {string} 如 "以金制衡" / "同火共振"
+ */
+function generateStrategyTag(patternAnalysis, drinkWuXing) {
+    if (!patternAnalysis || !drinkWuXing) {
+        return '调和气机';
+    }
+
+    const userWuxing = patternAnalysis?.wuxing?.user || 'earth';
+    const userEl = WUXING_CN[userWuxing] || '气';
+    const drinkEl = WUXING_CN[drinkWuXing] || '气';
+
+    const relation = getWuxingRelation(userWuxing, drinkWuXing);
+    const phraseBuilder = RELATION_PHRASES[relation];
+
+    return phraseBuilder ? phraseBuilder(drinkEl) : `${drinkEl}调养`;
+}
+
+/**
+ * 标签3：体感标签 —— "喝起来什么感觉"
+ * 
+ * 逻辑：
+ *   1. 温度 × 质地 → 查 SENSORY_MATRIX 得到基础体感
+ *   2. 如果某味觉维度特别突出（超过阈值），用味觉修饰替换
+ *   3. 格式统一 "XX·YY"
+ *
+ * @param {Object} dimensions - 饮品物理维度
+ * @returns {string} 如 "清冽·沉降" / "辛香·升提"
+ */
+function generateSensoryTag(dimensions) {
+    if (!dimensions) {
+        return '口感待品';
+    }
+
+    // --- Step 1: 检查是否有突出味觉 ---
+    const taste = dimensions.taste || {};
+    let dominantTaste = null;
+    let maxExcess = 0; // 超过阈值最多的味觉
+    for (const [key, config] of Object.entries(TASTE_MODIFIERS)) {
+        const val = taste[key] ?? 0;
+        const excess = val - config.threshold;
+        if (excess > 0 && excess > maxExcess) {
+            maxExcess = excess;
+            dominantTaste = config;
+        }
+    }
+
+    // 如果有非常突出的味觉 (超过阈值2分以上)，直接用味觉标签
+    if (dominantTaste && maxExcess >= 2) {
+        return `${dominantTaste.word}·${dominantTaste.effect}`;
+    }
+
+    // --- Step 2: 温度 × 质地矩阵查找 ---
+    const temp = dimensions.temperature?.value ?? 0;
+    const txt = dimensions.texture?.value ?? 0;
+
+    const tempKey = temp <= -2 ? 'cold'
+        : temp <= 0  ? 'cool'
+        : temp <= 1  ? 'neutral'
+        : temp <= 3  ? 'warm'
+        : 'hot';
+
+    const txtKey = txt < -1 ? 'thin'
+        : txt <= 1 ? 'smooth'
+        : 'thick';
+
+    const matrixKey = `${tempKey}_${txtKey}`;
+    let sensory = SENSORY_MATRIX[matrixKey] || '柔和·平稳';
+
+    // --- Step 3: 如果有轻度突出味觉，用它修饰"·"后半部分 ---
+    if (dominantTaste && maxExcess > 0) {
+        const parts = sensory.split('·');
+        sensory = `${parts[0]}·${dominantTaste.effect}`;
+    }
+
+    return sensory;
+}
+
+// ============================================================
+//  推荐语生成 (本地降级)
+// ============================================================
+
+/**
+ * 本地推荐语 —— 当 LLM 不可用时的 fallback
+ * 
+ * 模板：一句自然的中文，结构为
+ *   "{状态} → {调理动作} → {饮品怎么实现}"
+ * 
+ * 好的推荐语示例：
+ *   "郁气难舒，这杯金酒用柑橘的辛香替你把闷气散开。"
+ *   "兴致正浓，龙舌兰和你一起往上冲。"
+ *   "心绪浮躁，一杯冰凉的伏特加汤力帮你沉下来。"
+ * 
+ * 坏的推荐语示例（v3.0 的问题）：
+ *   "「木气偏郁，以纠偏调中，甘甜冰凉之恢复平衡」" ← 机器拼接感
+ */
+function generateLocalQuote(moodData, patternAnalysis, dimensions, drinkName) {
+    // 获取状态描述 (复用 tag1 的逻辑)
+    const stateDesc = generateDiagnosisTag(moodData, patternAnalysis);
+
+    // 获取饮品的核心感官特征
+    const sensory = describeDrinkCharacter(dimensions);
+
+    // 获取调理方向
+    const direction = describeHealingDirection(patternAnalysis);
+
+    // 饮品名称处理
+    const name = drinkName || '这杯酒';
+
+    // 根据策略类型选择句式
+    const strategyType = patternAnalysis?.strategy?.type;
+    const polarity = patternAnalysis?.polarity?.type || 'negative';
+
+    if (polarity === 'positive') {
+        // 正向情绪 → 共振句式，不需要"治疗"感
+        const positiveTemplates = [
+            `${stateDesc}，${name}${sensory}，和你此刻正好合拍。`,
+            `${stateDesc}，来一杯${sensory}的${name}，锦上添花。`,
+            `此刻${stateDesc}，${name}的${sensory}替你把这份好心情再拉长一点。`,
+        ];
+        return positiveTemplates[hashSelect(drinkName, positiveTemplates.length)];
+    }
+
+    // 负向情绪 → 调理句式
+    const negativeTemplates = [
+        `${stateDesc}，${name}用${sensory}${direction}。`,
+        `${stateDesc}，来一杯${name}，${sensory}${direction}。`,
+        `${stateDesc}，让${name}的${sensory}${direction}。`,
+    ];
+    return negativeTemplates[hashSelect(drinkName, negativeTemplates.length)];
+}
+
+/**
+ * 描述饮品的核心感官特征（用于推荐语）
+ * 输出自然语言片段，如 "柑橘的辛香" / "冰凉的清冽"
+ */
+function describeDrinkCharacter(dimensions) {
+    if (!dimensions) return '独特的风味';
+
+    const parts = [];
+
+    // 温度
+    const temp = dimensions.temperature?.value ?? 0;
+    if (temp <= -2) parts.push('冰凉');
+    else if (temp >= 2) parts.push('温热');
+
+    // 味觉 - 取最突出的
+    const taste = dimensions.taste || {};
+    const tasteEntries = [
+        { key: 'sweet', val: taste.sweet ?? 0, word: '甘甜' },
+        { key: 'sour', val: taste.sour ?? 0, word: '微酸' },
+        { key: 'bitter', val: taste.bitter ?? 0, word: '微苦' },
+        { key: 'spicy', val: taste.spicy ?? 0, word: '辛香' },
+    ].sort((a, b) => b.val - a.val);
+
+    if (tasteEntries[0].val >= 3) {
+        parts.push(tasteEntries[0].word);
+    }
+
+    // 质地
+    const txt = dimensions.texture?.value ?? 0;
+    if (txt > 1.5) parts.push('醇厚');
+    else if (txt < -1.5) parts.push('清冽');
+
+    if (parts.length === 0) return '柔和的口感';
+    return parts.join('');
+}
+
+/**
+ * 描述调理方向（用于推荐语的结尾）
+ * 输出动作性短语，如 "替你把闷气散开" / "帮你沉下来"
+ */
+function describeHealingDirection(patternAnalysis) {
+    if (!patternAnalysis) return '帮你找回平衡';
+
+    const strategy = patternAnalysis?.strategy?.type;
+    const userWuxing = patternAnalysis?.wuxing?.user || 'earth';
+
+    // 基于用户五行状态 + 策略类型，生成有画面感的调理描述
+    const directionMap = {
+        // 木 - 郁 → 需要疏散
+        wood_correct:   '替你把郁气慢慢散开',
+        wood_counter:   '帮你把堵着的情绪冲开',
+        wood_resonate:  '和你一起往外舒展',
+        wood_harmonize: '轻轻替你松绑',
+
+        // 火 - 躁 → 需要沉降
+        fire_correct:   '帮你把浮躁按下来',
+        fire_counter:   '替你把虚火泄掉',
+        fire_resonate:  '和你的热情一起燃烧',
+        fire_harmonize: '替你把火气慢慢收住',
+
+        // 土 - 闷 → 需要激活
+        earth_correct:  '替你把沉闷感唤醒',
+        earth_counter:  '帮你从倦怠里抽身',
+        earth_resonate: '给你踏实的陪伴',
+        earth_harmonize:'温温地把你托住',
+
+        // 金 - 悲 → 需要温润
+        metal_correct:  '温温地替你把伤感化开',
+        metal_counter:  '帮你从低落中抬起头',
+        metal_resonate: '陪你安静地待一会',
+        metal_harmonize:'轻轻包裹住你的情绪',
+
+        // 水 - 恐/焦 → 需要安定
+        water_correct:  '帮你把不安慢慢放下',
+        water_counter:  '替你把焦虑的气沉到底',
+        water_resonate: '带你往更深处沉静',
+        water_harmonize:'帮你稳住此刻的心绪',
     };
 
-    // 找出强度最大的维度
-    const maxKey = Object.keys(intensities).reduce((a, b) => intensities[a] > intensities[b] ? a : b);
-
-    // 如果极弱(测试或者空白)，兜底为土
-    if (intensities[maxKey] === 0) return '土';
-
-    // 基于最大维度和内含感情色彩判断
-    if (maxKey === 'demand') {
-        // 想发泄、打破常规
-        return '木';
-    }
-    if (maxKey === 'emotion') {
-        const taste = moodData.emotion?.drinkMapping?.tasteScore || 5;
-        // 如果想要甜，或者颜色鲜艳，倾向于火（正面亢奋）；否则倾向于金（悲伤低落收敛）
-        if (taste >= 5) return '火';
-        else return '金';
-    }
-    if (maxKey === 'cognitive') {
-        // 思虑内耗
-        return '土';
-    }
-    if (maxKey === 'somatic') {
-        // 躯体疲惫透支
-        return '水';
-    }
-
-    return '土'; // time 兜底
+    const key = `${userWuxing}_${strategy}`;
+    return directionMap[key] || '帮你找回平衡';
 }
 
+// ============================================================
+//  五行关系判定
+// ============================================================
+
 /**
- * 确定饮品的五行属性 (地利药引)
+ * 判断用户五行与饮品五行的关系
+ * 相生：木→火→土→金→水→木
+ * 相克：木→土→水→火→金→木
  */
-function determineDrinkWuXing(dimensions) {
-    const t = dimensions.taste || { sweet: 0, bitter: 0, sour: 0, spicy: 0 };
-    const r = dimensions.ratio?.physical || { estimated_abv: 0 };
-    const temp = dimensions.temperature || { value: 0 };
-    const aroma = dimensions.aroma || 0;
-    const soma = dimensions.texture || { thickness: 0 };
+function getWuxingRelation(userWuxing, drinkWuxing) {
+    if (userWuxing === drinkWuxing) return '同';
 
-    // 木：味觉偏酸 + 香气强 (酸收条达)
-    if (t.sour > 3 && aroma > 5) return '木';
+    const order = ['wood', 'fire', 'earth', 'metal', 'water'];
+    const uIdx = order.indexOf(userWuxing);
+    const dIdx = order.indexOf(drinkWuxing);
 
-    // 火：温度高 或 烈度高 (辛热升散)
-    if (temp.value > 2 || r.estimated_abv > 35) return '火';
+    if (uIdx === -1 || dIdx === -1) return '同';
 
-    // 土：味觉偏甜 + 质地厚 (甘厚养中)
-    if (t.sweet >= 4 && soma.thickness >= 1) return '土';
+    // 相生链：wood(0)→fire(1)→earth(2)→metal(3)→water(4)→wood(0)
+    if ((uIdx + 1) % 5 === dIdx) return '生';    // 用户生饮品
+    if ((dIdx + 1) % 5 === uIdx) return '被生';  // 饮品生用户
 
-    // 金：香气强 + 质地薄而凛冽 (辛凉肃清)
-    if (aroma > 6 && soma.thickness < 0) return '金';
+    // 相克链：wood(0)→earth(2)→water(4)→fire(1)→metal(3)→wood(0)
+    if ((uIdx + 2) % 5 === dIdx) return '克';    // 用户克饮品 (原代码标注有误，已修正)
+    if ((dIdx + 2) % 5 === uIdx) return '被克';  // 饮品克用户
 
-    // 水：味觉偏苦 或 温度偏低 (苦寒沉降)
-    if (t.bitter > 3 || temp.value <= -2) return '水';
-
-    // 默认中正兜底
-    return '土';
+    return '同';
 }
 
+// ============================================================
+//  工具函数
+// ============================================================
+
 /**
- * 核心暴露函数
+ * 基于字符串的稳定哈希选择（同一饮品每次选同一模板）
  */
-export function generatePhilosophyTags(dimensions, moodData = null, drinkName = '') {
-    // 保护性回退
-    if (!dimensions || !dimensions.taste) {
+function hashSelect(str, max) {
+    if (!str || max <= 0) return 0;
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+        hash = ((hash << 5) - hash) + str.charCodeAt(i);
+        hash |= 0;
+    }
+    return Math.abs(hash) % max;
+}
+
+// ============================================================
+//  核心导出函数
+// ============================================================
+
+/**
+ * 生成哲学标签与推荐语
+ * 
+ * @param {Object} dimensions     - 饮品的 8D 物理维度
+ * @param {Object} contextData    - 完整上下文 { moodData, patternAnalysis, vectorResult }
+ * @param {string} drinkName      - 饮品名称
+ * @returns {{
+ *   tags: [string, string, string],   // [辨证, 策略, 体感]
+ *   quote: string,                     // 本地推荐语
+ *   diagnosis: string,                 // 兼容字段
+ *   strategy: string,
+ *   sensory: string
+ * }}
+ */
+export function generatePhilosophyTags(dimensions, contextData = null, drinkName = '') {
+    // 降级：无上下文
+    if (!contextData || !dimensions) {
         return {
-            tags: ['混沌初开', '未知羁绊'],
-            quote: '「探索本身，即是抚平情绪的最佳良药」'
+            tags: ['待辨证', '调和气机', '口感待品'],
+            quote: '请先描述你此刻的心情，让我为你找到那杯对的酒。',
+            diagnosis: '待辨证',
+            strategy: '调和气机',
+            sensory: '口感待品',
         };
     }
 
-    const userQi = determineUserWuXing(moodData);
-    const drinkQi = determineDrinkWuXing(dimensions);
+    const moodData = contextData.moodData || contextData;
+    const patternAnalysis = contextData.patternAnalysis;
 
-    // 获取五行相互作用结果矩阵
-    const relationResult = WUXING_RELATIONS[drinkQi][userQi];
-    const relationType = relationResult.relation;
+    // 确定饮品五行
+    const drinkWuXing = determineDrinkWuXing(dimensions);
 
-    // 构造 Tags (Minimalist Poetic Style)
-    const tags = [];
-    const seed = drinkName ? drinkName.length + (drinkName.charCodeAt(0) || 0) : Math.random() * 100;
-    
-    // 主标签：感官体验描述（味觉 + 质地）
-    const t = dimensions.taste;
-    const temp = dimensions.temperature?.value || 0;
-    const abv = dimensions.ratio?.physical?.estimated_abv || 0;
-    const aroma = dimensions.aroma || 0;
-    
-    // 构建感官标签池
-    const sensoryTags = [];
-    
-    // 味觉维度标签
-    if (t.sour > 3) sensoryTags.push('微酸 · 回甘', '酸爽开窍', '酸收条达');
-    if (t.sweet > 4) sensoryTags.push('甘润 · 绵长', '甜柔入心', '甘厚养中');
-    if (t.bitter > 3) sensoryTags.push('清苦 · 回甘', '苦尽甘来', '苦寒清热');
-    if (t.spicy > 2) sensoryTags.push('辛香 · 通透', '微辛开窍', '辛热升散');
-    
-    // 温度维度标签
-    if (temp > 2) sensoryTags.push('温热 · 暖腹', '暖意入喉', '温热升散');
-    if (temp < -2) sensoryTags.push('冰冽 · 沁心', '极寒沉降', '清凉入髓');
-    if (temp >= -2 && temp <= 2) sensoryTags.push('温润 · 平和', '常温 · 中正', '平和入胃');
-    
-    // 酒感维度标签
-    if (abv > 35) sensoryTags.push('烈酒 · 灼心', '醇厚 · 有力', '烈而回甘');
-    if (abv > 15 && abv <= 35) sensoryTags.push('微醺 · 刚好', '酒感 · 适中', '醇和 · 温润');
-    if (abv <= 15 && abv > 0) sensoryTags.push('轻酒 · 柔和', '微醺 · 轻盈', '淡而有味');
-    if (abv === 0) sensoryTags.push('无酒 · 清润', '纯粹 · 自然', '清润 · 养人');
-    
-    // 香气维度标签
-    if (aroma > 7) sensoryTags.push('异香 · 通窍', '馥郁 · 芬芳', '香韵 · 悠长');
-    if (aroma > 4 && aroma <= 7) sensoryTags.push('清香 · 淡雅', '幽香 · 宜人', '香而不艳');
-    
-    // 五行关系诗意标签
-    const relationPoeticTags = {
-        '生': '相生 · 相养',
-        '克': '相制 · 相衡', 
-        '同': '同气 · 相求',
-        '被生': '被养 · 得助',
-        '被克': '被制 · 得安'
-    };
-    
-    // 选择标签：1个感官标签 + 1个关系标签
-    if (sensoryTags.length > 0) {
-        tags.push(sensoryTags[seed % sensoryTags.length]);
-    } else {
-        // 兜底感官标签
-        const fallbackSensory = ['温润 · 平和', '甘润 · 绵长', '清冽 · 回甘', '柔和 · 顺滑'];
-        tags.push(fallbackSensory[seed % fallbackSensory.length]);
-    }
-    
-    tags.push(relationPoeticTags[relationType] || '相生 · 相养');
-    
-    // 补充风味副标签
-    const flavorSubTags = [];
-    if (drinkQi === '木') flavorSubTags.push('木性 · 条达', '生发 · 之气', '酸收 · 养肝');
-    if (drinkQi === '火') flavorSubTags.push('火性 · 炎上', '温热 · 升散', '辛热 · 暖心');
-    if (drinkQi === '土') flavorSubTags.push('土德 · 载物', '甘厚 · 养中', '厚重 · 安稳');
-    if (drinkQi === '金') flavorSubTags.push('金气 · 收敛', '辛凉 · 肃清', '凛冽 · 通窍');
-    if (drinkQi === '水') flavorSubTags.push('水性 · 润下', '苦寒 · 沉降', '沉静 · 养肾');
-    
-    if (flavorSubTags.length > 0) {
-        tags.push(flavorSubTags[seed % flavorSubTags.length]);
-    }
+    // 生成三个标签
+    const tag1 = generateDiagnosisTag(moodData, patternAnalysis);
+    const tag2 = generateStrategyTag(patternAnalysis, drinkWuXing);
+    const tag3 = generateSensoryTag(dimensions);
 
-    // 生成洗牌种子 (虽然不用它来保证差异化，但用来从确定的五行库中取不一样的变体句式)
-    const quoteSeed = drinkName ? drinkName.length + (drinkName.charCodeAt(0) || 0) + (drinkName.charCodeAt(drinkName.length - 1) || 0) : Math.random() * 100;
-
-    // 从矩阵金库中提取 Quote 数组
-    const candidateQuotes = QUOTE_LIBRARY[userQi][relationType];
-    const finalQuote = candidateQuotes[quoteSeed % candidateQuotes.length] || candidateQuotes[0];
+    // 生成本地推荐语
+    const quote = generateLocalQuote(moodData, patternAnalysis, dimensions, drinkName);
 
     return {
-        tags: Array.from(new Set(tags)).slice(0, 3),
-        quote: finalQuote
+        tags: [tag1, tag2, tag3],
+        quote,
+        diagnosis: tag1,
+        strategy: tag2,
+        sensory: tag3,
     };
+}
+
+// 兼容旧接口
+export function generatePhilosophyTagsLegacy(dimensions, moodData = null, drinkName = '') {
+    return generatePhilosophyTags(dimensions, moodData, drinkName);
 }

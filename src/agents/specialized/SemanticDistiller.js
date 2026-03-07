@@ -16,8 +16,8 @@ export class SemanticDistiller extends BaseAgent {
   constructor(config = {}) {
     super({
       name: 'SemanticDistiller',
-      timeout: 5000,  // 5秒超时
-      maxRetries: 1,
+      timeout: 25000,  // 25秒超时，给API更多响应时间
+      maxRetries: 3,
       ...config
     });
   }
@@ -255,7 +255,8 @@ export class SemanticDistiller extends BaseAgent {
       return {
         ...fallback,
         _timeoutHandled: true,
-        _fallbackMessage: '分析服务响应较慢，已使用本地智能继续推荐。如需更精准推荐，可简化输入后重试。'
+        _fallbackMessage: '网络响应较慢，已使用本地智能分析继续推荐～如果结果不太满意，可以稍微简化一下描述再试一次哦！',
+        _userFriendlyMessage: '网络有点慢，但我已经根据你的描述给出了推荐！试试看这杯饮品是否符合你的心情～'
       };
     }
     
@@ -268,7 +269,7 @@ export class SemanticDistiller extends BaseAgent {
   }
 
   /**
-   * 输出验证
+   * 输出验证 - 允许部分维度缺失，使用默认值填充
    */
   validateOutput(result) {
     if (!result || typeof result !== 'object') {
@@ -280,7 +281,29 @@ export class SemanticDistiller extends BaseAgent {
     const missing = requiredDimensions.filter(dim => !result[dim]);
     
     if (missing.length > 0) {
-      return { valid: false, reason: `Missing dimensions: ${missing.join(', ')}` };
+      console.warn(`[SemanticDistiller] 缺少维度: ${missing.join(', ')}，使用默认值填充`);
+      
+      // 填充默认值
+      const defaults = {
+        cognitive: {
+          physical: { state: '清晰', intensity: 0.5 },
+          drinkMapping: { aromaScore: 5 }
+        },
+        demand: {
+          physical: { state: '放松', intensity: 0.5 },
+          drinkMapping: { actionScore: 3 }
+        },
+        socialContext: {
+          physical: { state: '独处', intensity: 0.3 },
+          drinkMapping: { ratioScore: 10 }
+        }
+      };
+      
+      missing.forEach(dim => {
+        result[dim] = defaults[dim];
+      });
+      
+      return { valid: true, filled: missing };
     }
     
     return { valid: true };

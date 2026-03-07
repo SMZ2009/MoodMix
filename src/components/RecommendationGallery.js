@@ -136,7 +136,7 @@ const RecommendationGallery = ({ drinks, onBack, onStartMaking, onShuffle, onNav
       />
 
       {/* Header */}
-      <header className="relative z-50 flex items-center justify-between px-6 py-5">
+      <header className="relative z-50 flex items-center justify-between px-6 py-4 flex-shrink-0">
         <button
           onClick={onBack}
           className="flex items-center justify-center w-10 h-10 rounded-full bg-white/40 backdrop-blur-md border border-white/60 text-gray-700 hover:bg-white/60 hover:text-gray-900 transition-all duration-300 active:scale-95 shadow-sm"
@@ -158,13 +158,13 @@ const RecommendationGallery = ({ drinks, onBack, onStartMaking, onShuffle, onNav
       </header>
 
       {/* Card Carousel */}
-      <main className="relative z-10 flex-1 flex flex-col items-center justify-start pt-8 overflow-hidden px-2 pb-4">
+      <main className="relative z-10 flex-1 flex flex-col items-center justify-center overflow-hidden px-2" style={{ paddingBottom: '12vh', paddingTop: '2vh' }}>
         {/* Stacked Cards Container */}
         <div className="w-full flex items-center justify-center">
           {/* Cards Stack */}
           <div 
             ref={containerRef}
-            className="relative w-[85vw] max-w-sm h-[50vh] max-h-[380px]"
+            className="relative w-[85vw] max-w-sm h-[52vh] max-h-[400px]"
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
@@ -209,7 +209,7 @@ const RecommendationGallery = ({ drinks, onBack, onStartMaking, onShuffle, onNav
         </div>
 
         {/* Progress Indicator - Bottom */}
-        <div className="absolute bottom-28 left-0 right-0 flex items-center justify-center gap-2 z-30">
+        <div className="absolute bottom-8 left-0 right-0 flex items-center justify-center gap-2 z-30">
           <span className="text-white/80 text-xs font-medium">{currentIndex + 1}</span>
           <div className="w-12 h-1 bg-white/20 rounded-full overflow-hidden">
             <div
@@ -284,7 +284,7 @@ const CardContent = ({ drink, isActive, isLiked, moodResult, onLike, onUnlike })
         )}
       </div>
 
-      {/* Like Button - Bottom Right */}
+      {/* Like Button - Top Right */}
       <button
         onClick={(e) => {
           e.stopPropagation();
@@ -294,7 +294,7 @@ const CardContent = ({ drink, isActive, isLiked, moodResult, onLike, onUnlike })
             onLike();
           }
         }}
-        className={`absolute bottom-28 right-3 z-30 flex h-8 w-8 items-center justify-center rounded-full transition-all duration-300 hover:scale-110 active:scale-95 ${isLiked ? 'text-red-400' : 'text-white/80 hover:text-white'
+        className={`absolute top-3 right-3 z-30 flex h-8 w-8 items-center justify-center rounded-full transition-all duration-300 hover:scale-110 active:scale-95 ${isLiked ? 'text-red-400' : 'text-white/80 hover:text-white'
           }`}
         style={{
           background: isLiked
@@ -311,7 +311,7 @@ const CardContent = ({ drink, isActive, isLiked, moodResult, onLike, onUnlike })
       </button>
 
       {/* Drink Info - Bottom */}
-      <div className="absolute bottom-0 left-0 right-0 z-20 flex flex-col p-4 pb-24 text-white">
+      <div className="absolute bottom-0 left-0 right-0 z-20 flex flex-col p-4 pb-20 text-white">
         <h2
           className="text-2xl font-bold leading-tight mb-3"
           style={{
@@ -339,7 +339,7 @@ const CardContent = ({ drink, isActive, isLiked, moodResult, onLike, onUnlike })
 
         {/* Ingredients */}
         {(drink.briefIngredients || (drink.ingredients && drink.ingredients.length > 0)) && (
-          <div className="flex items-center gap-2 text-white/80 flex-wrap mt-2">
+          <div className="flex items-center gap-2 text-white/80 flex-wrap mt-1">
             <span className="text-[10px] uppercase tracking-widest text-white/50">原料</span>
             {(drink.briefIngredients || (drink.ingredients || []).map(i => ({ label: i.name, icon: 'Wine' }))).slice(0, 3).map((ing, idx) => (
               <React.Fragment key={idx}>

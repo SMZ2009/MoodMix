@@ -158,13 +158,13 @@ const RecommendationGallery = ({ drinks, onBack, onStartMaking, onShuffle, onNav
       </header>
 
       {/* Card Carousel */}
-      <main className="relative z-10 flex-1 flex flex-col items-center justify-center overflow-hidden px-2">
+      <main className="relative z-10 flex-1 flex flex-col items-center justify-center overflow-hidden px-2 pb-4">
         {/* Stacked Cards Container */}
         <div className="w-full flex items-center justify-center">
           {/* Cards Stack */}
           <div 
             ref={containerRef}
-            className="relative w-[85vw] max-w-sm h-[55vh] max-h-[420px]"
+            className="relative w-[85vw] max-w-sm h-[50vh] max-h-[380px]"
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
@@ -209,7 +209,7 @@ const RecommendationGallery = ({ drinks, onBack, onStartMaking, onShuffle, onNav
         </div>
 
         {/* Progress Indicator - Bottom */}
-        <div className="absolute bottom-24 left-0 right-0 flex items-center justify-center gap-2 z-30">
+        <div className="absolute bottom-28 left-0 right-0 flex items-center justify-center gap-2 z-30">
           <span className="text-white/80 text-xs font-medium">{currentIndex + 1}</span>
           <div className="w-12 h-1 bg-white/20 rounded-full overflow-hidden">
             <div
@@ -311,7 +311,7 @@ const CardContent = ({ drink, isActive, isLiked, moodResult, onLike, onUnlike })
       </button>
 
       {/* Drink Info - Bottom */}
-      <div className="absolute bottom-0 left-0 right-0 z-20 flex flex-col p-4 pb-20 text-white">
+      <div className="absolute bottom-0 left-0 right-0 z-20 flex flex-col p-4 pb-24 text-white">
         <h2
           className="text-2xl font-bold leading-tight mb-3"
           style={{

@@ -4,7 +4,6 @@
  * 运行: node scripts/batchGenerate.mjs
  * 
  * 输出:
- *   src/data/dimensionData.js  — 完整八维数据（含哲学层文本，用于推荐语生成）
  *   src/data/drinkVectors.js   — 数值向量（用于余弦相似度 Top15 匹配）
  */
 
@@ -339,42 +338,7 @@ async function main() {
     console.log('[3/3] 生成向量存储文件...');
 
     // drinkVectors.js — 匹配向量（实际使用）
-
-/**
- * 余弦相似度计算
- * @param {number[]} a - 用户情绪向量
- * @param {number[]} b - 饮品向量
- * @returns {number} 相似度 0~1
- */
-export function cosineSimilarity(a, b) {
-  let dot = 0, magA = 0, magB = 0;
-  for (let i = 0; i < a.length; i++) {
-    dot += a[i] * b[i];
-    magA += a[i] * a[i];
-    magB += b[i] * b[i];
-  }
-  const denom = Math.sqrt(magA) * Math.sqrt(magB);
-  return denom === 0 ? 0 : dot / denom;
-}
-
-/**
- * 匹配 Top N 饮品
- * @param {number[]} userVector - 用户情绪映射的 12 维向量
- * @param {number} topN - 返回前 N 个匹配结果 (默认 15)
- * @returns {Array<{id: string, name: string, score: number}>}
- */
-export function matchTopDrinks(userVector, topN = 15) {
-  const scores = Object.entries(drinkVectors).map(([id, data]) => ({
-    id,
-    name: data.name,
-    score: cosineSimilarity(userVector, data.v),
-  }));
-  scores.sort((a, b) => b.score - a.score);
-  return scores.slice(0, topN);
-}
-
-export default drinkVectors;
-`;
+    const vecJS = `export const drinkVectors = ${JSON.stringify(vectorData, null, 2)};\n`;
     writeFileSync(join(SRC_DATA, 'drinkVectors.js'), vecJS, 'utf-8');
     console.log(`  ✓ src/data/drinkVectors.js (${(Buffer.byteLength(vecJS) / 1024).toFixed(0)} KB)`);
 

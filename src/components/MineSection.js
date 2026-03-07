@@ -82,7 +82,7 @@ const MineSection = ({ userInventory, onUpdateInventory, favorites, onSelectDrin
     }
 
     return (
-        <div className="bg-dreamy-gradient w-full max-w-4xl mx-auto h-screen flex flex-col overflow-hidden">
+        <div className="bg-dreamy-gradient w-full max-w-4xl mx-auto min-h-screen">
             {/* 头部区域 */}
             <div className="flex flex-col items-center pt-8 pb-4 px-6 bg-white/30 backdrop-blur-md border-b border-white/20">
                 {/* 头像 - 点击修改 */}
@@ -211,7 +211,7 @@ const MineSection = ({ userInventory, onUpdateInventory, favorites, onSelectDrin
             </div>
 
             {/* Tab 切换栏 - sticky定位，吸附在顶部 */}
-            <div className="sticky top-0 z-[100] px-6 py-3 bg-white/90 backdrop-blur-xl border-b border-white/50 shadow-sm flex-shrink-0">
+            <div className="sticky top-0 z-40 px-6 py-3 bg-white/90 backdrop-blur-xl border-b border-white/50 shadow-sm">
                     <div className="flex p-1 bg-gray-100 rounded-xl">
                         {['favorites', 'collections'].map((id) => (
                             <button
@@ -226,9 +226,9 @@ const MineSection = ({ userInventory, onUpdateInventory, favorites, onSelectDrin
                     </div>
                 </div>
 
-            <div className="flex-1 px-6 py-4 overflow-y-auto w-full no-scrollbar">
+            <div className="px-6 py-4 pb-8 w-full">
                         {mineTab === 'favorites' && (
-                    <div className="grid grid-cols-2 gap-3 sm:gap-4 pb-24 sm:pb-28">
+                    <div className="grid grid-cols-2 gap-3 sm:gap-4">
                             {favorites.map((drink) => (
                                 <SwipeableCard
                                     key={drink.id}
@@ -272,7 +272,7 @@ const MineSection = ({ userInventory, onUpdateInventory, favorites, onSelectDrin
                                 </SwipeableCard>
                             ))}
                         {favorites.length === 0 && (
-                            <div className="col-span-2 text-center text-gray-400 text-sm py-10 pb-24 sm:pb-28">
+                            <div className="col-span-2 text-center text-gray-400 text-sm py-10">
                                 还没收藏喜欢的饮品哦
                             </div>
                         )}
@@ -281,11 +281,11 @@ const MineSection = ({ userInventory, onUpdateInventory, favorites, onSelectDrin
                 {mineTab === 'collections' && (
                     <div>
                         {dakaNotes.length === 0 ? (
-                            <div className="text-center text-gray-400 text-sm py-10 pb-24 sm:pb-28">
+                            <div className="text-center text-gray-400 text-sm py-10">
                                 暂无赏味集
                             </div>
                         ) : (
-                            <div className="space-y-4 pb-24 sm:pb-28">
+                            <div className="space-y-4">
                                 {dakaNotes.map(note => (
                                     <DakaNoteCard key={note.id} note={note} onDelete={onDeleteDakaNote} />
                                 ))}

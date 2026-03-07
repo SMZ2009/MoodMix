@@ -184,6 +184,68 @@ export class AgentOrchestrator {
 }
 
 /**
+ * 带回调的逐步执行方法
+ * 每完成一个Agent就触发回调，实现实时进度更新
+ */
+AgentOrchestrator.prototype.executeWithCallback = async function(context, onStepComplete, onWorkflowStart) {
+  const workflow = this.workflow;
+  
+  onWorkflowStart?.({ workflow, context });
+  
+  const results = [];
+  
+  for (let i = 0; i < workflow.length; i++) {
+    const agentName = workflow[i];
+    const agent = this.agents.get(agentName);
+    const nextAgent = workflow[i + 1] || null;
+    
+    if (!agent) continue;
+    
+    // 标记当前 Agent 开始
+    onStepComplete?.(agentName, { status: 'running' }, context, null);
+    
+    const result = await agent.execute(context);
+    context.setOutput(agentName, result);
+    results.push({ agent: agentName, ...result });
+    
+    // 标记完成，传入下一个 Agent
+    onStepComplete?.(agentName, result, context, nextAgent);
+    
+    // VectorTranslator 完成后，插入 VectorSearch 步骤
+    if (agentName === 'VectorTranslator' && result.success) {
+      onStepComplete?.('VectorSearch', { status: 'running' }, context, null);
+      
+      try {
+        const { evaluateAndSortDrinks } = await import('../../engine/vectorEngine');
+        const moodData = context.getIntermediate('moodData');
+        const allDrinks = context.allDrinks;
+        const inventory = context.inventory;
+        
+        if (moodData && allDrinks?.length > 0) {
+          const pool = evaluateAndSortDrinks(moodData, allDrinks, inventory);
+          const matches = pool.map((drink, idx) => ({
+            drink,
+            similarity: drink.similarity || (1 - idx * 0.05),
+            rank: idx + 1,
+            matchDetails: { weightedScore: drink.similarity, bonus: drink.bonus || 0 }
+          }));
+          context.setIntermediate('matches', matches);
+        }
+      } catch (err) {
+        console.error('VectorSearch failed:', err);
+        context.setIntermediate('matches', []);
+      }
+      
+      onStepComplete?.('VectorSearch', { success: true, status: 'done' }, context, 'CreativeCopywriter');
+    }
+    
+    if (!result.success && !result.recovered) break;
+  }
+  
+  return { results, context };
+};
+
+/**
  * 快速执行推荐流程的辅助函数
  */
 export async function executeRecommendationPipeline(userInput, options = {}) {

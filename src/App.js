@@ -1220,20 +1220,69 @@ const App = () => {
     }
 
     try {
-      // 🚀 使用多Agent系统执行推荐流程
-      const agentPromise = executeRecommendationPipeline(finalInputForAI, {
+      // 使用多Agent系统逐步执行推荐流程
+      const { 
+        SemanticDistiller 
+      } = await import('./agents/specialized/SemanticDistiller');
+      const { 
+        PatternAnalyzer 
+      } = await import('./agents/specialized/PatternAnalyzer');
+      const { 
+        VectorTranslator 
+      } = await import('./agents/specialized/VectorTranslator');
+      const { 
+        CreativeCopywriter 
+      } = await import('./agents/specialized/CreativeCopywriter');
+      const { 
+        ValidatorOptimizer 
+      } = await import('./agents/specialized/ValidatorOptimizer');
+      const { AgentContext, AgentOrchestrator } = await import('./agents/core');
+
+      const context = new AgentContext({
+        userInput: finalInputForAI,
         inventory: sessionIngredients,
         allDrinks: apiDrinks,
         currentTime: new Date().toISOString()
       });
 
-      const [agentResult] = await Promise.all([agentPromise, minDelay]);
+      const orchestrator = new AgentOrchestrator();
+      orchestrator
+        .register(new SemanticDistiller())
+        .register(new PatternAnalyzer())
+        .register(new VectorTranslator())
+        .register(new CreativeCopywriter())
+        .register(new ValidatorOptimizer())
+        .defineWorkflow([
+          'SemanticDistiller',
+          'PatternAnalyzer',
+          'VectorTranslator',
+          'CreativeCopywriter',
+          'ValidatorOptimizer'
+        ]);
+
+      const { results: agentResults, context: finalContext } = await orchestrator.executeWithCallback(
+        context,
+        // onStepComplete 回调 - 只在 console 显示进度
+        (agentName, stepResult, ctx, nextAgent) => {
+          const isRunning = stepResult.status === 'running';
+          if (isRunning) {
+            console.log(`🔄 Agent ${agentName} 开始执行...`);
+          } else {
+            console.log(`✅ Agent ${agentName} 完成`, stepResult.success ? '(成功)' : '(失败)');
+          }
+        },
+        // onWorkflowStart 回调
+        (info) => {
+          console.log('🚀 开始执行多Agent工作流:', info.workflow);
+        }
+      );
+
+      console.log('多Agent系统执行结果:', { results: agentResults, context: finalContext });
       
-      console.log('多Agent系统执行结果:', agentResult);
       clearTimeout(longWaitTimer);
 
       // 检查Agent 1的验证错误（需要用户重新输入）
-      const agent1Output = agentResult.context.getOutput('SemanticDistiller');
+      const agent1Output = finalContext.getOutput('SemanticDistiller');
       if (agent1Output && !agent1Output.success && agent1Output.requiresReinput) {
         clearTimeout(longWaitTimer);
         setMixMode('home');
@@ -1242,11 +1291,11 @@ const App = () => {
       }
 
       // 提取推荐结果
-      const recommendation = extractRecommendationResult(agentResult.context);
+      const recommendation = extractRecommendationResult(finalContext);
       console.log('推荐结果:', recommendation);
 
       // 检查是否为极度负面需要关怀
-      const moodData = agentResult.context.getIntermediate('moodData');
+      const moodData = finalContext.getIntermediate('moodData');
       if (moodData?.isNegative) {
         setMixMode('home');
         setShowInterventionModal(true);
@@ -1254,7 +1303,7 @@ const App = () => {
       }
 
       // 获取匹配结果
-      const matches = agentResult.context.getIntermediate('matches') || [];
+      const matches = finalContext.getIntermediate('matches') || [];
       
       // 转换为原有格式
       const pool = matches.map(m => ({

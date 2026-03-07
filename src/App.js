@@ -10,11 +10,13 @@ import {
 import { inventoryStorage, favoriteStorage, collectionStorage } from './store/localStorageAdapter';
 import HelperModal from './components/HelperModal';
 import FocusModeView from './components/FocusModeView';
+
 import RecommendationGallery from './components/RecommendationGallery';
 
 import { evaluateAndSortDrinks } from './engine/vectorEngine';
-import { executeRecommendationPipeline, extractRecommendationResult } from './agents';
+import { extractRecommendationResult } from './agents';
 import { generatePhilosophyTags } from './engine/philosophyTags';
+>>>>>>> 6c70770 (feat: 推荐语前端不显示更新后的逻辑，先这样)
 import { fetchLiveQuotes } from './api/quoteGenerator';
 import MineSection from './components/MineSection';
 import { useTouchFeedback, useKeyboardNavigation, useCocktailApi } from './hooks';
@@ -1307,8 +1309,20 @@ const App = () => {
       const recommendation = extractRecommendationResult(finalContext);
       console.log('推荐结果:', recommendation);
 
+<<<<<<< HEAD
       // 检查是否为极度负面需要关怀
       const moodData = finalContext.getIntermediate('moodData');
+=======
+      // 检查是否为极度负面需要关怀
+      const moodData = finalContext.getIntermediate('moodData');
+      const timeoutOccurred = finalContext.getIntermediate('timeoutOccurred');
+      
+      // 如果发生超时，显示友好提示
+      if (timeoutOccurred && moodData?._userFriendlyMessage) {
+        console.log('💡 提示:', moodData._userFriendlyMessage);
+      }
+      
+>>>>>>> 6c70770 (feat: 推荐语前端不显示更新后的逻辑，先这样)
       if (moodData?.isNegative) {
         setMixMode('home');
         setShowInterventionModal(true);
@@ -1325,6 +1339,7 @@ const App = () => {
         matchDetails: m.matchDetails
       }));
 
+<<<<<<< HEAD
       setMoodResult(moodData);
       setRecommendationPool(pool);
       setCurrentBatchIndex(0);
@@ -1342,6 +1357,33 @@ const App = () => {
           console.warn('Live quote generation failed non-fatally', err);
         });
       }
+=======
+      // 构建完整上下文并存储
+      const fullContextData = {
+        moodData: moodData,
+        patternAnalysis: finalContext.getIntermediate('patternAnalysis'),
+        vectorResult: finalContext.getIntermediate('vectorResult')
+      };
+      
+      // 将完整上下文存储在 moodResult 中
+      setMoodResult(fullContextData);
+      setRecommendationPool(pool);
+      setCurrentBatchIndex(0);
+      setCurrentCardIndex(0);
+      setMixMode('home');
+      setShowRecommendationGallery(true);
+
+      // ✅ 非阻塞流式异步大模型文案润色
+      if (pool.length > 0) {
+        fetchLiveQuotes(pool, fullContextData, 15).then((quotesMap) => {
+          if (Object.keys(quotesMap).length > 0) {
+            setCustomQuotes(prev => ({ ...prev, ...quotesMap }));
+          }
+        }).catch(err => {
+          console.warn('Live quote generation failed non-fatally', err);
+        });
+      }
+>>>>>>> 6c70770 (feat: 推荐语前端不显示更新后的逻辑，先这样)
 
     } catch (error) {
       console.error('分析/推荐出错:', error);

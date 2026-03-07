@@ -27,7 +27,7 @@
     "tailwindcss": "^3.4.0"
   },
   "scripts": {
-    "start": "node server/prodServer.js",
+    "start": "react-scripts start",
     "server": "node server/llmProxy.js",
     "build": "cross-env GENERATE_SOURCEMAP=false react-scripts build",
     "serve-prod": "node server/prodServer.js",

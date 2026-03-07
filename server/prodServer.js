@@ -48,7 +48,10 @@ const SILICONFLOW_MODEL = process.env.SILICONFLOW_MODEL || 'Qwen/Qwen2.5-72B-Ins
 app.post('/api/analyze_mood', async (req, res) => {
   const apiKey = process.env.SILICONFLOW_API_KEY;
 
+  console.log('[API] /api/analyze_mood - API Key 状态:', apiKey ? '已配置' : '未配置');
+
   if (!apiKey || apiKey === 'your_key_here') {
+    console.error('[API] /api/analyze_mood - API Key 未配置!');
     return res.status(500).json({
       success: false,
       error: 'API Key not configured. Please set SILICONFLOW_API_KEY in environment.'
@@ -147,16 +150,32 @@ app.post('/api/generate_quotes', async (req, res) => {
 
     for (let i = 0; i < items.length; i += BATCH_SIZE) {
       const batch = items.slice(i, i + BATCH_SIZE);
-      const batchNames = batch.map(item => item.name).join('、');
+      
+      console.log('[API] generate_quotes - 收到的items:', JSON.stringify(batch, null, 2));
+      
+      // 简化的 prompt
+      const systemPrompt = `你是一个中医开方师。为每个饮品写一句处方文案。
+格式：状态 + 以饮品特征实现调理效果
+举例：木气郁结，以金酒辛香疏散帮你把闷气呼出去
 
-      const systemPrompt = `你是一个富有诗意的酒饮文案大师。请为以下鸡尾酒生成简短富有意境的文案（8-12个中文字符）。
-要求：
-1. 直接输出文案，不要任何解释或格式
-2. 每行一个，不要编号
-3. 文案要富有诗意、意境优美
-4. 结合酒名本身的意象`;
+要求：每行一个，不要编号和引号，简洁像老中医开方。`;
 
-      const userMessage = `请为以下鸡尾酒生成文案：${batchNames}`;
+      // 构建每杯酒的上下文描述
+      const contextDescriptions = batch.map(item => {
+        const ctx = item.contextPackage || {};
+        const userState = ctx.userState || item.diagnosis || '气机失调';
+        const strategy = ctx.strategy || '调理中';
+        const drinkProfile = ctx.drinkProfile || item.name;
+        const sensory = ctx.sensory || '口感平衡';
+        
+        return `[${item.name}] 用户状态:${userState} | 策略:${strategy} | 饮品特征:${drinkProfile} | 体感:${sensory}`;
+      }).join('\n');
+
+      const userMessage = `请为以下饮品生成处方文案：\n${contextDescriptions}`;
+
+      console.log('🚀 准备调用 SiliconFlow API...');
+      console.log('📝 systemPrompt:', systemPrompt);
+      console.log('💬 userMessage:', userMessage);
 
       const response = await fetch(SILICONFLOW_API_URL, {
         method: 'POST',
@@ -171,7 +190,7 @@ app.post('/api/generate_quotes', async (req, res) => {
             { role: 'user', content: userMessage }
           ],
           temperature: 0.8,
-          max_tokens: 500
+          max_tokens: 800
         })
       });
 
@@ -183,12 +202,19 @@ app.post('/api/generate_quotes', async (req, res) => {
 
       const result = await response.json();
       const aiMessage = result.choices?.[0]?.message?.content || '';
+      
+      console.log('========================================');
+      console.log('[API] generate_quotes - LLM返回原始内容:');
+      console.log(aiMessage);
+      console.log('========================================');
 
       const lines = aiMessage.split('\n').filter(line => line.trim());
       batch.forEach((item, index) => {
         if (lines[index]) {
           let quote = lines[index].trim();
-          if (!quote.startsWith('「') && !quote.startsWith('"') && !quote.startsWith('「')) {
+          // 清理可能的编号
+          quote = quote.replace(/^\d+[.)、]\s*/, '').trim();
+          if (!quote.startsWith('「') && !quote.startsWith('"')) {
             quote = `「${quote}」`;
           }
           quotes[item.id] = quote;

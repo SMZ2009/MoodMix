@@ -12,7 +12,7 @@ export class BaseAgent {
   constructor(config = {}) {
     this.name = config.name || this.constructor.name;
     this.timeout = config.timeout || 10000; // 默认10秒超时
-    this.maxRetries = config.maxRetries || 1;
+    this.maxRetries = config.maxRetries || 2;
     this.retryDelay = config.retryDelay || 1000;
   }
 

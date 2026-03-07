@@ -72,7 +72,7 @@ const MoodInputSection = ({
     </div>
     
     {/* Mood Tags */}
-    <div className="flex flex-wrap gap-2.5 sm:gap-3 justify-center mb-4 sm:mb-5 z-10 flex-shrink-0">
+    <div className="flex flex-wrap gap-2.5 sm:gap-3 justify-center mb-3 sm:mb-4 z-10 flex-shrink-0">
       {[
         { label: '放松', value: '#放松', color: 'bg-emerald-400', shadow: 'shadow-emerald-400/50' },
         { label: '浪漫', value: '#浪漫', color: 'bg-pink-400', shadow: 'shadow-pink-400/50' },
@@ -100,7 +100,7 @@ const MoodInputSection = ({
     </div>
     
     {/* Main Content Area */}
-    <div className="relative flex-1 w-full flex flex-col items-center justify-center min-h-0 py-2">
+    <div className="relative flex-1 w-full flex flex-col items-center justify-center min-h-0">
       {/* Glass Card */}
       <div
         className="relative z-20 w-32 sm:w-36 lg:w-40 h-44 sm:h-52 lg:h-56 overflow-hidden transition-all duration-500 flex-shrink-0"
@@ -1436,10 +1436,10 @@ const App = () => {
   return (
     <div
       ref={mainContentRef}
-      className={`min-h-screen font-sans w-full relative shadow-2xl flex flex-col transition-colors duration-700 ${activeTab === 'mine' ? 'overflow-y-auto' : 'overflow-hidden'} ${getBackgroundClass()}`}
+      className={`min-h-screen font-sans w-full relative shadow-2xl flex flex-col transition-colors duration-700 overflow-y-auto ${getBackgroundClass()}`}
       tabIndex={-1}
     >
-      <main className={`flex-1 flex flex-col w-full relative ${activeTab !== 'mine' ? 'overflow-hidden' : ''}`}>
+      <main className={`flex-1 flex flex-col w-full relative`}>
         {activeTab === 'mix' && showRecommendationGallery && (
           <RecommendationGallery
             drinks={visibleDrinks.length > 0 ? visibleDrinks : (apiDrinks.length > 0 ? apiDrinks.slice(0, 3) : [{ id: 'loading', name: '探索配方中...', image: '', abv: 0, ingredients: [] }])}

@@ -82,7 +82,7 @@ const MineSection = ({ userInventory, onUpdateInventory, favorites, onSelectDrin
     }
 
     return (
-        <div className="bg-dreamy-gradient w-full max-w-4xl mx-auto min-h-screen pb-32">
+        <div className="bg-dreamy-gradient w-full max-w-4xl mx-auto h-screen flex flex-col overflow-hidden">
             {/* 头部区域 */}
             <div className="flex flex-col items-center pt-8 pb-4 px-6 bg-white/30 backdrop-blur-md border-b border-white/20">
                 {/* 头像 - 点击修改 */}
@@ -161,7 +161,7 @@ const MineSection = ({ userInventory, onUpdateInventory, favorites, onSelectDrin
             </div>
 
             {/* 原料库区域 - 限制两行，超出用 ... 省略 */}
-            <div className="flex flex-col gap-2 mb-8 px-6 pt-4 bg-white/30 backdrop-blur-md transition-all">
+            <div className="flex flex-col gap-2 mb-6 px-6 pt-4 bg-white/30 backdrop-blur-md transition-all">
                 <div className="flex items-center justify-between">
                     <h3 className="text-sm font-bold text-[#111813]">原料库</h3>
                     <button
@@ -172,41 +172,37 @@ const MineSection = ({ userInventory, onUpdateInventory, favorites, onSelectDrin
                     </button>
                 </div>
                 <div className="w-full relative pb-1">
-                    <div className="flex flex-wrap gap-x-2 gap-y-2 py-1 max-h-[4.4rem] overflow-hidden">
+                    <div className="flex flex-wrap gap-2 py-1 max-h-[4.4rem] overflow-hidden">
                         {allInventoryItems.length === 0 ? (
                             <div className="text-xs text-gray-400 italic">暂无原料，点击管理添加</div>
                         ) : (
                             allInventoryItems.map((item, idx) => {
-                                const colorSchemes = [
-                                    'from-purple-400/80 to-pink-400/80 border-purple-300/50',
-                                    'from-blue-400/80 to-cyan-400/80 border-blue-300/50',
-                                    'from-amber-400/80 to-orange-400/80 border-amber-300/50',
-                                    'from-emerald-400/80 to-teal-400/80 border-emerald-300/50',
-                                    'from-rose-400/80 to-red-400/80 border-rose-300/50',
+                                const colors = [
+                                    'bg-purple-400/80 text-white',
+                                    'bg-blue-400/80 text-white',
+                                    'bg-amber-400/80 text-white',
+                                    'bg-emerald-400/80 text-white',
+                                    'bg-rose-400/80 text-white',
                                 ];
-                                const scheme = colorSchemes[idx % colorSchemes.length];
+                                const color = colors[idx % colors.length];
                                 return (
                                     <span
                                         key={item.id}
-                                        className={`px-3 py-1.5 rounded-full text-[11px] font-semibold text-white bg-gradient-to-r ${scheme} border backdrop-blur-sm shadow-sm whitespace-nowrap`}
+                                        className={`px-3 py-1.5 rounded-full text-[11px] font-semibold ${color} border border-white/20 backdrop-blur-sm shadow-sm whitespace-nowrap`}
                                     >
                                         {item.name}
                                     </span>
                                 );
                             })
                         )}
-                        {/* 增加占位元素，宽度稍微拉大一点，确保最后的标签不会被右下角的浮动按钮挡住 */}
-                        {allInventoryItems.length > 8 && (
-                            <div className="w-24 h-6 flex-shrink-0" />
-                        )}
                     </div>
 
                     {allInventoryItems.length > 8 && (
                         <div
-                            className="absolute bottom-1 right-0 pl-10 pr-0 pb-1 bg-gradient-to-l from-[#f5f8ff] via-[#f5f8ff]/80 to-transparent cursor-pointer z-10"
+                            className="absolute bottom-0 right-0 pl-8 pb-1 bg-gradient-to-l from-white/80 via-white/40 to-transparent cursor-pointer z-10"
                             onClick={() => setShowFullInventory(true)}
                         >
-                            <span className="px-3 py-1.5 rounded-full text-[10px] font-bold text-white bg-[#555] border border-white/20 shadow-lg whitespace-nowrap flex items-center">
+                            <span className="px-3 py-1.5 rounded-full text-[10px] font-bold text-white bg-gray-600/80 border border-white/30 shadow-md whitespace-nowrap">
                                 ...共{allInventoryItems.length}种
                             </span>
                         </div>
@@ -215,7 +211,7 @@ const MineSection = ({ userInventory, onUpdateInventory, favorites, onSelectDrin
             </div>
 
             {/* Tab 切换栏 - sticky定位，吸附在顶部 */}
-            <div className="sticky top-0 z-[100] px-6 py-3 bg-white/90 backdrop-blur-xl border-b border-white/50 shadow-sm">
+            <div className="sticky top-0 z-[100] px-6 py-3 bg-white/90 backdrop-blur-xl border-b border-white/50 shadow-sm flex-shrink-0">
                     <div className="flex p-1 bg-gray-100 rounded-xl">
                         {['favorites', 'collections'].map((id) => (
                             <button
@@ -230,9 +226,9 @@ const MineSection = ({ userInventory, onUpdateInventory, favorites, onSelectDrin
                     </div>
                 </div>
 
-            <div className="px-6 py-4">
+            <div className="flex-1 px-6 py-4 overflow-y-auto w-full no-scrollbar">
                         {mineTab === 'favorites' && (
-                    <div className="grid grid-cols-2 gap-3 sm:gap-4 pb-10">
+                    <div className="grid grid-cols-2 gap-3 sm:gap-4 pb-24 sm:pb-28">
                             {favorites.map((drink) => (
                                 <SwipeableCard
                                     key={drink.id}
@@ -276,7 +272,7 @@ const MineSection = ({ userInventory, onUpdateInventory, favorites, onSelectDrin
                                 </SwipeableCard>
                             ))}
                         {favorites.length === 0 && (
-                            <div className="col-span-2 text-center text-gray-400 text-sm py-10">
+                            <div className="col-span-2 text-center text-gray-400 text-sm py-10 pb-24 sm:pb-28">
                                 还没收藏喜欢的饮品哦
                             </div>
                         )}
@@ -285,11 +281,11 @@ const MineSection = ({ userInventory, onUpdateInventory, favorites, onSelectDrin
                 {mineTab === 'collections' && (
                     <div>
                         {dakaNotes.length === 0 ? (
-                            <div className="text-center text-gray-400 text-sm py-10">
+                            <div className="text-center text-gray-400 text-sm py-10 pb-24 sm:pb-28">
                                 暂无赏味集
                             </div>
                         ) : (
-                            <div className="space-y-4 pb-10">
+                            <div className="space-y-4 pb-24 sm:pb-28">
                                 {dakaNotes.map(note => (
                                     <DakaNoteCard key={note.id} note={note} onDelete={onDeleteDakaNote} />
                                 ))}

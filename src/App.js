@@ -50,29 +50,29 @@ const MoodInputSection = ({
   moodInput, setMoodInput, selectedMood, setSelectedMood, onGenerate, buttonFeedback, isMixing,
   ingredientCount, onEditIngredients, onNavigate, activeTab
 }) => (
-  <div className="flex-1 flex flex-col items-center px-4 sm:px-6 pt-4 sm:pt-6 pb-16 sm:pb-20 bg-dreamy-gradient w-full min-h-screen h-screen relative overflow-hidden">
+  <div className="flex-1 flex flex-col items-center px-4 sm:px-6 pt-5 sm:pt-6 pb-16 sm:pb-20 bg-dreamy-gradient w-full min-h-screen h-screen relative overflow-hidden">
     {/* Background Blobs */}
-    <div className="absolute top-0 left-1/4 w-72 sm:w-96 h-72 sm:h-96 bg-purple-200/40 rounded-full blur-[100px] pointer-events-none mix-blend-multiply"></div>
-    <div className="absolute top-1/4 right-0 w-64 sm:w-80 h-64 sm:h-80 bg-blue-200/40 rounded-full blur-[80px] pointer-events-none mix-blend-multiply"></div>
-    <div className="absolute bottom-1/4 left-0 w-56 sm:w-72 h-56 sm:h-72 bg-pink-200/40 rounded-full blur-[80px] pointer-events-none mix-blend-multiply"></div>
+    <div className="absolute top-0 left-1/4 w-64 sm:w-96 h-64 sm:h-96 bg-purple-200/40 rounded-full blur-[100px] pointer-events-none mix-blend-multiply"></div>
+    <div className="absolute top-1/4 right-0 w-56 sm:w-80 h-56 sm:h-80 bg-blue-200/40 rounded-full blur-[80px] pointer-events-none mix-blend-multiply"></div>
+    <div className="absolute bottom-1/4 left-0 w-48 sm:w-72 h-48 sm:h-72 bg-pink-200/40 rounded-full blur-[80px] pointer-events-none mix-blend-multiply"></div>
     
     {/* Header */}
-    <div className="text-center mb-3 sm:mb-5 z-10 flex-shrink-0">
-      <h2 className="text-xl sm:text-2xl lg:text-[28px] font-bold text-gray-800 mb-1.5 sm:mb-2 tracking-wide" style={{ fontFamily: 'serif' }}>现在的心情是?</h2>
-      <p className="text-gray-500 text-[11px] sm:text-xs font-light tracking-wider">探索未知的味觉旅程</p>
+    <div className="text-center mb-4 sm:mb-5 z-10 flex-shrink-0">
+      <h2 className="text-[22px] sm:text-2xl lg:text-[26px] font-bold text-gray-800 mb-1.5 sm:mb-2 tracking-wide" style={{ fontFamily: 'serif' }}>现在的心情是?</h2>
+      <p className="text-gray-500 text-xs sm:text-xs font-light tracking-wider">探索未知的味觉旅程</p>
     </div>
     
     {/* Input */}
-    <div className="w-full max-w-sm sm:max-w-md relative mb-3 sm:mb-5 z-10 flex-shrink-0 group">
+    <div className="w-full max-w-sm sm:max-w-md relative mb-4 sm:mb-5 z-10 flex-shrink-0 group">
       <div className="absolute inset-0 bg-white/40 backdrop-blur-xl rounded-xl sm:rounded-2xl border border-white/60 group-focus-within:border-purple-300/60 group-focus-within:bg-white/70 group-focus-within:scale-[1.02] transition-all duration-500" style={{ boxShadow: 'rgba(139, 92, 246, 0.05) 0px 4px 24px, rgba(255, 255, 255, 0.6) 0px 1px 1px inset' }}></div>
-      <div className="relative flex items-center h-9 sm:h-11 lg:h-12 px-3 sm:px-5">
-        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-purple-400 mr-2 sm:mr-3 flex-shrink-0 transition-transform duration-500 group-focus-within:scale-110 group-focus-within:rotate-12" aria-hidden="true"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"></path><path d="M20 2v4"></path><path d="M22 4h-4"></path><circle cx="4" cy="20" r="2"></circle></svg>
-        <input className="bg-transparent border-none focus:outline-none focus:ring-0 text-gray-800 placeholder:text-gray-400 w-full text-[13px] sm:text-sm font-medium outline-none" placeholder="比如：微醺的周五夜晚..." value={moodInput} onChange={(e) => setMoodInput(e.target.value)}></input>
+      <div className="relative flex items-center h-10 sm:h-11 lg:h-12 px-4 sm:px-5">
+        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-purple-400 mr-2.5 sm:mr-3 flex-shrink-0 transition-transform duration-500 group-focus-within:scale-110 group-focus-within:rotate-12" aria-hidden="true"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"></path><path d="M20 2v4"></path><path d="M22 4h-4"></path><circle cx="4" cy="20" r="2"></circle></svg>
+        <input className="bg-transparent border-none focus:outline-none focus:ring-0 text-gray-800 placeholder:text-gray-400 w-full text-sm sm:text-sm font-medium outline-none" placeholder="比如：微醺的周五夜晚..." value={moodInput} onChange={(e) => setMoodInput(e.target.value)}></input>
       </div>
     </div>
     
     {/* Mood Tags */}
-    <div className="flex flex-wrap gap-2 sm:gap-3 justify-center mb-3 sm:mb-5 z-10 flex-shrink-0">
+    <div className="flex flex-wrap gap-2.5 sm:gap-3 justify-center mb-4 sm:mb-5 z-10 flex-shrink-0">
       {[
         { label: '放松', value: '#放松', color: 'bg-emerald-400', shadow: 'shadow-emerald-400/50' },
         { label: '浪漫', value: '#浪漫', color: 'bg-pink-400', shadow: 'shadow-pink-400/50' },
@@ -83,7 +83,7 @@ const MoodInputSection = ({
           <button
             key={mood.value}
             onClick={() => setSelectedMood(isSelected ? null : mood.value)}
-            className={`flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border transition-all duration-300 ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-full border transition-all duration-300 ${
               isSelected
                 ? 'bg-white/60 border-white/80 text-gray-800 shadow-lg'
                 : 'bg-white/30 border-white/40 hover:bg-white/50 hover:border-white/60 text-gray-600'
@@ -93,17 +93,17 @@ const MoodInputSection = ({
             <span className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
               isSelected ? `${mood.color} ${mood.shadow} shadow-lg scale-110` : 'bg-gray-300'
             }`}></span>
-            <span className="text-[11px] sm:text-xs font-medium">{mood.label}</span>
+            <span className="text-xs font-medium">{mood.label}</span>
           </button>
         );
       })}
     </div>
     
     {/* Main Content Area */}
-    <div className="relative flex-1 w-full flex flex-col items-center justify-center min-h-0">
+    <div className="relative flex-1 w-full flex flex-col items-center justify-center min-h-0 py-2">
       {/* Glass Card */}
       <div
-        className="relative z-20 w-28 sm:w-36 lg:w-40 h-40 sm:h-52 lg:h-56 overflow-hidden transition-all duration-500 flex-shrink-0"
+        className="relative z-20 w-32 sm:w-36 lg:w-40 h-44 sm:h-52 lg:h-56 overflow-hidden transition-all duration-500 flex-shrink-0"
         style={{
           background: isMixing
             ? 'linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.05) 100%)'
@@ -117,7 +117,7 @@ const MoodInputSection = ({
         }}
       >
         {/* 环绕杯子的玄幻光效 - 中下部 */}
-        <div className="absolute bottom-[15%] left-1/2 -translate-x-1/2 w-[120%] h-16 sm:h-20 pointer-events-none z-30">
+        <div className="absolute bottom-[18%] left-1/2 -translate-x-1/2 w-[120%] h-14 sm:h-20 pointer-events-none z-30">
           {/* 星光粒子环绕 */}
           {[...Array(8)].map((_, i) => (
             <div
@@ -127,7 +127,7 @@ const MoodInputSection = ({
                 background: `radial-gradient(circle, ${['#E9D5FF', '#FBCFE8', '#BFDBFE', '#DDD6FE', '#F9A8D4', '#93C5FD', '#C4B5FD', '#FBB6CE'][i]} 0%, transparent 70%)`,
                 boxShadow: `0 0 6px ${['#E9D5FF', '#FBCFE8', '#BFDBFE', '#DDD6FE', '#F9A8D4', '#93C5FD', '#C4B5FD', '#FBB6CE'][i]}`,
                 left: `${10 + i * 12}%`,
-                top: `${20 + (i % 3) * 30}%`,
+                top: `${25 + (i % 3) * 25}%`,
                 animationDuration: `${1 + i * 0.2}s`,
                 animationDelay: `${i * 0.15}s`
               }}
@@ -199,31 +199,31 @@ const MoodInputSection = ({
 
       {/* Inventory Badge */}
       <div
-        className="relative z-30 flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-white/70 border border-white/50 backdrop-blur-xl mb-3 sm:mb-4 cursor-pointer hover:bg-white/80 transition-colors"
+        className="relative z-30 flex items-center gap-2 px-4 py-2 rounded-full bg-white/70 border border-white/50 backdrop-blur-xl mb-4 sm:mb-5 cursor-pointer hover:bg-white/80 transition-colors"
         style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}
         onClick={onEditIngredients}
       >
-        <span className="text-gray-700 text-[11px] sm:text-xs font-medium">
+        <span className="text-gray-700 text-xs font-medium">
           {ingredientCount} 种原料已就绪
         </span>
-        <Edit3 size={12} className="text-gray-400" />
+        <Edit3 size={13} className="text-gray-400" />
       </div>
 
       {/* Generate Button */}
-      <div className="w-full max-w-[280px] sm:max-w-xs z-10">
+      <div className="w-full max-w-xs sm:max-w-sm z-10">
         <button
           onClick={onGenerate}
-          className="w-full h-9 sm:h-10 rounded-lg sm:rounded-xl relative overflow-hidden group shadow-md shadow-purple-200"
+          className="w-full h-10 sm:h-11 rounded-xl relative overflow-hidden group shadow-md shadow-purple-200"
           style={{
             background: 'linear-gradient(135deg, #A78BFA 0%, #818CF8 100%)',
           }}
         >
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
           {isMixing ? (
-            <span className="animate-pulse text-[11px] sm:text-xs">正在解析你的心情...</span>
+            <span className="animate-pulse text-xs">正在解析你的心情...</span>
           ) : (
-            <span className="relative z-10 flex items-center justify-center gap-1.5 text-white font-semibold text-[11px] sm:text-xs">
-              <Sparkles size={14} className="text-white" />
+            <span className="relative z-10 flex items-center justify-center gap-2 text-white font-semibold text-xs">
+              <Sparkles size={15} className="text-white" />
               开始生成
             </span>
           )}

@@ -226,7 +226,7 @@ const MineSection = ({ userInventory, onUpdateInventory, favorites, onSelectDrin
                     </div>
                 </div>
 
-            <div className="px-6 py-4 pb-8 w-full">
+            <div className="px-6 py-4 pb-24 w-full">
                         {mineTab === 'favorites' && (
                     <div className="grid grid-cols-2 gap-3 sm:gap-4">
                             {favorites.map((drink) => (

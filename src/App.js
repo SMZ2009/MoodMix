@@ -1436,10 +1436,10 @@ const App = () => {
   return (
     <div
       ref={mainContentRef}
-      className={`min-h-screen font-sans w-full relative shadow-2xl overflow-hidden flex flex-col transition-colors duration-700 ${getBackgroundClass()}`}
+      className={`min-h-screen font-sans w-full relative shadow-2xl flex flex-col transition-colors duration-700 ${activeTab === 'mine' ? 'overflow-y-auto' : 'overflow-hidden'} ${getBackgroundClass()}`}
       tabIndex={-1}
     >
-      <main className="flex-1 flex flex-col w-full relative">
+      <main className={`flex-1 flex flex-col w-full relative ${activeTab !== 'mine' ? 'overflow-hidden' : ''}`}>
         {activeTab === 'mix' && showRecommendationGallery && (
           <RecommendationGallery
             drinks={visibleDrinks.length > 0 ? visibleDrinks : (apiDrinks.length > 0 ? apiDrinks.slice(0, 3) : [{ id: 'loading', name: '探索配方中...', image: '', abv: 0, ingredients: [] }])}

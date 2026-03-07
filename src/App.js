@@ -100,7 +100,10 @@ const MoodInputSection = ({
     </div>
     
     {/* Main Content Area */}
-    <div className="relative flex-1 w-full flex flex-col items-center justify-center min-h-0">
+    <div className="relative flex-1 w-full flex flex-col items-center justify-between min-h-0">
+      {/* Top Spacer */}
+      <div className="flex-1"></div>
+      
       {/* Glass Card */}
       <div
         className="relative z-20 w-32 sm:w-36 lg:w-40 h-44 sm:h-52 lg:h-56 overflow-hidden transition-all duration-500 flex-shrink-0"
@@ -230,8 +233,8 @@ const MoodInputSection = ({
         </button>
       </div>
 
-      {/* Bottom Spacing */}
-      <div className="h-4 sm:h-6"></div>
+      {/* Bottom Spacer */}
+      <div className="flex-1"></div>
     </div>
   </div>
 );

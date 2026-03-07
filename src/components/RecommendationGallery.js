@@ -284,7 +284,7 @@ const CardContent = ({ drink, isActive, isLiked, moodResult, onLike, onUnlike })
         )}
       </div>
 
-      {/* Like Button - Top Right */}
+      {/* Like Button - Bottom Right */}
       <button
         onClick={(e) => {
           e.stopPropagation();
@@ -294,7 +294,7 @@ const CardContent = ({ drink, isActive, isLiked, moodResult, onLike, onUnlike })
             onLike();
           }
         }}
-        className={`absolute top-3 right-3 z-30 flex h-8 w-8 items-center justify-center rounded-full transition-all duration-300 hover:scale-110 active:scale-95 ${isLiked ? 'text-red-400' : 'text-white/80 hover:text-white'
+        className={`absolute bottom-28 right-3 z-30 flex h-8 w-8 items-center justify-center rounded-full transition-all duration-300 hover:scale-110 active:scale-95 ${isLiked ? 'text-red-400' : 'text-white/80 hover:text-white'
           }`}
         style={{
           background: isLiked

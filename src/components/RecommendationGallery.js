@@ -158,13 +158,13 @@ const RecommendationGallery = ({ drinks, onBack, onStartMaking, onShuffle, onNav
       </header>
 
       {/* Card Carousel */}
-      <main className="relative z-10 flex-1 flex items-center justify-center overflow-hidden">
+      <main className="relative z-10 flex-1 flex flex-col items-center justify-center overflow-hidden px-2">
         {/* Stacked Cards Container */}
-        <div className="w-full h-full flex items-center justify-center px-4 sm:px-6 md:px-8">
-          {/* Cards Stack - 缩小并居中 */}
+        <div className="w-full flex items-center justify-center">
+          {/* Cards Stack */}
           <div 
             ref={containerRef}
-            className="relative w-[90vw] max-w-md h-[65vh] max-h-[500px]"
+            className="relative w-[85vw] max-w-sm h-[55vh] max-h-[420px]"
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
@@ -209,7 +209,7 @@ const RecommendationGallery = ({ drinks, onBack, onStartMaking, onShuffle, onNav
         </div>
 
         {/* Progress Indicator - Bottom */}
-        <div className="absolute bottom-8 left-0 right-0 flex items-center justify-center gap-2 z-30">
+        <div className="absolute bottom-24 left-0 right-0 flex items-center justify-center gap-2 z-30">
           <span className="text-white/80 text-xs font-medium">{currentIndex + 1}</span>
           <div className="w-12 h-1 bg-white/20 rounded-full overflow-hidden">
             <div

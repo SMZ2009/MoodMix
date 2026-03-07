@@ -158,7 +158,7 @@ const RecommendationGallery = ({ drinks, onBack, onStartMaking, onShuffle, onNav
       </header>
 
       {/* Card Carousel */}
-      <main className="relative z-10 flex-1 flex flex-col items-center justify-center overflow-hidden px-2 pb-4" style={{ paddingTop: '5vh' }}>
+      <main className="relative z-10 flex-1 flex flex-col items-center justify-start pt-8 overflow-hidden px-2 pb-4">
         {/* Stacked Cards Container */}
         <div className="w-full flex items-center justify-center">
           {/* Cards Stack */}

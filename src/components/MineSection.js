@@ -57,7 +57,7 @@ const MineSection = ({ userInventory, onUpdateInventory, favorites, onSelectDrin
 
     if (showFullInventory) {
         return (
-            <div className="fixed inset-0 z-[150] flex flex-col bg-dreamy-gradient w-full h-[100vh] max-w-4xl mx-auto overflow-hidden">
+            <div className="fixed inset-0 z-[150] flex flex-col bg-dreamy-gradient w-full h-[100vh] overflow-hidden">
                 {/* 头部导航 */}
                 <div className="flex items-center justify-between px-6 py-4 bg-white/30 backdrop-blur-md border-b border-white/20">
                     <div className="flex items-center">
@@ -82,7 +82,7 @@ const MineSection = ({ userInventory, onUpdateInventory, favorites, onSelectDrin
     }
 
     return (
-        <div className="bg-dreamy-gradient w-full max-w-4xl mx-auto min-h-screen">
+        <div className="bg-dreamy-gradient w-full min-h-screen">
             {/* 头部区域 */}
             <div className="flex flex-col items-center pt-8 pb-4 px-6 bg-white/30 backdrop-blur-md border-b border-white/20">
                 {/* 头像 - 点击修改 */}

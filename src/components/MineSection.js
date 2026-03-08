@@ -171,7 +171,7 @@ const MineSection = ({ userInventory, onUpdateInventory, favorites, onSelectDrin
                         管理 <ChevronRight size={12} />
                     </button>
                 </div>
-                <div className="w-full relative pb-1">
+                    <div className="w-full relative pb-1">
                     <div className="flex flex-wrap gap-2 py-1 max-h-[4.4rem] overflow-hidden">
                         {allInventoryItems.length === 0 ? (
                             <div className="text-xs text-gray-400 italic">暂无原料，点击管理添加</div>
@@ -185,6 +185,8 @@ const MineSection = ({ userInventory, onUpdateInventory, favorites, onSelectDrin
                                     'bg-rose-400/80 text-white',
                                 ];
                                 const color = colors[idx % colors.length];
+                                const isLastVisible = allInventoryItems.length > 8 ? idx < 7 : idx < 8;
+                                if (!isLastVisible) return null;
                                 return (
                                     <span
                                         key={item.id}
@@ -195,18 +197,12 @@ const MineSection = ({ userInventory, onUpdateInventory, favorites, onSelectDrin
                                 );
                             })
                         )}
-                    </div>
-
-                    {allInventoryItems.length > 8 && (
-                        <div
-                            className="absolute bottom-0 right-0 pl-8 pb-1 bg-gradient-to-l from-white/80 via-white/40 to-transparent cursor-pointer z-10"
-                            onClick={() => setShowFullInventory(true)}
-                        >
-                            <span className="px-3 py-1.5 rounded-full text-[10px] font-bold text-white bg-gray-600/80 border border-white/30 shadow-md whitespace-nowrap">
+                        {allInventoryItems.length > 8 && (
+                            <span className="px-3 py-1.5 rounded-full text-[11px] font-bold text-white bg-gray-600/80 border border-white/30 shadow-md whitespace-nowrap self-center">
                                 ...共{allInventoryItems.length}种
                             </span>
-                        </div>
-                    )}
+                        )}
+                    </div>
                 </div>
             </div>
 

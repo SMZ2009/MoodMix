@@ -713,7 +713,7 @@ const ExploreSection = ({
       </div>
 
       {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around px-4 sm:px-6 py-2 sm:py-3 bg-white/80 backdrop-blur-xl border-t border-white/40 w-full pb-safe">
+      <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 z-50 flex items-center justify-around px-4 sm:px-6 py-2 sm:py-3 bg-white/80 backdrop-blur-xl border-t border-white/40 w-full max-w-4xl pb-safe">
         <button 
           onClick={() => onNavigate && onNavigate('mix')}
           className="flex flex-col items-center gap-0.5 sm:gap-1 text-gray-400 hover:text-gray-600 transition-colors"
@@ -1711,7 +1711,7 @@ const DakaModal = ({ drink, onClose, onSave }) => {
 export default App;
 
 const NavigationBar = ({ activeTab, onTabChange }) => (
-  <nav className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around px-6 py-3 bg-white/80 backdrop-blur-xl border-t border-white/40 w-full max-w-4xl mx-auto">
+  <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 z-50 flex items-center justify-around px-6 py-3 bg-white/80 backdrop-blur-xl border-t border-white/40 w-full max-w-4xl">
     <button 
       onClick={() => onTabChange('mix')}
       className={`flex flex-col items-center gap-1 ${activeTab === 'mix' ? 'text-gray-800' : 'text-gray-400 hover:text-gray-600'} transition-colors`}

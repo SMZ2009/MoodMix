@@ -101,11 +101,12 @@ const MoodInputSection = ({
     </div>
     
     {/* Main Content Area */}
-    <div className="relative flex-1 w-full flex flex-col items-center justify-start min-h-0 pt-3 sm:pt-6">
+    <div className="relative flex-1 w-full flex flex-col items-center justify-between min-h-0 pt-3 sm:pt-6 pb-2">
 
-      {/* Glass Card */}
-      <div
-        className="relative z-20 w-28 sm:w-36 lg:w-40 h-40 sm:h-52 lg:h-56 overflow-hidden transition-all duration-500 flex-shrink-0"
+      {/* Glass Card - Top Area */}
+      <div className="flex-1 flex items-center justify-center w-full">
+        <div
+          className="relative z-20 w-28 sm:w-36 lg:w-40 h-40 sm:h-52 lg:h-56 overflow-hidden transition-all duration-500 flex-shrink-0"
         style={{
           background: isMixing
             ? 'linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.05) 100%)'
@@ -197,43 +198,44 @@ const MoodInputSection = ({
             style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.3) 0%, transparent 100%)' }}
           />
         )}
+        </div>
       </div>
 
-      {/* Inventory Badge */}
-      <div
-        className="relative z-30 flex items-center gap-2 px-4 py-2 rounded-full bg-white/70 border border-white/50 backdrop-blur-xl mb-4 sm:mb-6 cursor-pointer hover:bg-white/80 transition-colors"
-        style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}
-        onClick={onEditIngredients}
-      >
-        <span className="text-gray-700 text-xs font-medium">
-          {ingredientCount} 种原料已就绪
-        </span>
-        <Edit3 size={13} className="text-gray-400" />
-      </div>
-
-      {/* Generate Button */}
-      <div className="w-full max-w-xs sm:max-w-sm z-10 mb-4">
-        <button
-          onClick={onGenerate}
-          className="w-full h-11 sm:h-12 rounded-xl relative overflow-hidden group shadow-lg shadow-purple-200/50"
-          style={{
-            background: 'linear-gradient(135deg, #A78BFA 0%, #818CF8 100%)',
-          }}
+      {/* Bottom Area - Badge & Button */}
+      <div className="flex flex-col items-center w-full">
+        {/* Inventory Badge */}
+        <div
+          className="relative z-30 flex items-center gap-2 px-4 py-2 rounded-full bg-white/70 border border-white/50 backdrop-blur-xl mb-4 sm:mb-6 cursor-pointer hover:bg-white/80 transition-colors"
+          style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}
+          onClick={onEditIngredients}
         >
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-          {isMixing ? (
-            <span className="animate-pulse text-xs">正在解析你的心情...</span>
-          ) : (
-            <span className="relative z-10 flex items-center justify-center gap-2 text-white font-semibold text-sm">
-              <Sparkles size={16} className="text-white" />
-              开始生成
-            </span>
-          )}
-        </button>
-      </div>
+          <span className="text-gray-700 text-xs font-medium">
+            {ingredientCount} 种原料已就绪
+          </span>
+          <Edit3 size={13} className="text-gray-400" />
+        </div>
 
-      {/* Bottom Spacer - reduced for mobile */}
-      <div className="flex-1 min-h-[20px] sm:min-h-[40px]"></div>
+        {/* Generate Button */}
+        <div className="w-full max-w-xs sm:max-w-sm z-10 mb-2">
+          <button
+            onClick={onGenerate}
+            className="w-full h-11 sm:h-12 rounded-xl relative overflow-hidden group shadow-lg shadow-purple-200/50"
+            style={{
+              background: 'linear-gradient(135deg, #A78BFA 0%, #818CF8 100%)',
+            }}
+          >
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+            {isMixing ? (
+              <span className="animate-pulse text-xs">正在解析你的心情...</span>
+            ) : (
+              <span className="relative z-10 flex items-center justify-center gap-2 text-white font-semibold text-sm">
+                <Sparkles size={16} className="text-white" />
+                开始生成
+              </span>
+            )}
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 );

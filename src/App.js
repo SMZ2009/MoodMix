@@ -201,7 +201,7 @@ const MoodInputSection = ({
 
       {/* Inventory Badge */}
       <div
-        className="relative z-30 flex items-center gap-2 px-4 py-2 rounded-full bg-white/70 border border-white/50 backdrop-blur-xl mb-4 sm:mb-5 cursor-pointer hover:bg-white/80 transition-colors"
+        className="relative z-30 flex items-center gap-2 px-4 py-2 rounded-full bg-white/70 border border-white/50 backdrop-blur-xl mb-8 sm:mb-10 cursor-pointer hover:bg-white/80 transition-colors"
         style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}
         onClick={onEditIngredients}
       >

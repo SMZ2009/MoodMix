@@ -51,7 +51,7 @@ const MoodInputSection = ({
   moodInput, setMoodInput, selectedMood, setSelectedMood, onGenerate, buttonFeedback, isMixing,
   ingredientCount, onEditIngredients, onNavigate, activeTab
 }) => (
-  <div className="flex-1 flex flex-col items-center px-4 sm:px-6 pt-5 sm:pt-6 pb-16 sm:pb-20 bg-dreamy-gradient w-full min-h-screen h-screen relative overflow-hidden max-w-4xl mx-auto">
+  <div className="flex-1 flex flex-col items-center px-4 sm:px-6 pt-5 sm:pt-6 pb-16 sm:pb-20 bg-dreamy-gradient w-full min-h-screen h-screen relative overflow-hidden">
     {/* Background Blobs */}
     <div className="absolute top-0 left-1/4 w-64 sm:w-96 h-64 sm:h-96 bg-purple-200/40 rounded-full blur-[100px] pointer-events-none mix-blend-multiply"></div>
     <div className="absolute top-1/4 right-0 w-56 sm:w-80 h-56 sm:h-80 bg-blue-200/40 rounded-full blur-[80px] pointer-events-none mix-blend-multiply"></div>
@@ -320,7 +320,7 @@ const ResultsSection = ({
   }, [onIndexChange]);
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden relative bg-dreamy-gradient h-screen max-w-4xl mx-auto">
+    <div className="flex-1 flex flex-col overflow-hidden relative bg-dreamy-gradient h-screen">
       <header className="flex items-center justify-between p-5 pt-8 flex-none z-20">
         <InteractiveButton
           variant="icon"
@@ -538,7 +538,7 @@ const ExploreSection = ({
   }, [searchQuery, onSearch]);
 
   return (
-    <div className="flex-1 flex flex-col bg-dreamy-gradient max-w-4xl mx-auto w-full h-screen overflow-hidden relative">
+    <div className="flex-1 flex flex-col bg-dreamy-gradient w-full h-screen overflow-hidden relative">
       <header className="sticky top-0 z-40 px-4 pt-8 pb-2">
         <div className="flex flex-col gap-4">
           <div className="flex items-center gap-3 w-full">
@@ -771,7 +771,7 @@ const DrinkDetailSection = ({ drink, checkedIngredients, onToggleIngredient, onB
 
   return (
     <div className="fixed inset-0 z-50 bg-dreamy-gradient h-screen overflow-y-auto pb-36">
-      <div className="relative h-[40vh] w-full max-w-4xl mx-auto overflow-hidden">
+      <div className="relative h-[40vh] w-full overflow-hidden">
         <img src={drink.image} className="w-full h-full object-cover" alt={drink.name} />
         <div className="absolute top-8 inset-x-0 px-6 flex justify-between">
           <InteractiveButton
@@ -793,7 +793,7 @@ const DrinkDetailSection = ({ drink, checkedIngredients, onToggleIngredient, onB
         <div className="absolute bottom-0 left-0 right-0 h-10 bg-white rounded-t-[2.5rem]" />
       </div>
 
-      <div className="relative -mt-4 bg-white min-h-[55vh] px-6 pt-2 max-w-4xl mx-auto">
+      <div className="relative -mt-4 bg-white min-h-[55vh] px-6 pt-2">
         <div className="mb-6 pt-2">
           <h1 className="text-2xl font-bold text-gray-900 mb-1">{drink.name}</h1>
           {drink.nameEn && drink.nameEn !== drink.name && (
@@ -891,7 +891,7 @@ const DrinkDetailSection = ({ drink, checkedIngredients, onToggleIngredient, onB
         </div>
       </div>
 
-      <div className="fixed bottom-0 inset-x-0 p-5 bg-gradient-to-t from-white via-white to-transparent pt-10 z-[60] max-w-4xl mx-auto left-0 right-0">
+      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 p-5 bg-gradient-to-t from-white via-white to-transparent pt-10 z-[60] max-w-4xl">
           <div className="flex space-x-4">
             <InteractiveButton
               variant="secondary"

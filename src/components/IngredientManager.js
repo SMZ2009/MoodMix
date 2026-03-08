@@ -86,7 +86,6 @@ const IngredientManager = ({ userInventory, onUpdate }) => {
                                     style={{ minWidth: 0, flexShrink: 0 }}
                                 >
                                     {item.name_cn}
-                                    {isOwned && <Check size={12} />}
                                 </button>
                             );
                         })}

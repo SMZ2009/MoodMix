@@ -4,7 +4,7 @@ services:
     env: node
     region: oregon
     buildCommand: npm install
-    startCommand: npm run serve-prod
+    startCommand: node server/prodServer.js
     envVars:
       - key: NODE_ENV
         value: production
@@ -14,5 +14,3 @@ services:
         value: Qwen/Qwen2.5-72B-Instruct
       - key: PORT
         value: 10000
-      - key: PROXY_PORT
-        value: 3001

@@ -8,18 +8,11 @@ import { computeDimensions } from '../engine/dimensionEngine';
 
 const BASE_URL = 'https://www.thecocktaildb.com/api/json/v1/1';
 
-// ─── 新分类体系（10类） ───────────────────────────
+// ─── 精简分类体系（4类） ───────────────────────────
 const CATEGORIES = [
     { value: 'all', label: '全部' },
     { value: '鸡尾酒', label: '鸡尾酒' },
-    { value: '烈酒', label: '烈酒' },
-    { value: '啤酒', label: '啤酒' },
-    { value: '葡萄酒', label: '葡萄酒' },
-    { value: '利口酒', label: '利口酒' },
-    { value: '咖啡', label: '咖啡' },
-    { value: '茶', label: '茶' },
-    { value: '乳制品', label: '乳制品' },
-    { value: '果汁', label: '果汁' },
+    { value: '蒸馏酒', label: '蒸馏酒' },
     { value: '软饮', label: '软饮' },
 ];
 
@@ -80,30 +73,25 @@ function classifyDrink(apiDrink) {
         return '软饮';
     }
 
-    // 6. 利口酒（自制利口酒分类，或主要成分为利口酒无烈酒）
-    if (apiCat === 'homemade liqueur') return '利口酒';
-    if (hasLiqueur && !hasSpirit && !hasWine) return '利口酒';
+    // 6. 蒸馏酒（自制利口酒分类，或主要成分为利口酒无烈酒）
+    if (apiCat === 'homemade liqueur') return '蒸馏酒';
+    if (hasLiqueur && !hasSpirit && !hasWine) return '蒸馏酒';
 
     // 7. 葡萄酒（主体为葡萄酒/香槟/味美思，无烈酒混合）
     if (hasWine && !hasSpirit) return '葡萄酒';
 
-    // 8. 烈酒（配料极简：纯饮或加冰/少量调味）
-    if (hasSpirit && ings.length <= 3 && !hasJuice && !hasSoda && !hasDairy && !hasLiqueur) return '烈酒';
-    if (apiCat === 'shot' && ings.length <= 2 && hasSpirit) return '烈酒';
-
+    // 8. 蒸馏酒（配料极简：纯饮或加冰/少量调味，包括利口酒）
+    if (hasSpirit && ings.length <= 3 && !hasJuice && !hasSoda && !hasDairy && !hasLiqueur) return '蒸馏酒';
+    if (apiCat === 'shot' && ings.length <= 2 && hasSpirit) return '蒸馏酒';
+    if (hasLiqueur && !hasSpirit && !hasWine) return '蒸馏酒';
     // 9. 鸡尾酒（含烈酒的混合饮品 — 最大分类）
     if (hasSpirit) return '鸡尾酒';
 
     // 10. 兜底逻辑
-    if (hasLiqueur) return '利口酒';
-    if (hasWine) return '葡萄酒';
-    if (hasCoffee) return '咖啡';
-    if (hasTea) return '茶';
-    if (hasDairy) return '乳制品';
-    if (hasJuice) return '果汁';
-    if (hasSoda) return '软饮';
+    if (hasWine) return '蒸馏酒';
+    if (hasCoffee || hasTea || hasDairy || hasJuice || hasSoda) return '软饮';
 
-    return '鸡尾酒'; // 最终兜底
+    return '软饮'; // 最终兜底
 }
 
 // 酒精类型中文映射

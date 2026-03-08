@@ -34,11 +34,7 @@ const iconMap = {
 const DEFAULT_EXPLORE_CATEGORIES = [
   { label: '全部', value: 'all' },
   { label: '鸡尾酒', value: 'Cocktail' },
-  { label: '经典饮品', value: 'Ordinary Drink' },
-  { label: '短饮', value: 'Shot' },
-  { label: '啤酒', value: 'Beer' },
-  { label: '咖啡/茶', value: 'Coffee / Tea' },
-  { label: '奶昔', value: 'Shake' },
+  { label: '蒸馏酒', value: 'Shot' },
   { label: '软饮料', value: 'Soft Drink' },
 ];
 
@@ -572,10 +568,12 @@ const ExploreSection = ({
             {displayCategories.map((cat, i) => {
               const isActive = category === cat.value;
               const isAll = cat.value === 'all';
-              // 酒精类（前5）：琥珀/橘色系
-              const ALCOHOL_CATS = ['鸡尾酒', '烈酒', '啤酒', '葡萄酒', '利口酒'];
-              // 无酒精类（后5）：翡翠/绿色系
+              // 酒精类：琥珀/橘色系
+              const ALCOHOL_CATS = ['鸡尾酒', '蒸馏酒'];
+              // 无酒精类：翡翠/绿色系
+              const NON_ALCOHOL_CATS = ['软饮'];
               const isAlcohol = ALCOHOL_CATS.includes(cat.value);
+              const isNonAlcohol = NON_ALCOHOL_CATS.includes(cat.value);
 
               // 配色方案
               let bgActive, bgInactive, colorActive, colorInactive, shadow;
@@ -587,16 +585,22 @@ const ExploreSection = ({
                 shadow = '0 4px 14px rgba(165, 180, 252, 0.35)';
               } else if (isAlcohol) {
                 bgActive = 'linear-gradient(135deg, #F59E0B 0%, #F97316 100%)';
-                bgInactive = 'linear-gradient(135deg, rgba(251, 191, 36, 0.15) 0%, rgba(249, 115, 22, 0.12) 100%)';
+                bgInactive = 'linear-gradient(135deg, rgba(251, 191, 36, 0.2) 0%, rgba(249, 115, 22, 0.15) 100%)';
                 colorActive = '#fff';
                 colorInactive = '#D97706';
-                shadow = isActive ? '0 4px 14px rgba(245, 158, 11, 0.35)' : '0 2px 8px rgba(0,0,0,0.02)';
-              } else {
+                shadow = isActive ? '0 6px 20px rgba(245, 158, 11, 0.4)' : '0 3px 12px rgba(245, 158, 11, 0.15)';
+              } else if (isNonAlcohol) {
                 bgActive = 'linear-gradient(135deg, #10B981 0%, #06B6D4 100%)';
                 bgInactive = 'linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(6, 182, 212, 0.1) 100%)';
                 colorActive = '#fff';
                 colorInactive = '#059669';
-                shadow = isActive ? '0 4px 14px rgba(16, 185, 129, 0.35)' : '0 2px 8px rgba(0,0,0,0.02)';
+                shadow = isActive ? '0 6px 20px rgba(16, 185, 129, 0.4)' : '0 3px 12px rgba(16, 185, 129, 0.15)';
+              } else {
+                bgActive = 'linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%)';
+                bgInactive = 'linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(139, 92, 246, 0.1) 100%)';
+                colorActive = '#fff';
+                colorInactive = '#4F46E5';
+                shadow = isActive ? '0 6px 20px rgba(99, 102, 241, 0.4)' : '0 3px 12px rgba(99, 102, 241, 0.15)';
               }
 
               return (
@@ -606,17 +610,18 @@ const ExploreSection = ({
                   size="small"
                   onClick={() => onCategoryChange(cat.value)}
                   style={{
-                    padding: '6px 16px',
+                    padding: '8px 20px',
                     height: 'auto',
-                    borderRadius: '24px',
+                    borderRadius: '28px',
                     background: isActive ? bgActive : bgInactive,
-                    backdropFilter: 'blur(8px)',
-                    border: isActive ? 'none' : '1px solid rgba(255,255,255,0.3)',
+                    backdropFilter: 'blur(10px)',
+                    border: isActive ? 'none' : '1px solid rgba(255,255,255,0.4)',
                     color: isActive ? colorActive : colorInactive,
                     boxShadow: shadow,
                     fontWeight: isActive ? 600 : 500,
                     whiteSpace: 'nowrap',
-                    fontSize: '13px',
+                    fontSize: '14px',
+                    transition: 'all 0.3s ease',
                   }}
                 >
                   {cat.label}

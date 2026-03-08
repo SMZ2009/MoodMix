@@ -51,7 +51,7 @@ const MoodInputSection = ({
   moodInput, setMoodInput, selectedMood, setSelectedMood, onGenerate, buttonFeedback, isMixing,
   ingredientCount, onEditIngredients, onNavigate, activeTab
 }) => (
-  <div className="flex-1 flex flex-col items-center px-4 sm:px-6 pt-5 sm:pt-6 pb-16 sm:pb-20 bg-dreamy-gradient w-full min-h-screen h-screen relative overflow-hidden">
+  <div className="flex-1 flex flex-col items-center px-4 sm:px-6 pt-5 sm:pt-6 pb-16 sm:pb-20 bg-dreamy-gradient w-full min-h-screen h-screen relative overflow-hidden" style={{ marginLeft: '2px' }}>
     {/* Background Blobs */}
     <div className="absolute top-0 left-1/4 w-64 sm:w-96 h-64 sm:h-96 bg-purple-200/40 rounded-full blur-[100px] pointer-events-none mix-blend-multiply"></div>
     <div className="absolute top-1/4 right-0 w-56 sm:w-80 h-56 sm:h-80 bg-blue-200/40 rounded-full blur-[80px] pointer-events-none mix-blend-multiply"></div>

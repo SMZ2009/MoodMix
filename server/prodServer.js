@@ -133,12 +133,12 @@ app.post('/api/generate_quotes', async (req, res) => {
     });
   }
 
-  const { items, variation } = req.body;
+  const { items } = req.body;
 
   if (!items || !Array.isArray(items) || items.length === 0) {
     return res.status(400).json({
       success: false,
-      error: 'items is required and must be a non-empty array'
+      error: 'items must be a non-empty array'
     });
   }
 
@@ -150,40 +150,52 @@ app.post('/api/generate_quotes', async (req, res) => {
 
     for (let i = 0; i < items.length; i += BATCH_SIZE) {
       const batch = items.slice(i, i + BATCH_SIZE);
-      
-      console.log('[API] generate_quotes - 收到的items:', JSON.stringify(batch, null, 2));
-      
-      // 简化的 prompt
-      const systemPrompt = `你是一位调酒师兼中医调理师。
-你需要为每一杯酒写一个处方文案。
 
-【格式要求】：
-"{用户状态}，{饮品名}用{饮品特征}{调理动作}。"
-
-【示例】：
-- "郁气难舒，这杯金酒用柑橘的辛香替你把闷气散开。"
-- "兴致正浓，龙舌兰和你一起往上冲。"
-- "心绪浮躁，一杯冰凉的伏特加汤力帮你沉下来。"
-- "清醒自在，金汤力用金木之性帮你保持这份舒展。"
-
-每句20-30字，必须用「」包裹。每一杯的文案必须完全不同！`;
-
-      // 构建每杯酒的上下文描述
-      const contextDescriptions = batch.map(item => {
+      // 构建更清晰的上下文
+      const contextDescriptions = batch.map((item, index) => {
         const ctx = item.contextPackage || {};
         const userState = ctx.userState || item.diagnosis || '气机失调';
-        const strategy = ctx.strategy || '调理中';
         const drinkProfile = ctx.drinkProfile || item.name;
         const sensory = ctx.sensory || '口感平衡';
-        
-        return `[${item.name}] 用户状态:${userState} | 策略:${strategy} | 饮品特征:${drinkProfile} | 体感:${sensory}`;
-      }).join('\n');
 
-      const userMessage = `请为以下饮品生成处方文案：\n${contextDescriptions}`;
+        return `${index + 1}. 饮品：${item.name}
+用户状态：${userState}
+风味特征：${drinkProfile}
+体感体验：${sensory}`;
+      }).join('\n\n');
 
-      console.log('🚀 准备调用 SiliconFlow API...');
-      console.log('📝 systemPrompt:', systemPrompt);
-      console.log('💬 userMessage:', userMessage);
+      // Prompt优化
+      const systemPrompt = `
+你是一位东方情绪酒馆的调酒师。
+
+任务：
+为每杯饮品写一句具有画面感的推荐语。
+
+要求：
+1. 每句20-30字
+2. 每句必须明显不同
+3. 不要重复句式
+4. 不要使用相同开头
+5. 使用不同的表达方式（情绪 / 画面 / 味道 / 气味）
+6. 每句必须使用「」包裹
+
+示例风格（仅参考氛围，不要模仿句式）：
+「柑橘的锋利在杯口亮了一下，把胸口的闷气慢慢带走。」
+「气泡在杯中升起，这杯Mule适合让思绪落地。」
+「橙子的甜味有点温柔，让夜晚慢慢松一口气。」
+`;
+
+      const userMessage = `
+请为以下饮品分别写一句推荐语：
+
+${contextDescriptions}
+
+按编号输出：
+
+1.
+2.
+3.
+`;
 
       const response = await fetch(SILICONFLOW_API_URL, {
         method: 'POST',
@@ -197,8 +209,8 @@ app.post('/api/generate_quotes', async (req, res) => {
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userMessage }
           ],
-          temperature: 0.8,
-          max_tokens: 800
+          temperature: 0.9,
+          max_tokens: 600
         })
       });
 
@@ -210,22 +222,19 @@ app.post('/api/generate_quotes', async (req, res) => {
 
       const result = await response.json();
       const aiMessage = result.choices?.[0]?.message?.content || '';
-      
-      console.log('========================================');
-      console.log('[API] generate_quotes - LLM返回原始内容:');
-      console.log(aiMessage);
-      console.log('========================================');
 
-      const lines = aiMessage.split('\n').filter(line => line.trim());
+      console.log('========== LLM返回 ==========');
+      console.log(aiMessage);
+      console.log('=============================');
+
+      // 稳定解析「xxx」
+      const matches = aiMessage.match(/「[^」]+」/g) || [];
+
       batch.forEach((item, index) => {
-        if (lines[index]) {
-          let quote = lines[index].trim();
-          // 清理可能的编号
-          quote = quote.replace(/^\d+[.)、]\s*/, '').trim();
-          if (!quote.startsWith('「') && !quote.startsWith('"')) {
-            quote = `「${quote}」`;
-          }
-          quotes[item.id] = quote;
+        if (matches[index]) {
+          quotes[item.id] = matches[index];
+        } else {
+          quotes[item.id] = `「这杯${item.name}，今晚或许正适合你。」`;
         }
       });
     }
@@ -234,6 +243,7 @@ app.post('/api/generate_quotes', async (req, res) => {
       success: true,
       quotes
     });
+
   } catch (error) {
     console.error('Error in /api/generate_quotes:', error);
     return res.status(500).json({

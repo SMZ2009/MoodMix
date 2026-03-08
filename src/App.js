@@ -549,7 +549,7 @@ const ExploreSection = ({
 
                 <input
                   className="bg-transparent border-none focus:outline-none focus:ring-0 w-full text-[15px] placeholder:text-gray-500/50 font-medium py-0 leading-none h-full outline-none text-gray-700"
-                  placeholder="Search cocktails, e.g. Margarita..."
+                  placeholder="Search cocktails ..."
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}

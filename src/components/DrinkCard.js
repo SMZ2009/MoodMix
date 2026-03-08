@@ -73,6 +73,9 @@ const DrinkCard = ({ drink, isActive, onClick, onLike, onUnlike }) => {
             <p className="text-[12px] text-white/70 font-light italic opacity-90 leading-relaxed max-w-[220px]">
               {philosophy.quote}
             </p>
+            {customQuote && (
+              <p className="text-xs text-yellow-100 mt-1" style={{ textAlign: 'center' }}>{customQuote}</p>
+            )}
           </div>
 
 

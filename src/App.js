@@ -101,9 +101,7 @@ const MoodInputSection = ({
     </div>
     
     {/* Main Content Area */}
-    <div className="relative flex-1 w-full flex flex-col items-center justify-between min-h-0">
-      {/* Top Spacer */}
-      <div className="flex-1"></div>
+    <div className="relative flex-1 w-full flex flex-col items-center justify-start min-h-0 pt-6 sm:pt-8">
       
       {/* Glass Card */}
       <div

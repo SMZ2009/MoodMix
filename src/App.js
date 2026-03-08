@@ -1454,7 +1454,7 @@ const App = () => {
   return (
     <div
       ref={mainContentRef}
-      className={`min-h-screen font-sans w-full max-w-4xl mx-auto relative shadow-2xl flex flex-col transition-colors duration-700 overflow-y-auto ${getBackgroundClass()}`}
+      className={`min-h-screen font-sans w-full max-w-4xl mx-auto relative flex flex-col transition-colors duration-700 overflow-y-auto ${getBackgroundClass()}`}
       tabIndex={-1}
     >
       <main className={`flex-1 flex flex-col w-full relative`}>

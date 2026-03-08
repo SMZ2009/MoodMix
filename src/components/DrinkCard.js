@@ -14,7 +14,7 @@ const iconMap = {
   Flame
 };
 
-const DrinkCard = ({ drink, isActive, onClick, onLike, onUnlike }) => {
+const DrinkCard = ({ drink, isActive, onClick, onLike, onUnlike, customQuote }) => {
   const {
     style: cardStyle,
     getEventHandlers

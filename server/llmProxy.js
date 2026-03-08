@@ -174,19 +174,21 @@ app.post('/api/generate_quotes', async (req, res) => {
 
     // 构造 Batch Prompt
     const systemPrompt = `你是一位深谙东方五行哲学与西方调酒艺术的诗人酒保。
-我将提供给你一批饮品的名字，以及它与当前顾客发生的心境碰撞逻辑（五行生克）。
+我将提供给你一批饮品的名字，以及它与当前顾客发生的心境碰撞逻辑。
 请你针对每一组，写一句【高度契合这杯酒名字和意境的、不超过20个字】的诗意短句。
 短句不带标点，格式必须用「」包裹。
 你必须严格输出一个合法的 JSON Object，Key 是传入的饮品 ID，Value 是你写的句子。绝对不要输出其他任何文字！
 
 【参考语境】：
-- 水生木 (滋养)：以沉静之味，养住躁动的气
-- 金克木 (压胜)：以肃杀之气，收住疯长的枝蔓
-- 木遇木 (共振)：同气相求，让躁动找到最佳出口`;
+- 辨证(用户状态)：清醒自在 → 策略：以木制衡 → 体感：凉爽·顺滑 → 「金风玉露一相逢」
+- 辨证：郁气难舒 → 策略：借辛疏散 → 体感：辛香·开窍 → 「借酒浇愁更愁」
+- 辨证：兴致正浓 → 策略：同火共振 → 体感：灼烈·冲击 → 「杯中火焰照丹心」
+
+【重要】：每一杯酒的文案必须完全不同，基于饮品的名字、辨证、策略、体感、饮品profile综合构思！`;
 
     let userContent = "请为以下饮品生成专属文案：\n";
     items.forEach(item => {
-      userContent += `ID: ${item.id}, 饮品名: ${item.name}, 五行生克关联: ${item.wuxingLogic}\n`;
+      userContent += `ID: ${item.id}, 饮品名: ${item.name}, 辨证: ${item.diagnosis}, 策略: ${item.strategy}, 体感: ${item.sensory}, 饮品profile: ${item.contextPackage?.drinkProfile}\n`;
     });
     userContent += "\n请返回严格的 JSON 格式：\n{\n";
     items.forEach(item => {

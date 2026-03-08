@@ -10,8 +10,15 @@ const DEFAULT_COLLECTIONS = [];
 
 const STANDARD_INGREDIENTS = {
 
-  // ── 基酒 ────────────────────────────────────────────────────────────────
-  '基酒': [
+  // ── 发酵酒 ────────────────────────────────────────────────────────────────
+  '发酵酒': [
+    // 发酵酒通常是指通过发酵工艺制作的酒，如啤酒、葡萄酒等
+    // 这里暂时为空，可根据需要添加
+  ],
+
+  // ── 蒸馏酒 ────────────────────────────────────────────────────────────────
+  '蒸馏酒': [
+    // 基酒
     { ing_id: 'ING_001_Gin', name_cn: '金酒', name_en: 'Gin', default_unit: 'ml', is_alcoholic: true },
     { ing_id: 'ING_002_Whiskey', name_cn: '威士忌', name_en: 'Whiskey', default_unit: 'ml', is_alcoholic: true },
     { ing_id: 'ING_003_Bourbon', name_cn: '波本威士忌', name_en: 'Bourbon', default_unit: 'ml', is_alcoholic: true },
@@ -24,10 +31,7 @@ const STANDARD_INGREDIENTS = {
     { ing_id: 'ING_010_Mezcal', name_cn: '梅斯卡尔', name_en: 'Mezcal', default_unit: 'ml', is_alcoholic: true },
     { ing_id: 'ING_011_Brandy', name_cn: '白兰地', name_en: 'Brandy', default_unit: 'ml', is_alcoholic: true },
     { ing_id: 'ING_012_Cognac', name_cn: '干邑', name_en: 'Cognac', default_unit: 'ml', is_alcoholic: true },
-  ],
-
-  // ── 利口酒 ───────────────────────────────────────────────────────────────
-  '利口酒': [
+    // 利口酒
     { ing_id: 'ING_201_Campari', name_cn: '金巴利', name_en: 'Campari', default_unit: 'ml', is_alcoholic: true },
     { ing_id: 'ING_202_Aperol', name_cn: '阿佩罗', name_en: 'Aperol', default_unit: 'ml', is_alcoholic: true },
     { ing_id: 'ING_203_TripleSec', name_cn: '橙味利口酒', name_en: 'Triple Sec', default_unit: 'ml', is_alcoholic: true },
@@ -43,16 +47,9 @@ const STANDARD_INGREDIENTS = {
     { ing_id: 'ING_213_Chartreuse', name_cn: '查特酒', name_en: 'Chartreuse', default_unit: 'ml', is_alcoholic: true },
   ],
 
-  // ── 苦精（用量为 dash/drop，单独成类） ───────────────────────────────────
-  '苦精': [
-    { ing_id: 'ING_301_AngosturaBitters', name_cn: '安哥斯图拉苦精', name_en: 'Angostura Bitters', default_unit: 'dash', is_alcoholic: true },
-    { ing_id: 'ING_302_OrangeBitters', name_cn: '橙味苦精', name_en: 'Orange Bitters', default_unit: 'dash', is_alcoholic: true },
-    { ing_id: 'ING_303_PeychaudBitters', name_cn: '佩绍苦精', name_en: "Peychaud's Bitters", default_unit: 'dash', is_alcoholic: true },
-    { ing_id: 'ING_304_MoleBitters', name_cn: '摩尔苦精', name_en: 'Mole Bitters', default_unit: 'dash', is_alcoholic: true },
-  ],
-
-  // ── 果汁 ─────────────────────────────────────────────────────────────────
-  '果汁': [
+  // ── 软饮 ──────────────────────────────────────────────────────────────────
+  '软饮': [
+    // 果汁
     { ing_id: 'ING_401_LemonJuice', name_cn: '柠檬汁', name_en: 'Lemon Juice', default_unit: 'ml', is_alcoholic: false },
     { ing_id: 'ING_402_LimeJuice', name_cn: '青柠汁', name_en: 'Lime Juice', default_unit: 'ml', is_alcoholic: false },
     { ing_id: 'ING_403_OrangeJuice', name_cn: '橙汁', name_en: 'Orange Juice', default_unit: 'ml', is_alcoholic: false },
@@ -61,32 +58,7 @@ const STANDARD_INGREDIENTS = {
     { ing_id: 'ING_406_CranberryJuice', name_cn: '蔓越莓汁', name_en: 'Cranberry Juice', default_unit: 'ml', is_alcoholic: false },
     { ing_id: 'ING_407_AppleJuice', name_cn: '苹果汁', name_en: 'Apple Juice', default_unit: 'ml', is_alcoholic: false },
     { ing_id: 'ING_408_PassionJuice', name_cn: '百香果汁', name_en: 'Passion Fruit Juice', default_unit: 'ml', is_alcoholic: false },
-  ],
-
-  // ── 新鲜水果（整只/块，用于挤汁或装饰） ──────────────────────────────────
-  '水果': [
-    { ing_id: 'ING_451_Lemon', name_cn: '柠檬', name_en: 'Lemon', default_unit: 'piece', is_alcoholic: false },
-    { ing_id: 'ING_452_Lime', name_cn: '青柠', name_en: 'Lime', default_unit: 'piece', is_alcoholic: false },
-    { ing_id: 'ING_453_Orange', name_cn: '橙子', name_en: 'Orange', default_unit: 'piece', is_alcoholic: false },
-    { ing_id: 'ING_454_Grapefruit', name_cn: '西柚', name_en: 'Grapefruit', default_unit: 'piece', is_alcoholic: false },
-    { ing_id: 'ING_455_Strawberry', name_cn: '草莓', name_en: 'Strawberry', default_unit: 'piece', is_alcoholic: false },
-    { ing_id: 'ING_456_Cucumber', name_cn: '黄瓜', name_en: 'Cucumber', default_unit: 'piece', is_alcoholic: false },
-  ],
-
-  // ── 糖浆 / 甜味剂 ────────────────────────────────────────────────────────
-  '糖浆/甜味剂': [
-    { ing_id: 'ING_501_SimpleSyrup', name_cn: '简易糖浆', name_en: 'Simple Syrup', default_unit: 'ml', is_alcoholic: false },
-    { ing_id: 'ING_502_Grenadine', name_cn: '红石榴糖浆', name_en: 'Grenadine', default_unit: 'ml', is_alcoholic: false },
-    { ing_id: 'ING_503_AgaveSyrup', name_cn: '龙舌兰糖浆', name_en: 'Agave Syrup', default_unit: 'ml', is_alcoholic: false },
-    { ing_id: 'ING_504_Honey', name_cn: '蜂蜜', name_en: 'Honey', default_unit: 'ml', is_alcoholic: false },
-    { ing_id: 'ING_505_MapleSyrup', name_cn: '枫糖浆', name_en: 'Maple Syrup', default_unit: 'ml', is_alcoholic: false },
-    { ing_id: 'ING_506_RaspberrySyrup', name_cn: '覆盆子糖浆', name_en: 'Raspberry Syrup', default_unit: 'ml', is_alcoholic: false },
-    { ing_id: 'ING_507_OrgeatSyrup', name_cn: '杏仁糖浆', name_en: 'Orgeat Syrup', default_unit: 'ml', is_alcoholic: false },
-    { ing_id: 'ING_508_Sugar', name_cn: '白砂糖', name_en: 'Sugar', default_unit: 'tsp', is_alcoholic: false },
-  ],
-
-  // ── 气泡饮料 / 软饮 ──────────────────────────────────────────────────────
-  '气泡饮料': [
+    // 气泡饮料
     { ing_id: 'ING_601_SodaWater', name_cn: '苏打水', name_en: 'Soda Water', default_unit: 'ml', is_alcoholic: false },
     { ing_id: 'ING_602_TonicWater', name_cn: '汤力水', name_en: 'Tonic Water', default_unit: 'ml', is_alcoholic: false },
     { ing_id: 'ING_603_Cola', name_cn: '可乐', name_en: 'Cola', default_unit: 'ml', is_alcoholic: false },
@@ -96,27 +68,43 @@ const STANDARD_INGREDIENTS = {
     { ing_id: 'ING_607_SparklingWater', name_cn: '气泡水', name_en: 'Sparkling Water', default_unit: 'ml', is_alcoholic: false },
   ],
 
-  // ── 乳制品 / 蛋类 ────────────────────────────────────────────────────────
-  '乳制品/蛋类': [
+  // ── 其他 ──────────────────────────────────────────────────────────────────
+  '其他': [
+    // 苦精
+    { ing_id: 'ING_301_AngosturaBitters', name_cn: '安哥斯图拉苦精', name_en: 'Angostura Bitters', default_unit: 'dash', is_alcoholic: true },
+    { ing_id: 'ING_302_OrangeBitters', name_cn: '橙味苦精', name_en: 'Orange Bitters', default_unit: 'dash', is_alcoholic: true },
+    { ing_id: 'ING_303_PeychaudBitters', name_cn: '佩绍苦精', name_en: "Peychaud's Bitters", default_unit: 'dash', is_alcoholic: true },
+    { ing_id: 'ING_304_MoleBitters', name_cn: '摩尔苦精', name_en: 'Mole Bitters', default_unit: 'dash', is_alcoholic: true },
+    // 水果
+    { ing_id: 'ING_451_Lemon', name_cn: '柠檬', name_en: 'Lemon', default_unit: 'piece', is_alcoholic: false },
+    { ing_id: 'ING_452_Lime', name_cn: '青柠', name_en: 'Lime', default_unit: 'piece', is_alcoholic: false },
+    { ing_id: 'ING_453_Orange', name_cn: '橙子', name_en: 'Orange', default_unit: 'piece', is_alcoholic: false },
+    { ing_id: 'ING_454_Grapefruit', name_cn: '西柚', name_en: 'Grapefruit', default_unit: 'piece', is_alcoholic: false },
+    { ing_id: 'ING_455_Strawberry', name_cn: '草莓', name_en: 'Strawberry', default_unit: 'piece', is_alcoholic: false },
+    { ing_id: 'ING_456_Cucumber', name_cn: '黄瓜', name_en: 'Cucumber', default_unit: 'piece', is_alcoholic: false },
+    // 糖浆/甜味剂
+    { ing_id: 'ING_501_SimpleSyrup', name_cn: '简易糖浆', name_en: 'Simple Syrup', default_unit: 'ml', is_alcoholic: false },
+    { ing_id: 'ING_502_Grenadine', name_cn: '红石榴糖浆', name_en: 'Grenadine', default_unit: 'ml', is_alcoholic: false },
+    { ing_id: 'ING_503_AgaveSyrup', name_cn: '龙舌兰糖浆', name_en: 'Agave Syrup', default_unit: 'ml', is_alcoholic: false },
+    { ing_id: 'ING_504_Honey', name_cn: '蜂蜜', name_en: 'Honey', default_unit: 'ml', is_alcoholic: false },
+    { ing_id: 'ING_505_MapleSyrup', name_cn: '枫糖浆', name_en: 'Maple Syrup', default_unit: 'ml', is_alcoholic: false },
+    { ing_id: 'ING_506_RaspberrySyrup', name_cn: '覆盆子糖浆', name_en: 'Raspberry Syrup', default_unit: 'ml', is_alcoholic: false },
+    { ing_id: 'ING_507_OrgeatSyrup', name_cn: '杏仁糖浆', name_en: 'Orgeat Syrup', default_unit: 'ml', is_alcoholic: false },
+    { ing_id: 'ING_508_Sugar', name_cn: '白砂糖', name_en: 'Sugar', default_unit: 'tsp', is_alcoholic: false },
+    // 乳制品/蛋类
     { ing_id: 'ING_701_HeavyCream', name_cn: '淡奶油', name_en: 'Heavy Cream', default_unit: 'ml', is_alcoholic: false },
     { ing_id: 'ING_702_Milk', name_cn: '牛奶', name_en: 'Milk', default_unit: 'ml', is_alcoholic: false },
     { ing_id: 'ING_703_EggWhite', name_cn: '蛋清', name_en: 'Egg White', default_unit: 'ml', is_alcoholic: false },
     { ing_id: 'ING_704_WholeEgg', name_cn: '全蛋', name_en: 'Whole Egg', default_unit: 'piece', is_alcoholic: false },
     { ing_id: 'ING_705_CoconutCream', name_cn: '椰奶/椰浆', name_en: 'Coconut Cream', default_unit: 'ml', is_alcoholic: false },
-  ],
-
-  // ── 香草 / 香料 ──────────────────────────────────────────────────────────
-  '香草/香料': [
+    // 香草/香料
     { ing_id: 'ING_801_Mint', name_cn: '薄荷叶', name_en: 'Mint', default_unit: 'piece', is_alcoholic: false },
     { ing_id: 'ING_802_Rosemary', name_cn: '迷迭香', name_en: 'Rosemary', default_unit: 'piece', is_alcoholic: false },
     { ing_id: 'ING_803_Basil', name_cn: '罗勒', name_en: 'Basil', default_unit: 'piece', is_alcoholic: false },
     { ing_id: 'ING_804_Thyme', name_cn: '百里香', name_en: 'Thyme', default_unit: 'piece', is_alcoholic: false },
     { ing_id: 'ING_805_Espresso', name_cn: '意式浓缩', name_en: 'Espresso', default_unit: 'ml', is_alcoholic: false },
     { ing_id: 'ING_806_Cinnamon', name_cn: '肉桂棒', name_en: 'Cinnamon Stick', default_unit: 'piece', is_alcoholic: false },
-  ],
-
-  // ── 装饰 ─────────────────────────────────────────────────────────────────
-  '装饰': [
+    // 装饰
     { ing_id: 'ING_901_Cherry', name_cn: '马拉斯奇诺樱桃', name_en: 'Maraschino Cherry', default_unit: 'piece', is_alcoholic: false },
     { ing_id: 'ING_902_Olive', name_cn: '橄榄', name_en: 'Olive', default_unit: 'piece', is_alcoholic: false },
     { ing_id: 'ING_903_LemonPeel', name_cn: '柠檬皮', name_en: 'Lemon Peel', default_unit: 'piece', is_alcoholic: false },
@@ -125,10 +113,7 @@ const STANDARD_INGREDIENTS = {
     { ing_id: 'ING_906_CocktailOnion', name_cn: '鸡尾酒洋葱', name_en: 'Cocktail Onion', default_unit: 'piece', is_alcoholic: false },
     { ing_id: 'ING_907_SaltRim', name_cn: '盐口', name_en: 'Salt Rim', default_unit: 'g', is_alcoholic: false },
     { ing_id: 'ING_908_SugarRim', name_cn: '糖口', name_en: 'Sugar Rim', default_unit: 'g', is_alcoholic: false },
-  ],
-
-  // ── 其他基础 ─────────────────────────────────────────────────────────────
-  '其他': [
+    // 其他基础
     { ing_id: 'ING_951_Ice', name_cn: '冰块', name_en: 'Ice', default_unit: 'piece', is_alcoholic: false },
     { ing_id: 'ING_952_CrushedIce', name_cn: '碎冰', name_en: 'Crushed Ice', default_unit: 'g', is_alcoholic: false },
     { ing_id: 'ING_953_Water', name_cn: '纯净水', name_en: 'Water', default_unit: 'ml', is_alcoholic: false },

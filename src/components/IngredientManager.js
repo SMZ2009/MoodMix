@@ -3,7 +3,8 @@ import { Plus, Check, ChevronDown, ChevronUp } from 'lucide-react';
 import { inventoryStorage, ingredientCategories } from '../store/localStorageAdapter';
 
 const DEFAULT_CATEGORIES = [
-    '发酵酒', '蒸馏酒', '软饮', '其他'
+    '基酒', '利口酒', '苦精', '果汁', '水果', '糖浆/甜味剂', '气泡饮料',
+    '乳制品/蛋类', '香草/香料', '装饰', '其他'
 ];
 
 const IngredientManager = ({ userInventory, onUpdate }) => {
@@ -85,6 +86,7 @@ const IngredientManager = ({ userInventory, onUpdate }) => {
                                     style={{ minWidth: 0, flexShrink: 0 }}
                                 >
                                     {item.name_cn}
+                                    {isOwned && <Check size={12} />}
                                 </button>
                             );
                         })}

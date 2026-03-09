@@ -37,6 +37,34 @@ app.use((req, res, next) => {
   next();
 });
 
+// ═══════════════════════════════════════════
+// TheCocktailDB API 代理（解决 CORS 问题）
+// ═══════════════════════════════════════════
+const COCKTAILDB_BASE = 'https://www.thecocktaildb.com/api/json/v1/1';
+
+app.all('/api/cocktaildb/*', async (req, res) => {
+  const endpoint = req.params[0];
+  const queryString = req.url.includes('?') ? req.url.substring(req.url.indexOf('?')) : '';
+  const targetUrl = `${COCKTAILDB_BASE}/${endpoint}${queryString}`;
+  
+  console.log('[CocktailDB Proxy]', req.method, targetUrl);
+  
+  try {
+    const response = await fetch(targetUrl, {
+      method: req.method,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: req.method !== 'GET' && req.method !== 'HEAD' ? JSON.stringify(req.body) : undefined
+    });
+    const data = await response.json();
+    res.json(data);
+  } catch (error) {
+    console.error('[CocktailDB Proxy Error]', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // SiliconFlow API 配置
 const SILICONFLOW_API_URL = 'https://api.siliconflow.cn/v1/chat/completions';
 const SILICONFLOW_MODEL = process.env.SILICONFLOW_MODEL || 'Qwen/Qwen2.5-72B-Instruct';

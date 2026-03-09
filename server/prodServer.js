@@ -39,15 +39,21 @@ app.use((req, res, next) => {
 // ═══════════════════════════════════════════
 const COCKTAILDB_BASE = 'https://www.thecocktaildb.com/api/json/v1/1';
 
-app.get('/api/cocktaildb/:endpoint(*)', async (req, res) => {
-  const endpoint = req.params.endpoint;
+app.all('/api/cocktaildb/*', async (req, res) => {
+  const endpoint = req.params[0];
   const queryString = req.url.includes('?') ? req.url.substring(req.url.indexOf('?')) : '';
   const targetUrl = `${COCKTAILDB_BASE}/${endpoint}${queryString}`;
   
-  console.log('[CocktailDB Proxy]', targetUrl);
+  console.log('[CocktailDB Proxy]', req.method, targetUrl);
   
   try {
-    const response = await fetch(targetUrl);
+    const response = await fetch(targetUrl, {
+      method: req.method,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: req.method !== 'GET' && req.method !== 'HEAD' ? JSON.stringify(req.body) : undefined
+    });
     const data = await response.json();
     res.json(data);
   } catch (error) {

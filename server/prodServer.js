@@ -40,24 +40,18 @@ app.use((req, res, next) => {
 const COCKTAILDB_BASE = 'https://www.thecocktaildb.com/api/json/v1/1';
 
 app.all('/api/cocktaildb/*', async (req, res) => {
-  const endpoint = req.params[0];
-  const queryString = req.url.includes('?') ? req.url.substring(req.url.indexOf('?')) : '';
-  const targetUrl = `${COCKTAILDB_BASE}/${endpoint}${queryString}`;
+  const pathPart = req.params[0] || '';
+  const query = req.url.includes('?') ? '?' + req.url.split('?')[1] : '';
+  const targetUrl = `${COCKTAILDB_BASE}/${pathPart}${query}`;
   
   console.log('[CocktailDB Proxy]', req.method, targetUrl);
   
   try {
-    const response = await fetch(targetUrl, {
-      method: req.method,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: req.method !== 'GET' && req.method !== 'HEAD' ? JSON.stringify(req.body) : undefined
-    });
+    const response = await fetch(targetUrl);
     const data = await response.json();
     res.json(data);
   } catch (error) {
-    console.error('[CocktailDB Proxy Error]', error.message);
+    console.error('[CocktailDB Proxy Error]', error);
     res.status(500).json({ error: error.message });
   }
 });

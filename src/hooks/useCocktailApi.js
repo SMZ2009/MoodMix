@@ -58,6 +58,17 @@ export function useCocktailApi() {
         '乳制品': 'Dairy',
         '果汁': 'Juice',
         '软饮': 'Soft Drink',
+        // 英文分类保留
+        'Cocktail': 'Cocktail',
+        'Ordinary Drink': 'Ordinary Drink',
+        'Beer': 'Beer',
+        'Wine': 'Wine',
+        'Liqueur': 'Liqueur',
+        'Coffee': 'Coffee',
+        'Tea': 'Tea',
+        'Dairy': 'Dairy',
+        'Juice': 'Juice',
+        'Soft Drink': 'Soft Drink',
     };
 
     // 迁移旧分类到新分类
@@ -161,13 +172,7 @@ export function useCocktailApi() {
             // 从本地全量缓存按分类过滤（需要迁移分类）
             if (allDrinksCache.current) {
                 const migratedData = allDrinksCache.current.map(migrateCategory);
-                // 统计各分类数量
-                const catCounts = {};
-                migratedData.forEach(d => { catCounts[d.category] = (catCounts[d.category] || 0) + 1; });
-                console.log('[filterDrinksByCategory] 分类统计:', catCounts);
-                
                 const filtered = migratedData.filter(d => d.category === category);
-                console.log('[filterDrinksByCategory] 筛选', category, '结果数量:', filtered.length);
                 if (filtered.length > 0) {
                     categoryCache.current[category] = filtered;
                     setDrinks(filtered);

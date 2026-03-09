@@ -47,6 +47,7 @@ export function useCocktailApi() {
 
     // 旧分类到新分类的映射
     const CATEGORY_MAPPING = {
+        // 旧版中文分类
         '鸡尾酒': 'Cocktail',
         '蒸馏酒': 'Ordinary Drink',
         '烈酒': 'Ordinary Drink',
@@ -172,6 +173,11 @@ export function useCocktailApi() {
             // 从本地全量缓存按分类过滤（需要迁移分类）
             if (allDrinksCache.current) {
                 const migratedData = allDrinksCache.current.map(migrateCategory);
+                // 查看原始分类分布
+                const oldCounts = {};
+                allDrinksCache.current.forEach(d => { oldCounts[d.category] = (oldCounts[d.category] || 0) + 1; });
+                console.log('[filterDrinksByCategory] 原始分类分布:', oldCounts);
+                
                 const filtered = migratedData.filter(d => d.category === category);
                 if (filtered.length > 0) {
                     categoryCache.current[category] = filtered;

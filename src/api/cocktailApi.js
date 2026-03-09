@@ -6,7 +6,8 @@
 import { translateDrinkName, translateIngredient } from '../data/translations';
 import { computeDimensions } from '../engine/dimensionEngine';
 
-const BASE_URL = 'https://www.thecocktaildb.com/api/json/v1/1';
+// 使用后端代理解决 CORS 问题
+const BASE_URL = '/api/cocktaildb';
 
 // ─── 分类体系（11类） ───────────────────────────
 const CATEGORIES = [

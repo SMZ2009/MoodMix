@@ -529,7 +529,6 @@ const ExploreSection = ({
   const [searchQuery, setSearchQuery] = useState("");
 
   const displayCategories = apiCategories.length > 0 ? apiCategories : DEFAULT_EXPLORE_CATEGORIES;
-  console.log('[ExploreSection] apiCategories:', apiCategories, 'displayCategories:', displayCategories);
 
   // 搜索输入变化时调用 API
   useEffect(() => {
@@ -574,9 +573,9 @@ const ExploreSection = ({
               const isActive = category === cat.value;
               const isAll = cat.value === 'all';
               // 酒精类：琥珀/橘色系
-              const ALCOHOL_CATS = ['Cocktail', 'Ordinary Drink', 'Shot', 'Beer'];
+              const ALCOHOL_CATS = ['Cocktail', 'Ordinary Drink', 'Beer', 'Wine', 'Liqueur'];
               // 无酒精类：翡翠/绿色系
-              const NON_ALCOHOL_CATS = ['Coffee / Tea', 'Shake', 'Soft Drink'];
+              const NON_ALCOHOL_CATS = ['Coffee', 'Tea', 'Dairy', 'Juice', 'Soft Drink'];
               const isAlcohol = ALCOHOL_CATS.includes(cat.value);
               const isNonAlcohol = NON_ALCOHOL_CATS.includes(cat.value);
 

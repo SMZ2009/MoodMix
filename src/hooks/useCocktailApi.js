@@ -9,7 +9,7 @@ import {
 import { translateDrinkSteps, translateText } from '../api/translationService';
 
 // 缓存版本号 - 当数据格式变更时更新，强制刷新缓存
-const CACHE_VERSION = 'v3_category_update';
+const CACHE_VERSION = 'v4_category_11';
 
 /**
  * React Hook：封装 TheCocktailDB API 状态管理

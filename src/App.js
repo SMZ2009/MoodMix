@@ -529,6 +529,7 @@ const ExploreSection = ({
   const [searchQuery, setSearchQuery] = useState("");
 
   const displayCategories = apiCategories.length > 0 ? apiCategories : DEFAULT_EXPLORE_CATEGORIES;
+  console.log('[ExploreSection] apiCategories:', apiCategories, 'displayCategories:', displayCategories);
 
   // 搜索输入变化时调用 API
   useEffect(() => {

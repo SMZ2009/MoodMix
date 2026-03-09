@@ -48,6 +48,7 @@ export function useCocktailApi() {
     // 旧分类到新分类的映射
     const CATEGORY_MAPPING = {
         '鸡尾酒': 'Cocktail',
+        '蒸馏酒': 'Ordinary Drink',
         '烈酒': 'Ordinary Drink',
         '啤酒': 'Beer',
         '葡萄酒': 'Wine',
@@ -62,8 +63,9 @@ export function useCocktailApi() {
     // 迁移旧分类到新分类
     const migrateCategory = (drink) => {
         const oldCat = drink.category;
-        if (CATEGORY_MAPPING[oldCat]) {
-            return { ...drink, category: CATEGORY_MAPPING[oldCat] };
+        const newCat = CATEGORY_MAPPING[oldCat];
+        if (newCat) {
+            return { ...drink, category: newCat };
         }
         return drink;
     };
@@ -159,7 +161,13 @@ export function useCocktailApi() {
             // 从本地全量缓存按分类过滤（需要迁移分类）
             if (allDrinksCache.current) {
                 const migratedData = allDrinksCache.current.map(migrateCategory);
+                // 统计各分类数量
+                const catCounts = {};
+                migratedData.forEach(d => { catCounts[d.category] = (catCounts[d.category] || 0) + 1; });
+                console.log('[filterDrinksByCategory] 分类统计:', catCounts);
+                
                 const filtered = migratedData.filter(d => d.category === category);
+                console.log('[filterDrinksByCategory] 筛选', category, '结果数量:', filtered.length);
                 if (filtered.length > 0) {
                     categoryCache.current[category] = filtered;
                     setDrinks(filtered);

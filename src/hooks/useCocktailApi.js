@@ -123,14 +123,14 @@ export function useCocktailApi() {
         setLoading(true);
         setError(null);
         try {
-            // 检查缓存
+            // 检查分类缓存
             if (categoryCache.current[category]) {
                 setDrinks(categoryCache.current[category]);
                 setLoading(false);
                 return;
             }
 
-            // 优先从本地全量缓存里按分类过滤（更快）
+            // 从本地全量缓存按分类过滤
             if (allDrinksCache.current) {
                 const filtered = allDrinksCache.current.filter(d => d.category === category);
                 if (filtered.length > 0) {
@@ -141,15 +141,10 @@ export function useCocktailApi() {
                 }
             }
 
-            // 降级：调用 API filter 端点 + 批量获取详情（无数量限制）
-            const briefList = await filterByCategory(category);
-            const detailPromises = briefList.map(d => getById(d.apiId));
-            const details = await Promise.all(detailPromises);
-            const validDrinks = details.filter(Boolean);
-
-            // 缓存结果
-            categoryCache.current[category] = validDrinks;
-            setDrinks(validDrinks);
+            // 本地缓存没有该分类的数据，返回空结果（不调用API避免429）
+            console.log('[filterDrinksByCategory] 分类缓存为空:', category);
+            setDrinks([]);
+            setLoading(false);
         } catch (err) {
             console.error('filterDrinksByCategory failed:', err);
             setError('筛选失败，请重试');

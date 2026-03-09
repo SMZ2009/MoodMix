@@ -573,9 +573,9 @@ const ExploreSection = ({
               const isActive = category === cat.value;
               const isAll = cat.value === 'all';
               // 酒精类：琥珀/橘色系
-              const ALCOHOL_CATS = ['鸡尾酒', '蒸馏酒'];
+              const ALCOHOL_CATS = ['Cocktail', 'Ordinary Drink', 'Shot', 'Beer'];
               // 无酒精类：翡翠/绿色系
-              const NON_ALCOHOL_CATS = ['软饮'];
+              const NON_ALCOHOL_CATS = ['Coffee / Tea', 'Shake', 'Soft Drink'];
               const isAlcohol = ALCOHOL_CATS.includes(cat.value);
               const isNonAlcohol = NON_ALCOHOL_CATS.includes(cat.value);
 

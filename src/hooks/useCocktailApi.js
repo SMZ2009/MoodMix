@@ -45,6 +45,29 @@ export function useCocktailApi() {
     // 搜索防抖 timer
     const searchTimer = useRef(null);
 
+    // 旧分类到新分类的映射
+    const CATEGORY_MAPPING = {
+        '鸡尾酒': 'Cocktail',
+        '烈酒': 'Ordinary Drink',
+        '啤酒': 'Beer',
+        '葡萄酒': 'Wine',
+        '利口酒': 'Liqueur',
+        '咖啡': 'Coffee',
+        '茶': 'Tea',
+        '乳制品': 'Dairy',
+        '果汁': 'Juice',
+        '软饮': 'Soft Drink',
+    };
+
+    // 迁移旧分类到新分类
+    const migrateCategory = (drink) => {
+        const oldCat = drink.category;
+        if (CATEGORY_MAPPING[oldCat]) {
+            return { ...drink, category: CATEGORY_MAPPING[oldCat] };
+        }
+        return drink;
+    };
+
     /**
      * 加载全部饮品（按首字母 a-z 并发，返回完整数据）
      */
@@ -54,7 +77,9 @@ export function useCocktailApi() {
         
         // 如果已经缓存，直接使用
         if (allDrinksCache.current) {
-            setDrinks(allDrinksCache.current);
+            // 迁移旧分类到新分类
+            const migrated = allDrinksCache.current.map(migrateCategory);
+            setDrinks(migrated);
             return;
         }
 
@@ -111,9 +136,10 @@ export function useCocktailApi() {
         checkCacheVersion();
         
         if (category === 'all') {
-            // "全部" → 显示缓存的全量数据
+            // "全部" → 显示缓存的全量数据（需要迁移分类）
             if (allDrinksCache.current) {
-                setDrinks(allDrinksCache.current);
+                const migrated = allDrinksCache.current.map(migrateCategory);
+                setDrinks(migrated);
                 return;
             }
             await loadAll();
@@ -130,9 +156,10 @@ export function useCocktailApi() {
                 return;
             }
 
-            // 从本地全量缓存按分类过滤
+            // 从本地全量缓存按分类过滤（需要迁移分类）
             if (allDrinksCache.current) {
-                const filtered = allDrinksCache.current.filter(d => d.category === category);
+                const migratedData = allDrinksCache.current.map(migrateCategory);
+                const filtered = migratedData.filter(d => d.category === category);
                 if (filtered.length > 0) {
                     categoryCache.current[category] = filtered;
                     setDrinks(filtered);

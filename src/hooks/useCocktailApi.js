@@ -45,42 +45,8 @@ export function useCocktailApi() {
     // 搜索防抖 timer
     const searchTimer = useRef(null);
 
-    // 旧分类到新分类的映射
-    const CATEGORY_MAPPING = {
-        // 旧版中文分类
-        '鸡尾酒': 'Cocktail',
-        '蒸馏酒': 'Ordinary Drink',
-        '烈酒': 'Ordinary Drink',
-        '啤酒': 'Beer',
-        '葡萄酒': 'Wine',
-        '利口酒': 'Liqueur',
-        '咖啡': 'Coffee',
-        '茶': 'Tea',
-        '乳制品': 'Dairy',
-        '果汁': 'Juice',
-        '软饮': 'Soft Drink',
-        // 英文分类保留
-        'Cocktail': 'Cocktail',
-        'Ordinary Drink': 'Ordinary Drink',
-        'Beer': 'Beer',
-        'Wine': 'Wine',
-        'Liqueur': 'Liqueur',
-        'Coffee': 'Coffee',
-        'Tea': 'Tea',
-        'Dairy': 'Dairy',
-        'Juice': 'Juice',
-        'Soft Drink': 'Soft Drink',
-    };
-
-    // 迁移旧分类到新分类
-    const migrateCategory = (drink) => {
-        const oldCat = drink.category;
-        const newCat = CATEGORY_MAPPING[oldCat];
-        if (newCat) {
-            return { ...drink, category: newCat };
-        }
-        return drink;
-    };
+    // 迁移函数（保留以备将来需要）
+    const migrateCategory = (drink) => drink;
 
     /**
      * 加载全部饮品（按首字母 a-z 并发，返回完整数据）
@@ -150,10 +116,9 @@ export function useCocktailApi() {
         checkCacheVersion();
         
         if (category === 'all') {
-            // "全部" → 显示缓存的全量数据（需要迁移分类）
+            // "全部" → 显示缓存的全量数据
             if (allDrinksCache.current) {
-                const migrated = allDrinksCache.current.map(migrateCategory);
-                setDrinks(migrated);
+                setDrinks(allDrinksCache.current);
                 return;
             }
             await loadAll();
@@ -170,15 +135,9 @@ export function useCocktailApi() {
                 return;
             }
 
-            // 从本地全量缓存按分类过滤（需要迁移分类）
+            // 从本地全量缓存按分类过滤
             if (allDrinksCache.current) {
-                const migratedData = allDrinksCache.current.map(migrateCategory);
-                // 查看原始分类分布
-                const oldCounts = {};
-                allDrinksCache.current.forEach(d => { oldCounts[d.category] = (oldCounts[d.category] || 0) + 1; });
-                console.log('[filterDrinksByCategory] 原始分类分布:', oldCounts);
-                
-                const filtered = migratedData.filter(d => d.category === category);
+                const filtered = allDrinksCache.current.filter(d => d.category === category);
                 if (filtered.length > 0) {
                     categoryCache.current[category] = filtered;
                     setDrinks(filtered);
@@ -187,8 +146,7 @@ export function useCocktailApi() {
                 }
             }
 
-            // 本地缓存没有该分类的数据，返回空结果（不调用API避免429）
-            console.log('[filterDrinksByCategory] 分类缓存为空:', category);
+            // 本地缓存没有该分类的数据，返回空结果
             setDrinks([]);
             setLoading(false);
         } catch (err) {

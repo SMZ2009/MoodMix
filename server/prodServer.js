@@ -35,6 +35,28 @@ app.use((req, res, next) => {
 });
 
 // ═══════════════════════════════════════════
+// TheCocktailDB API 代理（解决 CORS 问题）
+// ═══════════════════════════════════════════
+const COCKTAILDB_BASE = 'https://www.thecocktaildb.com/api/json/v1/1';
+
+app.get('/api/cocktaildb/:endpoint(*)', async (req, res) => {
+  const endpoint = req.params.endpoint;
+  const queryString = req.url.includes('?') ? req.url.substring(req.url.indexOf('?')) : '';
+  const targetUrl = `${COCKTAILDB_BASE}/${endpoint}${queryString}`;
+  
+  console.log('[CocktailDB Proxy]', targetUrl);
+  
+  try {
+    const response = await fetch(targetUrl);
+    const data = await response.json();
+    res.json(data);
+  } catch (error) {
+    console.error('[CocktailDB Proxy Error]', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ═══════════════════════════════════════════
 // LLM 代理路由
 // ═══════════════════════════════════════════
 

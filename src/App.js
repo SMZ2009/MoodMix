@@ -34,7 +34,11 @@ const iconMap = {
 const DEFAULT_EXPLORE_CATEGORIES = [
   { label: '全部', value: 'all' },
   { label: '鸡尾酒', value: 'Cocktail' },
-  { label: '蒸馏酒', value: 'Shot' },
+  { label: '经典饮品', value: 'Ordinary Drink' },
+  { label: '短饮', value: 'Shot' },
+  { label: '啤酒', value: 'Beer' },
+  { label: '咖啡/茶', value: 'Coffee / Tea' },
+  { label: '奶昔', value: 'Shake' },
   { label: '软饮料', value: 'Soft Drink' },
 ];
 

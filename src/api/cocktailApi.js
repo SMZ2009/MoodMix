@@ -9,19 +9,18 @@ import { computeDimensions } from '../engine/dimensionEngine';
 // 使用后端代理解决 CORS 问题
 const BASE_URL = '/api/cocktaildb';
 
-// ─── 分类体系（11类） ───────────────────────────
+// ─── 分类体系（9类） ───────────────────────────
 const CATEGORIES = [
     { value: 'all', label: '全部' },
-    { value: 'Cocktail', label: '鸡尾酒' },
-    { value: 'Ordinary Drink', label: '烈酒' },
-    { value: 'Beer', label: '啤酒' },
-    { value: 'Wine', label: '葡萄酒' },
-    { value: 'Liqueur', label: '利口酒' },
-    { value: 'Coffee', label: '咖啡' },
-    { value: 'Tea', label: '茶' },
-    { value: 'Dairy', label: '乳制品' },
-    { value: 'Juice', label: '果汁' },
-    { value: 'Soft Drink', label: '软饮' },
+    { value: '鸡尾酒', label: '鸡尾酒' },
+    { value: '蒸馏酒', label: '蒸馏酒' },
+    { value: '啤酒', label: '啤酒' },
+    { value: '葡萄酒', label: '葡萄酒' },
+    { value: '咖啡', label: '咖啡' },
+    { value: '茶', label: '茶' },
+    { value: '乳制品', label: '乳制品' },
+    { value: '果汁', label: '果汁' },
+    { value: '软饮', label: '软饮' },
 ];
 
 /**
@@ -54,38 +53,35 @@ function classifyDrink(apiDrink) {
     // ─── 分类优先级 ───
 
     // 1. 咖啡
-    if (hasCoffee) return 'Coffee';
+    if (hasCoffee) return '咖啡';
 
     // 2. 茶
-    if (hasTea && !hasCoffee) return 'Tea';
+    if (hasTea && !hasCoffee) return '茶';
 
     // 3. 乳制品
-    if (hasDairy) return 'Dairy';
+    if (hasDairy) return '乳制品';
 
     // 4. 果汁
-    if (hasJuice && !hasSpirit && !hasLiqueur) return 'Juice';
+    if (hasJuice && !hasSpirit && !hasLiqueur) return '果汁';
 
     // 5. 啤酒
-    if (apiCat === 'beer' || (hasBeer && !hasSpirit && !hasLiqueur)) return 'Beer';
+    if (apiCat === 'beer' || (hasBeer && !hasSpirit && !hasLiqueur)) return '啤酒';
 
     // 6. 葡萄酒
-    if (hasWine && !hasSpirit) return 'Wine';
+    if (hasWine && !hasSpirit) return '葡萄酒';
 
-    // 7. 利口酒
-    if (hasLiqueur && !hasSpirit) return 'Liqueur';
+    // 7. 蒸馏酒（配料极简：纯饮或加冰/少量调味）
+    if (hasSpirit && ings.length <= 3 && !hasJuice && !hasSoda && !hasDairy && !hasLiqueur) return '蒸馏酒';
+    if (apiCat === 'ordinary drink' && ings.length <= 3) return '蒸馏酒';
 
-    // 8. 烈酒（配料极简：纯饮或加冰/少量调味）
-    if (hasSpirit && ings.length <= 3 && !hasJuice && !hasSoda && !hasDairy && !hasLiqueur) return 'Ordinary Drink';
-    if (apiCat === 'ordinary drink' && ings.length <= 3) return 'Ordinary Drink';
+    // 8. 软饮
+    if (apiCat === 'soft drink' || hasSoda) return '软饮';
 
-    // 9. 软饮
-    if (apiCat === 'soft drink' || hasSoda) return 'Soft Drink';
+    // 9. 鸡尾酒（含烈酒的混合饮品）
+    if (hasSpirit) return '鸡尾酒';
 
-    // 10. 鸡尾酒（含烈酒的混合饮品）
-    if (hasSpirit) return 'Cocktail';
-
-    // 11. 兜底
-    return 'Soft Drink';
+    // 10. 兜底
+    return '软饮';
 }
 
 // 酒精类型中文映射

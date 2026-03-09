@@ -42,10 +42,9 @@ app.use((req, res, next) => {
 // ═══════════════════════════════════════════
 const COCKTAILDB_BASE = 'https://www.thecocktaildb.com/api/json/v1/1';
 
-app.all('/api/cocktaildb/*', async (req, res) => {
-  const pathPart = req.params[0] || '';
-  const query = req.url.includes('?') ? '?' + req.url.split('?')[1] : '';
-  const targetUrl = `${COCKTAILDB_BASE}/${pathPart}${query}`;
+app.use('/api/cocktaildb', async (req, res) => {
+  const path = req.originalUrl.replace('/api/cocktaildb', '') || '/';
+  const targetUrl = `${COCKTAILDB_BASE}${path}`;
   
   console.log('[CocktailDB Proxy]', req.method, targetUrl);
   

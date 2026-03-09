@@ -39,10 +39,9 @@ app.use((req, res, next) => {
 // ═══════════════════════════════════════════
 const COCKTAILDB_BASE = 'https://www.thecocktaildb.com/api/json/v1/1';
 
-app.all('/api/cocktaildb/*', async (req, res) => {
-  const pathPart = req.params[0] || '';
-  const query = req.url.includes('?') ? '?' + req.url.split('?')[1] : '';
-  const targetUrl = `${COCKTAILDB_BASE}/${pathPart}${query}`;
+app.use('/api/cocktaildb', async (req, res) => {
+  const path = req.originalUrl.replace('/api/cocktaildb', '') || '/';
+  const targetUrl = `${COCKTAILDB_BASE}${path}`;
   
   console.log('[CocktailDB Proxy]', req.method, targetUrl);
   
@@ -54,6 +53,11 @@ app.all('/api/cocktaildb/*', async (req, res) => {
     console.error('[CocktailDB Proxy Error]', error);
     res.status(500).json({ error: error.message });
   }
+});
+
+// 测试端点
+app.get('/api/test', (req, res) => {
+  res.json({ status: 'ok', time: new Date().toISOString() });
 });
 
 // ═══════════════════════════════════════════

@@ -47,7 +47,15 @@ app.use('/api/cocktaildb', async (req, res) => {
   
   try {
     const response = await fetch(targetUrl);
-    const data = await response.json();
+    const status = response.status;
+    const text = await response.text();
+    console.log('[CocktailDB] Status:', status, 'Body:', text.substring(0, 200));
+    
+    if (status !== 200) {
+      return res.status(status).json({ error: 'CocktailDB API error', status, body: text });
+    }
+    
+    const data = JSON.parse(text);
     res.json(data);
   } catch (error) {
     console.error('[CocktailDB Proxy Error]', error);

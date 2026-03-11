@@ -188,9 +188,9 @@ const MoodInputSection = ({
         <button
           type="button"
           className="relative z-30 -mt-1 sm:-mt-1.5 mb-0.5 sm:mb-1 px-5 py-2 text-[13px] sm:text-[14px] text-gray-700/80 transition-colors hover:text-gray-800 group"
-          style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif', fontWeight: 300, letterSpacing: '0.18em' }}
+          style={{ fontFamily: '"FZQingKeBenYueSongS-R-GB", "方正清刻本悦宋简体", "Songti SC", serif', fontWeight: 300, letterSpacing: '0.14em' }}
           onClick={onEditIngredients}
-          aria-label={`三味已备，当前 ${ingredientCount} 种原料已就绪`}
+          aria-label={`三种原料已备齐，当前 ${ingredientCount} 种原料已就绪`}
         >
           <span
             className="absolute inset-x-0 -inset-y-1 rounded-[999px] pointer-events-none"
@@ -203,35 +203,60 @@ const MoodInputSection = ({
             }}
           />
           <span className="relative inline-flex items-center gap-3">
-            <span>三味已备</span>
-            <span className="relative h-7 w-7 sm:h-8 sm:w-8">
+            <span>三种原料已备齐</span>
+            <span className="relative h-8 w-8 sm:h-9 sm:w-9">
               <span
                 className="absolute inset-0 rounded-full opacity-0 group-active:opacity-100 group-active:[animation:ink-tap-ripple_420ms_ease-out]"
                 style={{
                   background: 'radial-gradient(circle, rgba(88, 97, 104, 0.16) 0%, rgba(88, 97, 104, 0.08) 34%, transparent 70%)'
                 }}
               />
-              <span
-                className="absolute left-[10px] top-[3px] h-[18px] w-[1.5px] origin-bottom rounded-full bg-[rgba(118,96,73,0.72)] group-hover:[animation:brush-breathe_3.2s_ease-in-out_infinite]"
-                style={{ transform: 'rotate(45deg)' }}
-              />
-              <span
-                className="absolute left-[13px] top-[14px] h-[8px] w-[3px] rounded-b-full rounded-t-[2px] bg-[rgba(72,77,82,0.78)] group-hover:[animation:brush-breathe_3.2s_ease-in-out_infinite]"
-                style={{ transform: 'rotate(45deg)' }}
-              />
-              <span
-                className="absolute left-[14px] top-[20px] h-[4px] w-[4px] rounded-full bg-[rgba(84,89,94,0.18)] opacity-70 group-active:opacity-100"
-                style={{ filter: 'blur(0.8px)' }}
-              />
+              <svg
+                viewBox="0 0 32 32"
+                aria-hidden="true"
+                className="absolute inset-[1px] h-[calc(100%-2px)] w-[calc(100%-2px)] opacity-90 transition-transform duration-500 group-hover:scale-105 group-hover:[animation:brush-breathe_3.2s_ease-in-out_infinite]"
+                style={{
+                  transform: 'rotate(28deg)',
+                  filter: 'drop-shadow(0 3px 6px rgba(92, 113, 138, 0.18))'
+                }}
+              >
+                <defs>
+                  <linearGradient id="leafWash" x1="0%" x2="74%" y1="100%" y2="4%">
+                    <stop offset="0%" stopColor="rgba(58, 101, 160, 0.95)" />
+                    <stop offset="42%" stopColor="rgba(155, 185, 214, 0.82)" />
+                    <stop offset="100%" stopColor="rgba(228, 233, 231, 0.92)" />
+                  </linearGradient>
+                  <linearGradient id="leafStem" x1="0%" x2="100%" y1="100%" y2="0%">
+                    <stop offset="0%" stopColor="rgba(115, 143, 176, 0.88)" />
+                    <stop offset="100%" stopColor="rgba(210, 220, 224, 0.94)" />
+                  </linearGradient>
+                </defs>
+                <path
+                  d="M6.5 25.5C4.8 20.1 5.7 13.9 10.1 9.7C14.3 5.7 20.2 5.3 25.8 7.1C22.8 11.2 19.5 15 16.4 18.9C13.4 22.5 10.5 26 6.5 25.5Z"
+                  fill="url(#leafWash)"
+                />
+                <path
+                  d="M6.8 25.2C8.7 23.6 10.1 22 12.1 19.4C15.8 14.7 19.4 10.8 25.7 7.2"
+                  fill="none"
+                  stroke="url(#leafStem)"
+                  strokeWidth="1.35"
+                  strokeLinecap="round"
+                />
+                <path d="M10.1 21.9L12.5 18.4" fill="none" stroke="rgba(188, 207, 220, 0.72)" strokeWidth="0.75" strokeLinecap="round" />
+                <path d="M12.8 18.6L15.4 16.1" fill="none" stroke="rgba(186, 205, 220, 0.7)" strokeWidth="0.75" strokeLinecap="round" />
+                <path d="M15.7 15.6L18.9 12.9" fill="none" stroke="rgba(191, 207, 220, 0.68)" strokeWidth="0.75" strokeLinecap="round" />
+                <path d="M14.1 19L10.6 17.2" fill="none" stroke="rgba(133, 165, 198, 0.42)" strokeWidth="0.7" strokeLinecap="round" />
+                <path d="M17.2 15.4L13.5 13.9" fill="none" stroke="rgba(127, 157, 191, 0.36)" strokeWidth="0.7" strokeLinecap="round" />
+              </svg>
             </span>
           </span>
         </button>
 
         {/* Generate Button */}
-        <div className="mt-0.5 sm:mt-1 z-10">
+        <div className="-mt-1 sm:-mt-1.5 z-10">
           <button
             onClick={onGenerate}
-            className="relative w-[104px] h-[56px] sm:w-[116px] sm:h-[60px] overflow-visible rounded-[999px] group active:scale-[0.96] transition-transform duration-150"
+            className="relative w-[104px] h-[46px] sm:w-[116px] sm:h-[50px] overflow-visible rounded-[999px] group active:scale-[0.96] transition-transform duration-150"
             style={{
               background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.08) 100%)',
               backdropFilter: 'blur(18px) saturate(1.05)',

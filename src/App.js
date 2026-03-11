@@ -23,8 +23,10 @@ import { useTouchFeedback, useKeyboardNavigation, useCocktailApi } from './hooks
 import { InteractiveButton, SwipeableCard, PageTransition, Modal } from './components/ui';
 import IngredientEditModal from './components/IngredientEditModal';
 import cupRippleImage from './assets/cup-ripple.jpg';
-import btnWatercolor from './assets/btn-watercolor.png';
 import btnWatercolorWarm from './assets/btn-watercolor-warm.png';
+import navIconMix from './assets/nav_icon_mix.png';
+import navIconExplore from './assets/nav_icon_explore.png';
+import navIconMine from './assets/nav_icon_mine.png';
 
 const iconMap = {
   Wine,
@@ -586,7 +588,7 @@ const ExploreSection = ({
   }, [searchQuery, onSearch]);
 
   return (
-    <div className="flex-1 flex flex-col bg-dreamy-gradient max-w-4xl mx-auto w-full h-screen overflow-hidden relative">
+    <div className="flex-1 flex flex-col bg-dreamy-gradient max-w-4xl mx-auto w-full h-screen overflow-hidden relative pb-24">
       <header className="sticky top-0 z-40 px-4 pt-8 pb-2">
         <div className="flex flex-col gap-4">
           <div className="flex items-center gap-3 w-full">
@@ -761,36 +763,7 @@ const ExploreSection = ({
         )}
       </div>
 
-      {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around px-4 sm:px-6 py-2 sm:py-3 bg-white/80 backdrop-blur-xl border-t border-white/40 w-full pb-safe">
-        <button
-          onClick={() => onNavigate && onNavigate('mix')}
-          className="flex flex-col items-center gap-0.5 sm:gap-1 text-gray-400 hover:text-gray-600 transition-colors"
-        >
-          <Sparkles size={20} />
-          <span className="text-[9px] sm:text-[10px] font-medium">特调</span>
-        </button>
-        <button
-          onClick={() => onNavigate && onNavigate('explore')}
-          className={`flex flex-col items-center gap-0.5 sm:gap-1 ${activeTab === 'explore' ? 'text-gray-800' : 'text-gray-400 hover:text-gray-600'} transition-colors`}
-        >
-          {activeTab === 'explore' ? (
-            <div className="w-9 sm:w-10 h-9 sm:h-10 rounded-full bg-gradient-to-br from-purple-400 to-blue-400 flex items-center justify-center shadow-lg shadow-purple-200">
-              <Search size={18} className="text-white" />
-            </div>
-          ) : (
-            <Search size={20} />
-          )}
-          <span className="text-[9px] sm:text-[10px] font-medium">灵感</span>
-        </button>
-        <button
-          onClick={() => onNavigate && onNavigate('mine')}
-          className={`flex flex-col items-center gap-0.5 sm:gap-1 ${activeTab === 'mine' ? 'text-gray-800' : 'text-gray-400 hover:text-gray-600'} transition-colors`}
-        >
-          <User size={20} />
-          <span className="text-[9px] sm:text-[10px] font-medium">我的</span>
-        </button>
-      </nav>
+
     </div>
   );
 };
@@ -2234,45 +2207,33 @@ const CustomMineIcon = ({ size = 26, className = "" }) => (
 );
 
 const NavigationBar = ({ activeTab, onTabChange }) => (
-  <nav className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around px-6 py-3 bg-white/80 backdrop-blur-xl border-t border-white/40 w-full max-w-4xl mx-auto">
+  <nav className="fixed bottom-4 left-4 right-4 z-50 flex items-center justify-around px-6 py-1.5 bg-[rgba(255,255,255,0.85)] backdrop-blur-xl border border-[rgba(180,160,200,0.3)] shadow-[0_8px_32px_rgba(148,120,72,0.15)] rounded-[24px] max-w-md mx-auto">
     <button
       onClick={() => onTabChange('mix')}
-      className={`flex flex-col items-center gap-1 ${activeTab === 'mix' ? 'text-gray-800' : 'text-gray-400 hover:text-gray-600'} transition-colors`}
+      className={`flex flex-col items-center ${activeTab === 'mix' ? 'text-gray-800' : 'text-gray-400 hover:text-gray-600'} transition-colors`}
     >
-      {activeTab === 'mix' ? (
-        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-blue-400 flex items-center justify-center shadow-lg shadow-purple-200">
-          <CustomMixIcon size={22} className="text-white" />
-        </div>
-      ) : (
-        <CustomMixIcon size={24} />
-      )}
-      <span className="text-[10px] font-medium">特调</span>
+      <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${activeTab === 'mix' ? 'scale-110 drop-shadow-md' : 'bg-transparent filter grayscale opacity-60'}`}>
+        <img src={navIconMix} alt="特调" className="w-10 h-10 object-contain" />
+      </div>
+      <span className="text-[10px] font-bold font-serif tracking-widest" style={{ letterSpacing: '0.15em', marginTop: '-4px' }}>特调</span>
     </button>
     <button
       onClick={() => onTabChange('explore')}
-      className={`flex flex-col items-center gap-1 ${activeTab === 'explore' ? 'text-gray-800' : 'text-gray-400 hover:text-gray-600'} transition-colors`}
+      className={`flex flex-col items-center ${activeTab === 'explore' ? 'text-gray-800' : 'text-gray-400 hover:text-gray-600'} transition-colors`}
     >
-      {activeTab === 'explore' ? (
-        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-blue-400 flex items-center justify-center shadow-lg shadow-purple-200">
-          <CustomExploreIcon size={22} className="text-white" />
-        </div>
-      ) : (
-        <CustomExploreIcon size={24} />
-      )}
-      <span className="text-[10px] font-medium">灵感</span>
+      <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${activeTab === 'explore' ? 'scale-110 drop-shadow-md' : 'bg-transparent filter grayscale opacity-60'}`}>
+        <img src={navIconExplore} alt="灵感" className="w-11 h-11 object-contain" />
+      </div>
+      <span className="text-[10px] font-bold font-serif tracking-widest" style={{ letterSpacing: '0.15em', marginTop: '-4px' }}>灵感</span>
     </button>
     <button
       onClick={() => onTabChange('mine')}
-      className={`flex flex-col items-center gap-1 ${activeTab === 'mine' ? 'text-gray-800' : 'text-gray-400 hover:text-gray-600'} transition-colors`}
+      className={`flex flex-col items-center ${activeTab === 'mine' ? 'text-gray-800' : 'text-gray-400 hover:text-gray-600'} transition-colors`}
     >
-      {activeTab === 'mine' ? (
-        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-blue-400 flex items-center justify-center shadow-lg shadow-purple-200">
-          <CustomMineIcon size={22} className="text-white" />
-        </div>
-      ) : (
-        <CustomMineIcon size={24} />
-      )}
-      <span className="text-[10px] font-medium">我的</span>
+      <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${activeTab === 'mine' ? 'scale-110 drop-shadow-md' : 'bg-transparent filter grayscale opacity-60'}`}>
+        <img src={navIconMine} alt="我的" className="w-10 h-10 object-contain" />
+      </div>
+      <span className="text-[10px] font-bold font-serif tracking-widest" style={{ letterSpacing: '0.15em', marginTop: '-4px' }}>我的</span>
     </button>
   </nav>
 );

@@ -70,18 +70,18 @@ const DrinkHelpModal = ({ drink, onClose }) => {
   if (!drink) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl w-full max-w-md max-h-[85vh] overflow-hidden shadow-2xl flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.18)', backdropFilter: 'blur(12px)' }}>
+      <div style={{ background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(40px) saturate(1.2)', WebkitBackdropFilter: 'blur(40px) saturate(1.2)', border: '1px solid rgba(255,255,255,0.15)', boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.2)' }} className="rounded-2xl w-full max-w-md max-h-[85vh] overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-100">
+        <div className="flex items-center justify-between p-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
           <div>
-            <h3 className="text-lg font-bold text-gray-800">制作遇到问题？</h3>
-            <p className="text-xs text-gray-400 mt-0.5">{drink.name}</p>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 700, fontFamily: '"Songti SC","STKaiti","KaiTi",serif', color: 'rgba(42,40,38,0.88)', letterSpacing: '0.1em', textShadow: '0 1px 2px rgba(255,255,255,0.3)' }}>制作遇到问题？</h3>
+            <p style={{ fontSize: '0.75rem', color: 'rgba(80,72,60,0.5)', marginTop: '2px' }}>{drink.name}</p>
           </div>
           <InteractiveButton
             variant="icon"
             onClick={onClose}
-            style={{ background: '#F3F4F6', width: '36px', height: '36px' }}
+            style={{ background: 'rgba(255,255,255,0.1)', width: '36px', height: '36px' }}
           >
             <X size={18} />
           </InteractiveButton>
@@ -91,17 +91,24 @@ const DrinkHelpModal = ({ drink, onClose }) => {
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {/* Quick questions */}
           <div>
-            <p className="text-xs text-gray-500 mb-2">快捷问题</p>
+            <p style={{ fontSize: '0.75rem', color: 'rgba(80,72,60,0.5)', marginBottom: '0.5rem', fontFamily: '"Songti SC",serif', letterSpacing: '0.06em' }}>快捷问题</p>
             <div className="flex flex-wrap gap-2">
               {QUICK_QUESTIONS.map((q, idx) => (
                 <button
                   key={idx}
                   onClick={() => handleQuickQuestion(q.question)}
-                  className={`px-3 py-1.5 rounded-full text-sm transition-all ${
-                    question === q.question
-                      ? 'bg-purple-500 text-white'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
+                  style={{
+                    padding: '0.375rem 0.75rem',
+                    borderRadius: '9999px',
+                    fontSize: '0.82rem',
+                    fontFamily: '"Songti SC",serif',
+                    letterSpacing: '0.04em',
+                    transition: 'all 0.25s ease',
+                    background: question === q.question ? 'linear-gradient(135deg, rgba(148,120,72,0.8) 0%, rgba(128,108,72,0.75) 100%)' : 'rgba(255,255,255,0.08)',
+                    color: question === q.question ? 'rgba(255,252,245,0.95)' : 'rgba(80,72,60,0.65)',
+                    border: question === q.question ? 'none' : '1px solid rgba(255,255,255,0.12)',
+                    cursor: 'pointer'
+                  }}
                 >
                   {q.label}
                 </button>
@@ -111,7 +118,7 @@ const DrinkHelpModal = ({ drink, onClose }) => {
 
           {/* Question input */}
           <div>
-            <p className="text-xs text-gray-500 mb-2">描述你的问题</p>
+            <p style={{ fontSize: '0.75rem', color: 'rgba(80,72,60,0.5)', marginBottom: '0.5rem', fontFamily: '"Songti SC",serif', letterSpacing: '0.06em' }}>描述你的问题</p>
             <textarea
               value={question}
               onChange={(e) => {
@@ -119,36 +126,37 @@ const DrinkHelpModal = ({ drink, onClose }) => {
                 setError('');
               }}
               placeholder="例如：没有青柠汁可以用什么代替？摇酒器没有怎么办？"
-              className="w-full h-24 p-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 resize-none"
+              className="oriental-textarea"
+              style={{ height: '6rem' }}
             />
           </div>
 
           {/* Error message */}
           {error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-xl">
-              <p className="text-sm text-red-600">{error}</p>
+            <div className="oriental-error">
+              <p>{error}</p>
             </div>
           )}
 
           {/* AI Answer */}
           {answer && (
-            <div className="p-4 bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl border border-purple-100">
-              <p className="text-xs text-purple-500 font-medium mb-2">调酒师建议</p>
-              <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{answer}</p>
+            <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.08)', borderRadius: '0.75rem', border: '1px solid rgba(255,255,255,0.12)' }}>
+              <p style={{ fontSize: '0.75rem', color: 'rgba(180,140,80,0.8)', fontWeight: 500, marginBottom: '0.5rem', fontFamily: '"Songti SC",serif', letterSpacing: '0.06em' }}>调酒师建议</p>
+              <p style={{ fontSize: '0.85rem', color: 'rgba(42,40,38,0.8)', lineHeight: 1.7, whiteSpace: 'pre-wrap', fontFamily: '"Songti SC",serif' }}>{answer}</p>
             </div>
           )}
 
           {/* Loading state */}
           {isLoading && (
             <div className="flex items-center justify-center py-6">
-              <Loader2 className="w-6 h-6 text-purple-500 animate-spin" />
-              <span className="ml-2 text-sm text-gray-500">正在思考...</span>
+              <Loader2 style={{ width: '1.5rem', height: '1.5rem', color: 'rgba(180,140,80,0.7)' }} className="animate-spin" />
+              <span style={{ marginLeft: '0.5rem', fontSize: '0.85rem', color: 'rgba(80,72,60,0.55)', fontFamily: '"Songti SC",serif' }}>正在思考…</span>
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-gray-100">
+        <div style={{ padding: '1rem', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
           <InteractiveButton
             variant="primary"
             fullWidth
@@ -157,9 +165,10 @@ const DrinkHelpModal = ({ drink, onClose }) => {
             style={{
               height: '48px',
               background: isLoading || !question.trim()
-                ? '#D1D5DB'
-                : 'linear-gradient(135deg, #A78BFA 0%, #818CF8 100%)',
-              opacity: isLoading || !question.trim() ? 0.7 : 1
+                ? 'rgba(255,255,255,0.08)'
+                : 'linear-gradient(135deg, rgba(148,120,72,0.8) 0%, rgba(128,108,72,0.75) 40%, rgba(108,124,112,0.7) 100%)',
+              opacity: isLoading || !question.trim() ? 0.5 : 1,
+              color: isLoading || !question.trim() ? 'rgba(80,72,60,0.4)' : 'rgba(255,252,245,0.95)'
             }}
           >
             <Send size={18} className="mr-2" />

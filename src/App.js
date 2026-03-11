@@ -289,16 +289,17 @@ const InterventionModal = ({ isOpen, onClose, onSelectType }) => {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-end justify-center" style={{ background: 'rgba(0,0,0,0.18)', backdropFilter: 'blur(12px)' }}
       onClick={onClose}
     >
       <div
-        className="w-full max-w-4xl bg-white/95 backdrop-blur-xl rounded-t-[2rem] p-8 pb-12 mb-20 shadow-2xl animate-in slide-in-from-bottom duration-300"
+        className="w-full max-w-4xl rounded-t-[2rem] p-8 pb-12 mb-20 animate-in slide-in-from-bottom duration-300"
+        style={{ background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(40px) saturate(1.2)', WebkitBackdropFilter: 'blur(40px) saturate(1.2)', border: '1px solid rgba(255,255,255,0.15)', boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.2)' }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex flex-col items-center">
           <Heart className="w-12 h-12 text-red-500 mb-6 fill-current animate-pulse" />
-          <h2 className="text-2xl font-serif font-medium mb-8 text-center leading-relaxed text-gray-800">
+          <h2 style={{ fontSize: '1.5rem', fontFamily: '"Songti SC",serif', fontWeight: 500, marginBottom: '2rem', textAlign: 'center', lineHeight: 1.6, color: 'rgba(42,40,38,0.85)', letterSpacing: '0.08em', textShadow: '0 1px 2px rgba(255,255,255,0.3)' }}>
             抱抱你。<br />此刻你是想...
           </h2>
           <div className="flex flex-col w-full gap-3">
@@ -1788,9 +1789,9 @@ const ConfirmDeleteModal = ({ isOpen, onClose, onConfirm }) => {
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} position="center">
-      <div className="bg-white rounded-2xl p-6 w-full max-w-sm mx-auto shadow-2xl">
-        <h2 className="text-xl font-bold mb-2 text-gray-800">确认删除</h2>
-        <p className="text-gray-500 mb-6 text-sm">确定要删除这条赏味记录吗？此操作无法撤销。</p>
+      <div style={{ background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(40px) saturate(1.2)', WebkitBackdropFilter: 'blur(40px) saturate(1.2)', border: '1px solid rgba(255,255,255,0.15)', boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.2)' }} className="rounded-2xl p-6 w-full max-w-sm mx-auto">
+        <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem', fontFamily: '"Songti SC",serif', color: 'rgba(42,40,38,0.88)', letterSpacing: '0.1em', textShadow: '0 1px 2px rgba(255,255,255,0.3)' }}>确认删除</h2>
+        <p style={{ color: 'rgba(80,72,60,0.6)', marginBottom: '1.5rem', fontSize: '0.875rem', fontFamily: '"Songti SC",serif' }}>确定要删除这条赏味记录吗？此操作无法撤销。</p>
         <div className="flex justify-end space-x-3">
           <InteractiveButton variant="text" onClick={onClose}>
             取消
@@ -1838,8 +1839,8 @@ const DakaModal = ({ drink, onClose, onSave }) => {
 
   return (
     <Modal isOpen={true} onClose={onClose} position="center">
-      <div className="bg-white rounded-2xl p-6 w-full max-w-sm mx-auto shadow-2xl">
-        <h2 className="text-xl font-bold mb-4 text-gray-800">为 {drink.name} 打卡</h2>
+      <div style={{ background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(40px) saturate(1.2)', WebkitBackdropFilter: 'blur(40px) saturate(1.2)', border: '1px solid rgba(255,255,255,0.15)', boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.2)' }} className="rounded-2xl p-6 w-full max-w-sm mx-auto">
+        <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '1rem', fontFamily: '"Songti SC",serif', color: 'rgba(42,40,38,0.88)', letterSpacing: '0.1em', textShadow: '0 1px 2px rgba(255,255,255,0.3)' }}>为 {drink.name} 打卡</h2>
 
         {/* 可选图片上传 */}
         <div
@@ -1876,12 +1877,13 @@ const DakaModal = ({ drink, onClose, onSave }) => {
           />
         </div>
 
-        <p className="text-gray-500 mb-2 text-sm">记录下此刻的口味、心情或任何想法...</p>
+        <p style={{ color: 'rgba(80,72,60,0.6)', marginBottom: '0.5rem', fontSize: '0.875rem', fontFamily: '"Songti SC",serif' }}>记录下此刻的口味、心情或任何想法…</p>
         <textarea
           value={note}
           onChange={(e) => setNote(e.target.value)}
-          className="w-full h-24 p-3 border border-gray-200 rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-purple-400 transition-shadow text-sm"
-          placeholder="例如：口感非常清爽，柠檬的酸味很突出..."
+          className="oriental-textarea"
+          style={{ height: '6rem', marginBottom: '1rem' }}
+          placeholder="例如：口感非常清爽，柠檬的酸味很突出…"
         />
         <div className="flex justify-end space-x-3">
           <InteractiveButton variant="text" onClick={onClose}>
@@ -1890,7 +1892,7 @@ const DakaModal = ({ drink, onClose, onSave }) => {
           <InteractiveButton
             variant="primary"
             onClick={() => onSave(drink.id, note, customImage || null)}
-            style={{ background: 'linear-gradient(135deg, #A78BFA 0%, #818CF8 100%)' }}
+            style={{ background: 'linear-gradient(135deg, rgba(148,120,72,0.8) 0%, rgba(128,108,72,0.75) 40%, rgba(108,124,112,0.7) 100%)' }}
           >
             保存记录
           </InteractiveButton>

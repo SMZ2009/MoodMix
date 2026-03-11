@@ -65,10 +65,10 @@ const MOOD_INPUT_PLACEHOLDERS = [
  */
 function detectNegativeIntent(input) {
   const text = input.toLowerCase();
-  
+
   const ventScore = VENT_KEYWORDS.filter(kw => text.includes(kw)).length;
   const sootheScore = SOOTHE_KEYWORDS.filter(kw => text.includes(kw)).length;
-  
+
   // 只有当某一方明显占优时才自动选择
   if (ventScore > 0 && sootheScore === 0) {
     return 'vent';
@@ -82,7 +82,7 @@ function detectNegativeIntent(input) {
   if (sootheScore >= 2 && sootheScore > ventScore * 2) {
     return 'soothe';
   }
-  
+
   // 无法明确判断，需要询问用户
   return null;
 }
@@ -107,179 +107,179 @@ const MoodInputSection = ({
   }, []);
 
   return (
-  <div className="flex-1 flex flex-col items-center px-6 pt-6 pb-20 bg-dreamy-gradient w-full min-h-screen h-screen relative overflow-hidden trae-browser-inspect-draggable">
-    <div className="absolute top-0 left-1/4 w-96 h-96 bg-purple-200/40 rounded-full blur-[120px] pointer-events-none mix-blend-multiply"></div>
-    <div className="absolute top-1/4 right-0 w-80 h-80 bg-blue-200/40 rounded-full blur-[100px] pointer-events-none mix-blend-multiply"></div>
-    <div className="absolute bottom-1/3 left-0 w-72 h-72 bg-pink-200/40 rounded-full blur-[100px] pointer-events-none mix-blend-multiply"></div>
-    <div className="text-center mb-4 sm:mb-6 z-10">
-      <h2 className="text-2xl xs:text-[24px] sm:text-[28px] font-extrabold text-gray-800 mb-2 sm:mb-3 tracking-wide mx-auto text-center relative top-[10px]" style={{ fontFamily: 'serif' }}>此刻，心境如何？</h2>
-      <p
-        className="text-gray-500 text-xs sm:text-sm font-light tracking-wider mx-auto text-center italic relative top-[10px]"
-        style={{ fontFamily: '"FZYouSong", "方正悠宋", serif' }}
-      >
-        万般心绪，皆可入杯
-      </p>
-    </div>
-    <div className="w-full max-w-[21rem] sm:max-w-[23rem] relative mb-4 sm:mb-6 z-10 group">
-      <div className="absolute inset-0 bg-white/10 backdrop-blur-[28px] sm:backdrop-blur-[34px] rounded-xl sm:rounded-2xl group-focus-within:bg-white/15 group-focus-within:scale-[1.02] transition-all duration-500" style={{ boxShadow: 'rgba(255, 255, 255, 0.22) 0px 10px 34px, rgba(154, 169, 186, 0.12) 0px 20px 44px' }}></div>
-      <div className="relative flex items-center h-10 sm:h-12 lg:h-14 px-3.5 sm:px-4.5">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="44"
-          height="44"
-          viewBox="0 0 24 24"
-          fill="none"
-          className="w-[36px] h-[36px] sm:w-[44px] sm:h-[44px] mr-1.5 sm:mr-2 flex-shrink-0 transition-transform duration-500 group-focus-within:scale-105"
-          style={{ animation: 'ember-drop-breathe 3s ease-in-out infinite' }}
-          aria-hidden="true"
+    <div className="flex-1 flex flex-col items-center px-6 pt-6 pb-20 bg-dreamy-gradient w-full min-h-screen h-screen relative overflow-hidden trae-browser-inspect-draggable">
+      <div className="absolute top-0 left-1/4 w-96 h-96 bg-purple-200/40 rounded-full blur-[120px] pointer-events-none mix-blend-multiply"></div>
+      <div className="absolute top-1/4 right-0 w-80 h-80 bg-blue-200/40 rounded-full blur-[100px] pointer-events-none mix-blend-multiply"></div>
+      <div className="absolute bottom-1/3 left-0 w-72 h-72 bg-pink-200/40 rounded-full blur-[100px] pointer-events-none mix-blend-multiply"></div>
+      <div className="text-center mb-4 sm:mb-6 z-10">
+        <h2 className="text-2xl xs:text-[24px] sm:text-[28px] font-extrabold text-gray-800 mb-2 sm:mb-3 tracking-wide mx-auto text-center relative top-[10px]" style={{ fontFamily: 'serif' }}>此刻，心境如何？</h2>
+        <p
+          className="text-gray-500 text-xs sm:text-sm font-light tracking-wider mx-auto text-center italic relative top-[10px]"
+          style={{ fontFamily: '"FZYouSong", "方正悠宋", serif' }}
         >
-          <path d="M12.2 4.4C10.1 7 8.9 9.2 8.9 11.8C8.9 14.8 10.8 17 13 17C15 17 16.7 15.3 16.7 12.8C16.7 10.5 15.5 8.1 12.2 4.4Z" fill="rgba(228, 181, 94, 0.86)"></path>
-          <path d="M12.4 7.4C11.1 9 10.4 10.4 10.4 12C10.4 13.8 11.5 15 12.9 15C14.1 15 15 14 15 12.4C15 10.9 14.2 9.4 12.4 7.4Z" fill="rgba(255, 240, 196, 0.72)"></path>
-          <circle cx="16.7" cy="8.1" r="1" fill="rgba(255, 228, 168, 0.48)"></circle>
-        </svg>
-        <div className="relative flex-1">
-          {!moodInput && (
-            <span
-              className="absolute inset-y-0 left-0 flex items-center text-gray-400 text-sm sm:text-[15px] font-medium pointer-events-none"
-            >
-              {MOOD_INPUT_PLACEHOLDERS[placeholderIndex]}
-            </span>
-          )}
-          <input className="bg-transparent border-none focus:outline-none focus:ring-0 text-gray-800 w-full text-sm sm:text-[15px] font-medium outline-none" placeholder="" value={moodInput} onChange={(e) => setMoodInput(e.target.value)}></input>
+          万般心绪，皆可入杯
+        </p>
+      </div>
+      <div className="w-full max-w-[21rem] sm:max-w-[23rem] relative mb-4 sm:mb-6 z-10 group">
+        <div className="absolute inset-0 bg-white/10 backdrop-blur-[28px] sm:backdrop-blur-[34px] rounded-xl sm:rounded-2xl group-focus-within:bg-white/15 group-focus-within:scale-[1.02] transition-all duration-500" style={{ boxShadow: 'rgba(255, 255, 255, 0.22) 0px 10px 34px, rgba(154, 169, 186, 0.12) 0px 20px 44px' }}></div>
+        <div className="relative flex items-center h-10 sm:h-12 lg:h-14 px-3.5 sm:px-4.5">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="44"
+            height="44"
+            viewBox="0 0 24 24"
+            fill="none"
+            className="w-[36px] h-[36px] sm:w-[44px] sm:h-[44px] mr-1.5 sm:mr-2 flex-shrink-0 transition-transform duration-500 group-focus-within:scale-105"
+            style={{ animation: 'ember-drop-breathe 3s ease-in-out infinite' }}
+            aria-hidden="true"
+          >
+            <path d="M12.2 4.4C10.1 7 8.9 9.2 8.9 11.8C8.9 14.8 10.8 17 13 17C15 17 16.7 15.3 16.7 12.8C16.7 10.5 15.5 8.1 12.2 4.4Z" fill="rgba(228, 181, 94, 0.86)"></path>
+            <path d="M12.4 7.4C11.1 9 10.4 10.4 10.4 12C10.4 13.8 11.5 15 12.9 15C14.1 15 15 14 15 12.4C15 10.9 14.2 9.4 12.4 7.4Z" fill="rgba(255, 240, 196, 0.72)"></path>
+            <circle cx="16.7" cy="8.1" r="1" fill="rgba(255, 228, 168, 0.48)"></circle>
+          </svg>
+          <div className="relative flex-1">
+            {!moodInput && (
+              <span
+                className="absolute inset-y-0 left-0 flex items-center text-gray-400 text-sm sm:text-[15px] font-medium pointer-events-none"
+              >
+                {MOOD_INPUT_PLACEHOLDERS[placeholderIndex]}
+              </span>
+            )}
+            <input className="bg-transparent border-none focus:outline-none focus:ring-0 text-gray-800 w-full text-sm sm:text-[15px] font-medium outline-none" placeholder="" value={moodInput} onChange={(e) => setMoodInput(e.target.value)}></input>
+          </div>
         </div>
       </div>
-    </div>
-    <div className="flex flex-wrap gap-2 sm:gap-4 justify-center mb-4 sm:mb-6 z-10">
-      {[
-        { label: '放松', value: '#放松' },
-        { label: '浪漫', value: '#浪漫' },
-        { label: '难受', value: '#难受' }
-      ].map((mood) => {
-        const isSelected = selectedMood === mood.value;
-        return (
-          <button
-            key={mood.value}
-            type="button"
-            onClick={() => setSelectedMood(isSelected ? null : mood.value)}
-            className={`mood-ink-tag ${isSelected ? 'is-selected' : ''}`}
-            aria-pressed={isSelected}
-            style={{
-              '--mood-ink-color': isSelected ? 'rgba(224, 197, 110, 0.24)' : 'rgba(104, 114, 120, 0.2)',
-              '--mood-ink-accent': isSelected ? 'rgba(204, 172, 74, 0.82)' : 'rgba(72, 82, 89, 0.5)'
-            }}
-          >
-            <span className={`mood-ink-tag__label ${isSelected ? 'is-selected' : ''}`}>{mood.label}</span>
-          </button>
-        );
-      })}
-    </div>
-    <div className="relative flex-1 w-full flex flex-col items-center justify-center pb-12 sm:pb-16">
-      <div className="relative z-20 w-[320px] sm:w-[420px] max-w-[92vw] transition-all duration-500">
-        <img
-          src={cupRippleImage}
-          alt="杯子和水波"
-          className={`w-full h-auto object-contain select-none pointer-events-none transition-all duration-500 ${isMixing ? 'scale-[1.02] opacity-95' : 'scale-100 opacity-100'}`}
-        />
-      </div>
-
-      <button
-        type="button"
-        className="relative z-30 -mt-1 sm:-mt-1.5 mb-0.5 sm:mb-1 px-5 py-2 text-[13px] sm:text-[14px] text-gray-700/80 transition-colors hover:text-gray-800 group"
-        style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif', fontWeight: 300, letterSpacing: '0.18em' }}
-        onClick={onEditIngredients}
-        aria-label={`三味已备，当前 ${ingredientCount} 种原料已就绪`}
-      >
-        <span
-          className="absolute inset-x-0 -inset-y-1 rounded-[999px] pointer-events-none"
-          style={{
-            background: 'radial-gradient(ellipse at 30% 46%, rgba(210, 170, 176, 0.18) 0%, rgba(210, 170, 176, 0.08) 34%, transparent 68%), radial-gradient(ellipse at 68% 52%, rgba(156, 184, 144, 0.18) 0%, rgba(156, 184, 144, 0.08) 32%, transparent 70%), radial-gradient(ellipse at 52% 50%, rgba(244, 241, 233, 0.12) 0%, transparent 74%)',
-            filter: 'blur(9px)',
-            backdropFilter: 'blur(12px)',
-            WebkitBackdropFilter: 'blur(12px)',
-            clipPath: 'polygon(6% 58%, 14% 36%, 30% 20%, 48% 12%, 66% 18%, 84% 34%, 95% 52%, 88% 66%, 72% 78%, 52% 84%, 30% 80%, 14% 72%)'
-          }}
-        />
-        <span className="relative inline-flex items-center gap-3">
-          <span>三味已备</span>
-          <span className="relative h-7 w-7 sm:h-8 sm:w-8">
-            <span
-              className="absolute inset-0 rounded-full opacity-0 group-active:opacity-100 group-active:[animation:ink-tap-ripple_420ms_ease-out]"
+      <div className="flex flex-wrap gap-2 sm:gap-4 justify-center mb-4 sm:mb-6 z-10">
+        {[
+          { label: '放松', value: '#放松' },
+          { label: '浪漫', value: '#浪漫' },
+          { label: '难受', value: '#难受' }
+        ].map((mood) => {
+          const isSelected = selectedMood === mood.value;
+          return (
+            <button
+              key={mood.value}
+              type="button"
+              onClick={() => setSelectedMood(isSelected ? null : mood.value)}
+              className={`mood-ink-tag ${isSelected ? 'is-selected' : ''}`}
+              aria-pressed={isSelected}
               style={{
-                background: 'radial-gradient(circle, rgba(88, 97, 104, 0.16) 0%, rgba(88, 97, 104, 0.08) 34%, transparent 70%)'
+                '--mood-ink-color': isSelected ? 'rgba(224, 197, 110, 0.24)' : 'rgba(104, 114, 120, 0.2)',
+                '--mood-ink-accent': isSelected ? 'rgba(204, 172, 74, 0.82)' : 'rgba(72, 82, 89, 0.5)'
               }}
-            />
-            <span
-              className="absolute left-[10px] top-[3px] h-[18px] w-[1.5px] origin-bottom rounded-full bg-[rgba(118,96,73,0.72)] group-hover:[animation:brush-breathe_3.2s_ease-in-out_infinite]"
-              style={{ transform: 'rotate(45deg)' }}
-            />
-            <span
-              className="absolute left-[13px] top-[14px] h-[8px] w-[3px] rounded-b-full rounded-t-[2px] bg-[rgba(72,77,82,0.78)] group-hover:[animation:brush-breathe_3.2s_ease-in-out_infinite]"
-              style={{ transform: 'rotate(45deg)' }}
-            />
-            <span
-              className="absolute left-[14px] top-[20px] h-[4px] w-[4px] rounded-full bg-[rgba(84,89,94,0.18)] opacity-70 group-active:opacity-100"
-              style={{ filter: 'blur(0.8px)' }}
-            />
-          </span>
-        </span>
-      </button>
+            >
+              <span className={`mood-ink-tag__label ${isSelected ? 'is-selected' : ''}`}>{mood.label}</span>
+            </button>
+          );
+        })}
+      </div>
+      <div className="relative flex-1 w-full flex flex-col items-center justify-center pb-12 sm:pb-16">
+        <div className="relative z-20 w-[320px] sm:w-[420px] max-w-[92vw] transition-all duration-500">
+          <img
+            src={cupRippleImage}
+            alt="杯子和水波"
+            className={`w-full h-auto object-contain select-none pointer-events-none transition-all duration-500 ${isMixing ? 'scale-[1.02] opacity-95' : 'scale-100 opacity-100'}`}
+          />
+        </div>
 
-      {/* Generate Button */}
-      <div className="mt-0.5 sm:mt-1 z-10">
         <button
-          onClick={onGenerate}
-          className="relative w-[104px] h-[56px] sm:w-[116px] sm:h-[60px] overflow-visible rounded-[999px] group active:scale-[0.96] transition-transform duration-150"
-          style={{
-            background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.08) 100%)',
-            backdropFilter: 'blur(18px) saturate(1.05)',
-            WebkitBackdropFilter: 'blur(18px) saturate(1.05)',
-            boxShadow: '0 16px 28px rgba(104, 132, 145, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.28), inset 0 -8px 18px rgba(126, 155, 169, 0.08)',
-            animation: 'jade-pendant-float 5.6s ease-in-out infinite'
-          }}
-          aria-label="开启仪轨"
+          type="button"
+          className="relative z-30 -mt-1 sm:-mt-1.5 mb-0.5 sm:mb-1 px-5 py-2 text-[13px] sm:text-[14px] text-gray-700/80 transition-colors hover:text-gray-800 group"
+          style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif', fontWeight: 300, letterSpacing: '0.18em' }}
+          onClick={onEditIngredients}
+          aria-label={`三味已备，当前 ${ingredientCount} 种原料已就绪`}
         >
           <span
-            className="absolute -inset-3 rounded-[999px] pointer-events-none"
+            className="absolute inset-x-0 -inset-y-1 rounded-[999px] pointer-events-none"
             style={{
-              background: 'radial-gradient(ellipse at center, rgba(120, 176, 186, 0.16) 0%, rgba(207, 171, 104, 0.1) 42%, transparent 74%)',
-              filter: 'blur(8px)',
-              animation: 'seal-ink-ripple 3.8s ease-out infinite'
+              background: 'radial-gradient(ellipse at 30% 46%, rgba(210, 170, 176, 0.18) 0%, rgba(210, 170, 176, 0.08) 34%, transparent 68%), radial-gradient(ellipse at 68% 52%, rgba(156, 184, 144, 0.18) 0%, rgba(156, 184, 144, 0.08) 32%, transparent 70%), radial-gradient(ellipse at 52% 50%, rgba(244, 241, 233, 0.12) 0%, transparent 74%)',
+              filter: 'blur(9px)',
+              backdropFilter: 'blur(12px)',
+              WebkitBackdropFilter: 'blur(12px)',
+              clipPath: 'polygon(6% 58%, 14% 36%, 30% 20%, 48% 12%, 66% 18%, 84% 34%, 95% 52%, 88% 66%, 72% 78%, 52% 84%, 30% 80%, 14% 72%)'
             }}
           />
-          <div
-            className="absolute inset-[3px] rounded-[999px] opacity-80"
-            style={{
-              border: '1px solid rgba(184, 213, 218, 0.32)',
-              boxShadow: 'inset 0 0 0 1px rgba(255, 248, 238, 0.1)'
-            }}
-          />
-          <div
-            className="absolute inset-0 rounded-[999px] opacity-90"
-            style={{
-              background: 'radial-gradient(circle at 34% 24%, rgba(255, 255, 255, 0.3), transparent 24%), linear-gradient(180deg, rgba(162, 208, 214, 0.1), rgba(232, 196, 121, 0.08))'
-            }}
-          />
-          {isMixing ? (
-            <span
-              className="absolute inset-0 flex items-center justify-center text-[12px] sm:text-[13px] font-semibold text-slate-700/88 animate-pulse"
-              style={{ fontFamily: '"FZQingKeBenYueSongS-R-GB", "方正清刻本悦宋简体", "Songti SC", serif', letterSpacing: '0.14em' }}
-            >
-              仪轨中
+          <span className="relative inline-flex items-center gap-3">
+            <span>三味已备</span>
+            <span className="relative h-7 w-7 sm:h-8 sm:w-8">
+              <span
+                className="absolute inset-0 rounded-full opacity-0 group-active:opacity-100 group-active:[animation:ink-tap-ripple_420ms_ease-out]"
+                style={{
+                  background: 'radial-gradient(circle, rgba(88, 97, 104, 0.16) 0%, rgba(88, 97, 104, 0.08) 34%, transparent 70%)'
+                }}
+              />
+              <span
+                className="absolute left-[10px] top-[3px] h-[18px] w-[1.5px] origin-bottom rounded-full bg-[rgba(118,96,73,0.72)] group-hover:[animation:brush-breathe_3.2s_ease-in-out_infinite]"
+                style={{ transform: 'rotate(45deg)' }}
+              />
+              <span
+                className="absolute left-[13px] top-[14px] h-[8px] w-[3px] rounded-b-full rounded-t-[2px] bg-[rgba(72,77,82,0.78)] group-hover:[animation:brush-breathe_3.2s_ease-in-out_infinite]"
+                style={{ transform: 'rotate(45deg)' }}
+              />
+              <span
+                className="absolute left-[14px] top-[20px] h-[4px] w-[4px] rounded-full bg-[rgba(84,89,94,0.18)] opacity-70 group-active:opacity-100"
+                style={{ filter: 'blur(0.8px)' }}
+              />
             </span>
-          ) : (
-            <span
-              className="relative z-10 flex h-full w-full items-center justify-center text-[15px] sm:text-[17px] font-semibold text-slate-700/92"
-              style={{ fontFamily: '"FZQingKeBenYueSongS-R-GB", "方正清刻本悦宋简体", "Songti SC", serif', letterSpacing: '0.14em' }}
-            >
-              开启仪轨
-            </span>
-          )}
+          </span>
         </button>
+
+        {/* Generate Button */}
+        <div className="mt-0.5 sm:mt-1 z-10">
+          <button
+            onClick={onGenerate}
+            className="relative w-[104px] h-[56px] sm:w-[116px] sm:h-[60px] overflow-visible rounded-[999px] group active:scale-[0.96] transition-transform duration-150"
+            style={{
+              background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.08) 100%)',
+              backdropFilter: 'blur(18px) saturate(1.05)',
+              WebkitBackdropFilter: 'blur(18px) saturate(1.05)',
+              boxShadow: '0 16px 28px rgba(104, 132, 145, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.28), inset 0 -8px 18px rgba(126, 155, 169, 0.08)',
+              animation: 'jade-pendant-float 5.6s ease-in-out infinite'
+            }}
+            aria-label="开启仪轨"
+          >
+            <span
+              className="absolute -inset-3 rounded-[999px] pointer-events-none"
+              style={{
+                background: 'radial-gradient(ellipse at center, rgba(120, 176, 186, 0.16) 0%, rgba(207, 171, 104, 0.1) 42%, transparent 74%)',
+                filter: 'blur(8px)',
+                animation: 'seal-ink-ripple 3.8s ease-out infinite'
+              }}
+            />
+            <div
+              className="absolute inset-[3px] rounded-[999px] opacity-80"
+              style={{
+                border: '1px solid rgba(184, 213, 218, 0.32)',
+                boxShadow: 'inset 0 0 0 1px rgba(255, 248, 238, 0.1)'
+              }}
+            />
+            <div
+              className="absolute inset-0 rounded-[999px] opacity-90"
+              style={{
+                background: 'radial-gradient(circle at 34% 24%, rgba(255, 255, 255, 0.3), transparent 24%), linear-gradient(180deg, rgba(162, 208, 214, 0.1), rgba(232, 196, 121, 0.08))'
+              }}
+            />
+            {isMixing ? (
+              <span
+                className="absolute inset-0 flex items-center justify-center text-[12px] sm:text-[13px] font-semibold text-slate-700/88 animate-pulse"
+                style={{ fontFamily: '"FZQingKeBenYueSongS-R-GB", "方正清刻本悦宋简体", "Songti SC", serif', letterSpacing: '0.14em' }}
+              >
+                仪轨中
+              </span>
+            ) : (
+              <span
+                className="relative z-10 flex h-full w-full items-center justify-center text-[15px] sm:text-[17px] font-semibold text-slate-700/92"
+                style={{ fontFamily: '"FZQingKeBenYueSongS-R-GB", "方正清刻本悦宋简体", "Songti SC", serif', letterSpacing: '0.14em' }}
+              >
+                开启仪轨
+              </span>
+            )}
+          </button>
+        </div>
+
+
       </div>
-
-
     </div>
-  </div>
   );
 };
 
@@ -672,7 +672,7 @@ const ExploreSection = ({
         </div>
       </header>
 
-        {/* 列表渲染 */}
+      {/* 列表渲染 */}
       <div className="flex-1 px-3 sm:px-4 pb-24 sm:pb-28 pt-2 overflow-y-auto w-full no-scrollbar">
         {/* 加载状态 */}
         {apiLoading && (
@@ -759,14 +759,14 @@ const ExploreSection = ({
 
       {/* Bottom Navigation */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around px-4 sm:px-6 py-2 sm:py-3 bg-white/80 backdrop-blur-xl border-t border-white/40 w-full pb-safe">
-        <button 
+        <button
           onClick={() => onNavigate && onNavigate('mix')}
           className="flex flex-col items-center gap-0.5 sm:gap-1 text-gray-400 hover:text-gray-600 transition-colors"
         >
           <Sparkles size={20} />
           <span className="text-[9px] sm:text-[10px] font-medium">特调</span>
         </button>
-        <button 
+        <button
           onClick={() => onNavigate && onNavigate('explore')}
           className={`flex flex-col items-center gap-0.5 sm:gap-1 ${activeTab === 'explore' ? 'text-gray-800' : 'text-gray-400 hover:text-gray-600'} transition-colors`}
         >
@@ -779,7 +779,7 @@ const ExploreSection = ({
           )}
           <span className="text-[9px] sm:text-[10px] font-medium">灵感</span>
         </button>
-        <button 
+        <button
           onClick={() => onNavigate && onNavigate('mine')}
           className={`flex flex-col items-center gap-0.5 sm:gap-1 ${activeTab === 'mine' ? 'text-gray-800' : 'text-gray-400 hover:text-gray-600'} transition-colors`}
         >
@@ -938,37 +938,37 @@ const DrinkDetailSection = ({ drink, checkedIngredients, onToggleIngredient, onB
       </div>
 
       <div className="fixed bottom-0 inset-x-0 p-5 bg-gradient-to-t from-white via-white to-transparent pt-10 z-[60] max-w-4xl mx-auto left-0 right-0">
-          <div className="flex space-x-4">
-            <InteractiveButton
-              variant="secondary"
-              fullWidth
-              size="large"
-              onClick={() => onLikeDrink(drink)}
-              style={{
-                height: '56px',
-                background: 'rgba(230, 230, 230, 0.5)',
-                color: '#333'
-              }}
-            >
-              <HeartIcon isLiked={isLiked} />
-              <span className="ml-2">喜欢</span>
-            </InteractiveButton>
-            <InteractiveButton
-              variant="secondary"
-              fullWidth
-              size="large"
-              onClick={() => onDakaDrink(drink)}
-              style={{
-                height: '56px',
-                background: 'rgba(230, 230, 230, 0.5)',
-                color: '#333'
-              }}
-            >
-              <BulbIcon isDaka={isDaka} />
-              <span className="ml-2">打卡</span>
-            </InteractiveButton>
-          </div>
+        <div className="flex space-x-4">
+          <InteractiveButton
+            variant="secondary"
+            fullWidth
+            size="large"
+            onClick={() => onLikeDrink(drink)}
+            style={{
+              height: '56px',
+              background: 'rgba(230, 230, 230, 0.5)',
+              color: '#333'
+            }}
+          >
+            <HeartIcon isLiked={isLiked} />
+            <span className="ml-2">喜欢</span>
+          </InteractiveButton>
+          <InteractiveButton
+            variant="secondary"
+            fullWidth
+            size="large"
+            onClick={() => onDakaDrink(drink)}
+            style={{
+              height: '56px',
+              background: 'rgba(230, 230, 230, 0.5)',
+              color: '#333'
+            }}
+          >
+            <BulbIcon isDaka={isDaka} />
+            <span className="ml-2">打卡</span>
+          </InteractiveButton>
         </div>
+      </div>
     </div>
   );
 };
@@ -987,7 +987,7 @@ const App = () => {
   const [showIngredientModal, setShowIngredientModal] = useState(false);
   const [moodResult, setMoodResult] = useState(null);
   const [customQuotes, setCustomQuotes] = useState({});
-    const [validationResult, setValidationResult] = useState(null);
+  const [validationResult, setValidationResult] = useState(null);
   const [dakaDrinks, setDakaDrinks] = useState([]);
   const [showDakaModal, setShowDakaModal] = useState(false);
   const [dakaDrink, setDakaDrink] = useState(null);
@@ -1280,7 +1280,7 @@ const App = () => {
 
     const currentInterventionType = type || interventionType;
     const combinedInput = (moodInput + (selectedMood || "")).trim();
-    
+
     // 构造带有干预类型的输入
     let finalInputForAI = combinedInput || '心情不太好';
     if (currentInterventionType === 'soothe') {
@@ -1288,7 +1288,7 @@ const App = () => {
     } else if (currentInterventionType === 'vent') {
       finalInputForAI += ' (用户选择: 发泄释放，需要刺激、冰冷、烈酒、酸苦的饮品)';
     }
-    
+
     if (sessionIngredients.length > 0) {
       finalInputForAI += `\n(重要参考: 用户目前拥有的原料: ${sessionIngredients.join(', ')})`;
     }
@@ -1307,12 +1307,12 @@ const App = () => {
       }
 
       console.log(`\n🎯 负面情绪干预模式: ${currentInterventionType === 'vent' ? '💥 发泄释放' : '🥰 温柔安抚'}`);
-      
+
       // 🚀 使用多Agent系统执行推荐流程
       // 合并API饮品和用户自定义饮品（只包含有向量的）
       const customDrinksWithVector = customDrinks.filter(d => d.vector && d.vector.length === 8);
       const allDrinksForPipeline = [...apiDrinks, ...customDrinksWithVector];
-      
+
       const agentPromise = executeRecommendationPipeline(finalInputForAI, {
         inventory: sessionIngredients,
         allDrinks: allDrinksForPipeline,
@@ -1321,7 +1321,7 @@ const App = () => {
       });
 
       const agentResult = await agentPromise;
-      
+
       console.log('多Agent系统执行结果:', agentResult);
       clearTimeout(longWaitTimer);
 
@@ -1330,7 +1330,7 @@ const App = () => {
       const moodData = agentResult.context.getIntermediate('moodData');
       const patternAnalysis = agentResult.context.getIntermediate('patternAnalysis');
       const validation = agentResult.context.getIntermediate('validationReport');
-      
+
       // 检查是否需要阻断
       if (validation?.shouldBlock) {
         setMixMode('home');
@@ -1338,7 +1338,7 @@ const App = () => {
         alert(validation.userMessage || '此刻的心境需要换一种表达方式');
         return;
       }
-      
+
       // 转换为原有格式
       const pool = matches.map(m => ({
         ...m.drink,
@@ -1397,9 +1397,9 @@ const App = () => {
     if (isNegativeLocal) {
       // 负面情绪：尝试自动检测用户意图
       setEmotionType('negative');
-      
+
       const autoIntent = detectNegativeIntent(combinedInput);
-      
+
       if (autoIntent) {
         // 自动检测到明确意图，直接开始生成
         console.log(`🎯 自动检测到用户意图: ${autoIntent === 'vent' ? '发泄释放' : '温柔安抚'}`);
@@ -1437,7 +1437,7 @@ const App = () => {
       // 合并API饮品和用户自定义饮品（只包含有向量的）
       const customDrinksWithVector = customDrinks.filter(d => d.vector && d.vector.length === 8);
       const allDrinksForPipeline = [...apiDrinks, ...customDrinksWithVector];
-      
+
       const agentPromise = executeRecommendationPipeline(finalInputForAI, {
         inventory: sessionIngredients,
         allDrinks: allDrinksForPipeline,
@@ -1445,7 +1445,7 @@ const App = () => {
       });
 
       const agentResult = await agentPromise;
-      
+
       console.log('多Agent系统执行结果:', agentResult);
       clearTimeout(longWaitTimer);
 
@@ -1466,12 +1466,12 @@ const App = () => {
       const moodData = agentResult.context.getIntermediate('moodData');
       if (moodData?.isNegative) {
         setEmotionType('negative');
-        
+
         // 尝试使用 LLM 返回的 negativeIntent，否则本地检测
         const llmIntent = moodData.negativeIntent;
         const localIntent = detectNegativeIntent(combinedInput);
         const finalIntent = (llmIntent && llmIntent !== 'unclear') ? llmIntent : localIntent;
-        
+
         if (finalIntent) {
           console.log(`🎯 自动检测到用户意图: ${finalIntent === 'vent' ? '发泄释放' : '温柔安抚'} (LLM: ${llmIntent}, 本地: ${localIntent})`);
           setInterventionType(finalIntent);
@@ -1491,7 +1491,7 @@ const App = () => {
       const matches = agentResult.context.getIntermediate('matches') || [];
       const patternAnalysis = agentResult.context.getIntermediate('patternAnalysis');
       const validation = agentResult.context.getIntermediate('validationReport');
-      
+
       // 检查是否需要阻断
       if (validation?.shouldBlock) {
         setMixMode('home');
@@ -1499,7 +1499,7 @@ const App = () => {
         alert(validation.userMessage || '此刻的心境需要换一种表达方式');
         return;
       }
-      
+
       // 转换为原有格式
       const pool = matches.map(m => ({
         ...m.drink,
@@ -1840,9 +1840,9 @@ const DakaModal = ({ drink, onClose, onSave }) => {
     <Modal isOpen={true} onClose={onClose} position="center">
       <div className="bg-white rounded-2xl p-6 w-full max-w-sm mx-auto shadow-2xl">
         <h2 className="text-xl font-bold mb-4 text-gray-800">为 {drink.name} 打卡</h2>
-        
+
         {/* 可选图片上传 */}
-        <div 
+        <div
           className="relative w-full h-28 rounded-xl mb-4 overflow-hidden cursor-pointer group"
           onClick={() => fileInputRef.current?.click()}
         >
@@ -1857,7 +1857,7 @@ const DakaModal = ({ drink, onClose, onSave }) => {
               </button>
             </>
           ) : (
-            <div 
+            <div
               className="w-full h-full bg-cover bg-center"
               style={{ backgroundImage: `url(${drink.image})`, filter: 'brightness(0.7)' }}
             >
@@ -1944,7 +1944,7 @@ const CustomDrinkModal = ({ isOpen, onClose, onSave }) => {
         .filter(Boolean);
 
       // 调用AI生成维度向量
-      const apiUrl = process.env.NODE_ENV === 'production' 
+      const apiUrl = process.env.NODE_ENV === 'production'
         ? '/api/generate-drink-dimensions'
         : 'http://localhost:3001/api/generate-drink-dimensions';
 
@@ -1982,14 +1982,14 @@ const CustomDrinkModal = ({ isOpen, onClose, onSave }) => {
 
       // 保存到本地存储
       const savedDrink = customDrinkStorage.addCustomDrink(drinkData);
-      
+
       // 清空表单
       setName('');
       setDescription('');
       setIngredients('');
       setIsAlcoholic(false);
       setImage('');
-      
+
       onSave(savedDrink);
       onClose();
     } catch (err) {
@@ -2014,7 +2014,7 @@ const CustomDrinkModal = ({ isOpen, onClose, onSave }) => {
         </div>
 
         {/* Image Upload */}
-        <div 
+        <div
           className="relative w-full h-32 rounded-xl bg-gray-100 mb-4 overflow-hidden cursor-pointer group"
           onClick={() => fileInputRef.current?.click()}
         >
@@ -2081,21 +2081,19 @@ const CustomDrinkModal = ({ isOpen, onClose, onSave }) => {
           <div className="flex gap-3">
             <button
               onClick={() => setIsAlcoholic(false)}
-              className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
-                !isAlcoholic 
-                  ? 'bg-emerald-500 text-white shadow-md' 
+              className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${!isAlcoholic
+                  ? 'bg-emerald-500 text-white shadow-md'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
+                }`}
             >
               无酒精
             </button>
             <button
               onClick={() => setIsAlcoholic(true)}
-              className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
-                isAlcoholic 
-                  ? 'bg-amber-500 text-white shadow-md' 
+              className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${isAlcoholic
+                  ? 'bg-amber-500 text-white shadow-md'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
+                }`}
             >
               含酒精
             </button>
@@ -2114,7 +2112,7 @@ const CustomDrinkModal = ({ isOpen, onClose, onSave }) => {
           variant="primary"
           onClick={handleSubmit}
           disabled={isLoading || !name.trim()}
-          style={{ 
+          style={{
             width: '100%',
             background: 'linear-gradient(135deg, #A78BFA 0%, #818CF8 100%)',
             opacity: isLoading || !name.trim() ? 0.6 : 1
@@ -2143,124 +2141,127 @@ const CustomDrinkModal = ({ isOpen, onClose, onSave }) => {
 
 export default App;
 
-// 自定义 SVG 图标：东方极简/毛笔白描感
-// 1. 特调 (Mix)：青瓷杯/琉璃盏剪影，非闭合线条，带升腾气韵
-const CustomMixIcon = ({ size = 24, className = "" }) => (
+// 自定义 SVG 图标：东方极简/毛笔白描感 + 充实填充感
+// 1. 特调 (Mix)：青瓷杯/琉璃盏剪影，带升腾气韵
+const CustomMixIcon = ({ size = 26, className = "" }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
     width={size}
     height={size}
     viewBox="0 0 24 24"
-    fill="none"
+    fill="currentColor"
     stroke="currentColor"
-    strokeWidth="1.5"
+    strokeWidth="1.2"
     strokeLinecap="round"
     strokeLinejoin="round"
     className={className}
+    style={{ fillOpacity: 0.2 }}
   >
-    {/* 盏体（非闭合底座托起） */}
-    <path d="M4 10c0 4.5 3.5 7 8 7s8-2.5 8-7" />
-    <path d="M10 17v2" />
-    <path d="M8 19h8" />
-    {/* 升腾的茶气/酒香流线 */}
-    <path d="M12 4c-1.5 1.5-1.5 3 0 4.5s1.5 3 0 4.5" />
-    <path d="M15 5c-1 1-1 2 0 3" />
-    <path d="M9 6c1 1 1 2 0 3" />
+    {/* 盏体实心+描边 */}
+    <path d="M3 9c0 5 4 8 9 8s9-3 9-8H3z" />
+    <path d="M10 17v3" />
+    <path d="M7 20h10" />
+    {/* 升腾的茶气/酒香流线 - 保持纯线条 */}
+    <path fill="none" d="M12 2c-1.5 1.5-1.5 3 0 4.5s1.5 3 0 4.5" />
+    <path fill="none" d="M16 3c-1 1-1 2 0 3" />
+    <path fill="none" d="M8 4c1 1 1 2 0 3" />
   </svg>
 );
 
-// 2. 灵感 (Explore)：抽象孔明灯，飘动升腾，底端小火晕
-const CustomExploreIcon = ({ size = 24, className = "" }) => (
+// 2. 灵感 (Explore)：孔明灯，飘动升腾
+const CustomExploreIcon = ({ size = 26, className = "" }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
     width={size}
     height={size}
     viewBox="0 0 24 24"
-    fill="none"
+    fill="currentColor"
     stroke="currentColor"
-    strokeWidth="1.5"
+    strokeWidth="1.2"
     strokeLinecap="round"
     strokeLinejoin="round"
     className={className}
+    style={{ fillOpacity: 0.2 }}
   >
-    {/* 孔明灯外罩轮廓 */}
-    <path d="M12 2C8.5 2 6 5.5 6 10c0 3.5 2.5 6 4 7l2 1 2-1c1.5-1.5 4-3.5 4-7 0-4.5-2.5-8-6-8z" />
+    {/* 孔明灯外罩轮廓及填充 */}
+    <path d="M12 2C8 2 5 6 5 11c0 4 3 7 5 8h4c2-1 5-4 5-8 0-5-3-9-7-9z" />
     {/* 灯口底托与火芯 */}
-    <path d="M10 17h4" />
-    <path d="M12 19v2" />
-    {/* 外侧微光虚线/星火碎片 */}
-    <path d="M4 10h1" />
-    <path d="M19 10h1" />
-    <path d="M16 4l1-1" />
-    <path d="M8 4l-1-1" />
+    <path fill="none" d="M12 19v3" />
+    {/* 外侧微光碎片 */}
+    <path fill="none" d="M3 11h1" />
+    <path fill="none" d="M20 11h1" />
+    <path fill="none" d="M17 4l1-1" />
+    <path fill="none" d="M7 4l-1-1" />
   </svg>
 );
 
 // 3. 我的 (Mine)：极简玉佩/圆润印章剪影，上方盘结，下方流苏
-const CustomMineIcon = ({ size = 24, className = "" }) => (
+const CustomMineIcon = ({ size = 26, className = "" }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
     width={size}
     height={size}
     viewBox="0 0 24 24"
-    fill="none"
+    fill="currentColor"
     stroke="currentColor"
-    strokeWidth="1.5"
+    strokeWidth="1.2"
     strokeLinecap="round"
     strokeLinejoin="round"
     className={className}
+    style={{ fillOpacity: 0.2 }}
   >
     {/* 上方挂绳与盘结 */}
-    <path d="M12 2v2" />
-    <path d="M10 4l2 2 2-2" />
-    {/* 主体玉佩/同心圆璧 */}
-    <circle cx="12" cy="11" r="5" />
-    <circle cx="12" cy="11" r="2" />
+    <path fill="none" d="M12 1v3" />
+    <path fill="none" d="M9 4l3 3 3-3" />
+    {/* 主体玉佩/同心圆璧，大圆填充小圆镂空效果 */}
+    <circle cx="12" cy="11" r="5" fill="currentColor" />
+    <circle cx="12" cy="11" r="2" fill="var(--bg-color, white)" stroke="none" />
+    <circle cx="12" cy="11" r="2" fill="none" stroke="currentColor" />
     {/* 下方流苏线条 */}
-    <path d="M12 16v5" />
-    <path d="M10 18v2" />
-    <path d="M14 18v2" />
+    <path fill="none" d="M12 16v6" />
+    <path fill="none" d="M9 18v3" />
+    <path fill="none" d="M15 18v3" />
   </svg>
 );
 
 const NavigationBar = ({ activeTab, onTabChange }) => (
   <nav className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around px-6 py-3 bg-white/80 backdrop-blur-xl border-t border-white/40 w-full max-w-4xl mx-auto">
-    <button 
+    <button
       onClick={() => onTabChange('mix')}
       className={`flex flex-col items-center gap-1 ${activeTab === 'mix' ? 'text-gray-800' : 'text-gray-400 hover:text-gray-600'} transition-colors`}
     >
       {activeTab === 'mix' ? (
         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-blue-400 flex items-center justify-center shadow-lg shadow-purple-200">
-          <Sparkles size={18} className="text-white" />
+          <CustomMixIcon size={22} className="text-white" />
         </div>
       ) : (
-        <Sparkles size={20} />
+        <CustomMixIcon size={24} />
       )}
       <span className="text-[10px] font-medium">特调</span>
     </button>
-    <button 
+    <button
       onClick={() => onTabChange('explore')}
       className={`flex flex-col items-center gap-1 ${activeTab === 'explore' ? 'text-gray-800' : 'text-gray-400 hover:text-gray-600'} transition-colors`}
     >
       {activeTab === 'explore' ? (
         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-blue-400 flex items-center justify-center shadow-lg shadow-purple-200">
-          <Search size={18} className="text-white" />
+          <CustomExploreIcon size={22} className="text-white" />
         </div>
       ) : (
-        <Search size={20} />
+        <CustomExploreIcon size={24} />
       )}
       <span className="text-[10px] font-medium">灵感</span>
     </button>
-    <button 
+    <button
       onClick={() => onTabChange('mine')}
       className={`flex flex-col items-center gap-1 ${activeTab === 'mine' ? 'text-gray-800' : 'text-gray-400 hover:text-gray-600'} transition-colors`}
     >
       {activeTab === 'mine' ? (
         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-blue-400 flex items-center justify-center shadow-lg shadow-purple-200">
-          <User size={18} className="text-white" />
+          <CustomMineIcon size={22} className="text-white" />
         </div>
       ) : (
-        <User size={20} />
+        <CustomMineIcon size={24} />
       )}
       <span className="text-[10px] font-medium">我的</span>
     </button>

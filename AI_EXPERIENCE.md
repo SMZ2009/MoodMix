@@ -27,3 +27,9 @@
 2. 使用独立的CSS类名前缀 ingredient-* 避免与已有组件样式冲突。
 3. 在无法 replace_file_content 操作 CSS（CRLF换行符问题）时，继续使用 Node.js 脚本方案高效安全修改。
 4. 配色走暖灰+古铜/青瓷色系，字体统一宋体楷体，标签使用不规则 border-radius 营造水墨点染感。
+### [2026-03-11] React Key 唯一性防范 (Duplicate Key Prevention)
+**Context**: 在 `IngredientEditModal.js` 中使用原料名称作为渲染 Key 时，因原始数据未去重导致控制台报错。
+**Solution**:
+1. 在使用 `map` 渲染列表标签（如原料、筛选条件）时，优先使用数据库唯一 ID（如 `ing_id`）。
+2. 如果必须使用名称/文本作为 Key，务必在数据流入口（如 `useEffect`）或数据聚合层（如 `useMemo`）进行显示去重：`[...new Set(list)]`。
+3. 即使在 `handleAdd` 函数中做了包含检查，也要在多来源数据合并处强制加固，防止非正常路径注入脏数据导致渲染异常。

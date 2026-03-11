@@ -15,7 +15,9 @@ const IngredientEditModal = ({ currentIngredients, onUpdate, onClose, onReset })
     const scrollRef = useRef(null);
 
     useEffect(() => {
-        setList(currentIngredients || []);
+        // 初始数据去重
+        const uniqueIngredients = [...new Set(currentIngredients || [])];
+        setList(uniqueIngredients);
     }, [currentIngredients]);
 
     // 搜索结果
@@ -32,7 +34,9 @@ const IngredientEditModal = ({ currentIngredients, onUpdate, onClose, onReset })
     const groupedIngredients = useMemo(() => {
         if (!list.length) return {};
         const groups = {};
-        list.forEach(name => {
+        // 确保列表本身是唯一的
+        const uniqueList = [...new Set(list)];
+        uniqueList.forEach(name => {
             const found = ALL_INGREDIENTS.find(i => i.name_cn === name);
             const cat = found ? found.category : '自定义';
             if (!groups[cat]) groups[cat] = [];

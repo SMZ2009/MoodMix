@@ -23,7 +23,6 @@ import { useTouchFeedback, useKeyboardNavigation, useCocktailApi } from './hooks
 import { InteractiveButton, SwipeableCard, PageTransition, Modal } from './components/ui';
 import IngredientEditModal from './components/IngredientEditModal';
 import cupRippleImage from './assets/cup-ripple.jpg';
-import btnWatercolorWarm from './assets/btn-watercolor-warm.png';
 import navIconMix from './assets/nav_icon_mix.png';
 import navIconExplore from './assets/nav_icon_explore.png';
 import navIconMine from './assets/nav_icon_mine.png';

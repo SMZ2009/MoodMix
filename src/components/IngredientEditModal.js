@@ -1,32 +1,65 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { X, Plus, RotateCcw, Check } from 'lucide-react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { X, Search, Plus, Check, RotateCcw } from 'lucide-react';
+import { ingredientCategories } from '../store/localStorageAdapter';
+
+// 扁平化所有标准原料用于搜索
+const ALL_INGREDIENTS = Object.entries(ingredientCategories).flatMap(([category, items]) =>
+    items.map(item => ({ ...item, category }))
+);
 
 const IngredientEditModal = ({ currentIngredients, onUpdate, onClose, onReset }) => {
     const [list, setList] = useState([]);
-    const [inputValue, setInputValue] = useState('');
-    const inputRef = useRef(null);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [activeCategory, setActiveCategory] = useState(null);
+    const searchRef = useRef(null);
+    const scrollRef = useRef(null);
 
     useEffect(() => {
         setList(currentIngredients || []);
     }, [currentIngredients]);
 
-    const handleAdd = () => {
-        const val = inputValue.trim();
+    // 搜索结果
+    const searchResults = useMemo(() => {
+        if (!searchQuery.trim()) return [];
+        const q = searchQuery.trim().toLowerCase();
+        return ALL_INGREDIENTS.filter(item =>
+            item.name_cn.toLowerCase().includes(q) ||
+            item.name_en.toLowerCase().includes(q)
+        );
+    }, [searchQuery]);
+
+    // 按分类分组当前已选原料（无搜索时展示）
+    const groupedIngredients = useMemo(() => {
+        if (!list.length) return {};
+        const groups = {};
+        list.forEach(name => {
+            const found = ALL_INGREDIENTS.find(i => i.name_cn === name);
+            const cat = found ? found.category : '自定义';
+            if (!groups[cat]) groups[cat] = [];
+            groups[cat].push(name);
+        });
+        return groups;
+    }, [list]);
+
+    const categories = useMemo(() => Object.keys(groupedIngredients), [groupedIngredients]);
+
+    const handleAdd = (name) => {
+        if (!list.includes(name)) {
+            setList(prev => [...prev, name]);
+        }
+    };
+
+    const handleRemove = (name) => {
+        setList(prev => prev.filter(i => i !== name));
+    };
+
+    const handleAddCustom = () => {
+        const val = searchQuery.trim();
         if (val && !list.includes(val)) {
-            setList([...list, val]);
-            setInputValue('');
-            inputRef.current?.focus();
+            setList(prev => [...prev, val]);
+            setSearchQuery('');
+            searchRef.current?.focus();
         }
-    };
-
-    const handleKeyDown = (e) => {
-        if (e.key === 'Enter') {
-            handleAdd();
-        }
-    };
-
-    const handleRemove = (item) => {
-        setList(prev => prev.filter(i => i !== item));
     };
 
     const handleSave = () => {
@@ -34,91 +67,171 @@ const IngredientEditModal = ({ currentIngredients, onUpdate, onClose, onReset })
         onClose();
     };
 
+    const isInList = (name) => list.includes(name);
+    const isSearching = searchQuery.trim().length > 0;
+
     return (
         <div
-            className="p-4 sm:p-5 md:p-6 bg-white/80 backdrop-blur-2xl rounded-2xl sm:rounded-[2rem] w-full max-h-[75vh] sm:max-h-[80vh] flex flex-col shadow-2xl border border-white/60 mx-auto"
+            className="ingredient-modal-container"
             style={{ maxWidth: '440px' }}
         >
-            <div className="flex items-center justify-between mb-4 sm:mb-6">
-                <h2 className="text-lg sm:text-xl font-bold text-gray-800 tracking-tight" style={{ fontFamily: 'serif' }}>调整当前可用原料</h2>
+            {/* 标题区域 */}
+            <div className="flex items-center justify-between mb-1">
+                <h2 className="ingredient-modal-title">原料斋房</h2>
                 <button
                     onClick={onClose}
-                    className="p-2 -mr-2 text-gray-400 hover:text-gray-600 transition-colors rounded-full hover:bg-white/40"
+                    className="p-2 -mr-2 text-gray-400/60 hover:text-gray-600/80 transition-colors rounded-full"
                 >
-                    <X size={22} />
+                    <X size={20} />
                 </button>
             </div>
+            <p className="ingredient-modal-subtitle">增减之间，味自天成</p>
 
-            <div className="flex-1 overflow-y-auto min-h-[150px] sm:min-h-[200px] px-1">
-                {/* 输入框 */}
-                <div className="flex gap-2 mb-4 sm:mb-6">
-                    <div className="relative flex-1 group">
-                        <div className="absolute inset-0 bg-white/40 rounded-xl sm:rounded-2xl border border-white/60 group-focus-within:border-purple-300 transition-all duration-300" />
-                        <input
-                            ref={inputRef}
-                            value={inputValue}
-                            onChange={(e) => setInputValue(e.target.value)}
-                            onKeyDown={handleKeyDown}
-                            placeholder="手动添加原料 (如: 冰块)"
-                            className="relative w-full px-4 sm:px-5 py-2.5 sm:py-3 bg-transparent text-sm sm:text-[15px] text-gray-800 placeholder:text-gray-400 focus:outline-none"
-                        />
-                    </div>
+            {/* 水墨装饰分割线 */}
+            <div className="ink-divider" />
+
+            {/* 搜索框 */}
+            <div className="ingredient-search-wrapper">
+                <Search size={16} className="ingredient-search-icon" />
+                <input
+                    ref={searchRef}
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="寻觅一味原料…"
+                    className="ingredient-search-input"
+                />
+                {searchQuery && (
                     <button
-                        onClick={handleAdd}
-                        disabled={!inputValue.trim()}
-                        className="relative w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center bg-indigo-400/80 text-white rounded-xl sm:rounded-2xl disabled:opacity-30 disabled:cursor-not-allowed hover:bg-indigo-500/80 transition-all active:scale-90 shadow-lg shadow-indigo-200"
+                        onClick={() => { setSearchQuery(''); searchRef.current?.focus(); }}
+                        className="p-1 text-gray-400/60 hover:text-gray-600 transition-colors"
                     >
-                        <Plus size={24} />
+                        <X size={14} />
                     </button>
-                </div>
+                )}
+            </div>
 
-                {/* 标签列表 */}
-                <div className="flex flex-wrap gap-2 sm:gap-2.5 mb-16 sm:mb-20 pb-4">
-                    {list.length === 0 ? (
-                        <div className="w-full text-center py-12 sm:py-16 flex flex-col items-center gap-3">
-                            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gray-50 flex items-center justify-center text-gray-300">
-<Plus size={24} />
-                            </div>
-                            <p className="text-gray-400 text-sm font-light">暂无原料，请添加或重置</p>
-                        </div>
-                    ) : (
-                        list.map((item, index) => (
-                            <div
-                                key={`${item}-${index}`}
-                                className="group flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 bg-white/60 backdrop-blur-md border border-white/80 text-gray-700 text-xs sm:text-[13px] font-medium rounded-lg sm:rounded-xl hover:bg-white/90 hover:border-purple-200 transition-all duration-300 shadow-sm"
-                            >
-                                <span>{item}</span>
+            {/* 主内容区 */}
+            <div ref={scrollRef} className="ingredient-scroll-area">
+                {isSearching ? (
+                    /* ─── 搜索结果列表 ─── */
+                    <div className="ingredient-search-results">
+                        {searchResults.length > 0 ? (
+                            <>
+                                <div className="ingredient-section-label">
+                                    寻得 {searchResults.length} 味
+                                </div>
+                                {searchResults.map(item => {
+                                    const owned = isInList(item.name_cn);
+                                    return (
+                                        <button
+                                            key={item.ing_id}
+                                            onClick={() => owned ? handleRemove(item.name_cn) : handleAdd(item.name_cn)}
+                                            className={`ingredient-search-item ${owned ? 'is-owned' : ''}`}
+                                        >
+                                            <div className="flex-1 min-w-0">
+                                                <span className="ingredient-search-item-name">{item.name_cn}</span>
+                                                <span className="ingredient-search-item-en">{item.name_en}</span>
+                                            </div>
+                                            <div className="ingredient-search-item-cat">{item.category}</div>
+                                            <div className={`ingredient-search-item-action ${owned ? 'is-owned' : ''}`}>
+                                                {owned ? (
+                                                    <><Check size={13} /><span>已备</span></>
+                                                ) : (
+                                                    <><Plus size={13} /><span>添入</span></>
+                                                )}
+                                            </div>
+                                        </button>
+                                    );
+                                })}
+
+                                {/* 自定义原料选项 */}
+                                {!searchResults.some(r => r.name_cn === searchQuery.trim()) && (
+                                    <button
+                                        onClick={handleAddCustom}
+                                        className="ingredient-custom-add"
+                                    >
+                                        <Plus size={14} />
+                                        <span>添入自定义：<strong>{searchQuery.trim()}</strong></span>
+                                    </button>
+                                )}
+                            </>
+                        ) : (
+                            /* 无匹配结果 */
+                            <div className="ingredient-empty-search">
+                                <div className="ingredient-empty-icon">
+                                    <Search size={20} />
+                                </div>
+                                <p>未寻得「{searchQuery.trim()}」</p>
                                 <button
-                                    onClick={() => handleRemove(item)}
-                                    className="p-0.5 sm:p-1 text-gray-300 hover:text-red-400 transition-colors"
+                                    onClick={handleAddCustom}
+                                    className="ingredient-custom-add"
                                 >
-                                    <X size={14} />
+                                    <Plus size={14} />
+                                    <span>以此名添入自定义原料</span>
                                 </button>
                             </div>
-                        ))
-                    )}
-                </div>
+                        )}
+                    </div>
+                ) : (
+                    /* ─── 分类标签云（无搜索时） ─── */
+                    <div className="ingredient-tag-cloud">
+                        {list.length === 0 ? (
+                            <div className="ingredient-empty-state">
+                                <div className="ingredient-empty-icon">
+                                    <Plus size={22} />
+                                </div>
+                                <p>清台无物</p>
+                                <span>搜索添入原料，或重置为默认</span>
+                            </div>
+                        ) : (
+                            <>
+                                <div className="ingredient-section-label">
+                                    已备 {list.length} 味
+                                </div>
+
+                                {/* 分类折叠展示 */}
+                                {categories.map(cat => (
+                                    <div key={cat} className="ingredient-category-group">
+                                        <button
+                                            onClick={() => setActiveCategory(activeCategory === cat ? null : cat)}
+                                            className={`ingredient-category-header ${activeCategory === cat ? 'is-active' : ''}`}
+                                        >
+                                            <span>{cat}</span>
+                                            <span className="ingredient-category-count">{groupedIngredients[cat].length}</span>
+                                        </button>
+
+                                        {(activeCategory === cat || activeCategory === null) && (
+                                            <div className="ingredient-tags-wrap">
+                                                {groupedIngredients[cat].map(name => (
+                                                    <button
+                                                        key={name}
+                                                        onClick={() => handleRemove(name)}
+                                                        className="ingredient-ink-tag"
+                                                        title={`点击移除「${name}」`}
+                                                    >
+                                                        <span>{name}</span>
+                                                        <X size={12} className="ingredient-ink-tag-x" />
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </>
+                        )}
+                    </div>
+                )}
             </div>
 
-            {/* 底部按钮 */}
-            <div className="pt-4 sm:pt-5 border-t border-gray-100/50 flex gap-2 sm:gap-3">
-                <button
-                    onClick={onReset}
-                    className="px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-center gap-2 text-gray-500 bg-white/40 backdrop-blur-md border border-white/60 hover:bg-white/60 rounded-xl sm:rounded-[1.25rem] font-medium transition-all active:scale-95 text-sm sm:text-base"
-                >
-                    <RotateCcw size={18} />
+            {/* 底部操作栏 */}
+            <div className="ingredient-modal-footer">
+                <button onClick={onReset} className="ingredient-btn-reset">
+                    <RotateCcw size={15} />
                     <span>重置</span>
                 </button>
-                <button
-                    onClick={handleSave}
-                    className="flex-1 px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-center gap-2 text-white rounded-xl sm:rounded-[1.25rem] font-bold shadow-lg shadow-indigo-200 transition-all active:scale-95 overflow-hidden group relative text-sm sm:text-base"
-                    style={{
-                        background: 'linear-gradient(135deg, #A5B4FC 0%, #F9A8D4 100%)',
-                    }}
-                >
-                    <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
-                    <Check size={20} />
-                    <span className="relative z-10">确认修改 ({list.length})</span>
+                <button onClick={handleSave} className="ingredient-btn-confirm">
+                    <Check size={17} />
+                    <span>落定 ({list.length})</span>
                 </button>
             </div>
         </div>

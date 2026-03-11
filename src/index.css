@@ -1480,8 +1480,11 @@ body {
   font-family: "Songti SC", "STKaiti", "KaiTi", serif;
   font-size: 0.85rem;
   font-weight: 700;
-  color: #ebdfc8 /* Light ink paper text on dark button */;
-  background: #3c3b36; /* Dark ink color */
+  color: #ebdfc8
+    /* Light ink paper text on dark button */
+  ;
+  background: #3c3b36;
+  /* Dark ink color */
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -1712,7 +1715,8 @@ body {
 }
 
 .oriental-toggle-btn.is-active {
-  background: #3c3b36; /* Ink color */
+  background: #3c3b36;
+  /* Ink color */
   color: #ebdfc8;
   border-color: transparent;
   box-shadow: 0 2px 8px rgba(148, 120, 72, 0.15);
@@ -1802,14 +1806,14 @@ body {
   font-family: "Songti SC", "STKaiti", "KaiTi", serif;
   font-size: 1rem;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.9);
+  color: #000000;
   letter-spacing: 0.1em;
 }
 
 .im-storage-count {
   font-family: "Songti SC", "STKaiti", "KaiTi", serif;
   font-size: 0.7rem;
-  color: rgba(128, 112, 88, 0.5);
+  color: rgba(0, 0, 0, 0.6);
   letter-spacing: 0.06em;
 }
 
@@ -1842,16 +1846,16 @@ body {
 .im-custom-form {
   margin-bottom: 1rem;
   padding: 0.85rem;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(0, 0, 0, 0.03);
   border-radius: 0.875rem;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 .im-custom-form-title {
   font-family: "Songti SC", "STKaiti", "KaiTi", serif;
   font-size: 0.82rem;
-  font-weight: 600;
-  color: rgba(72, 60, 44, 0.78);
+  font-weight: 700;
+  color: #000000;
   letter-spacing: 0.08em;
   margin-bottom: 0.5rem;
 }
@@ -1867,9 +1871,9 @@ body {
   font-family: "Songti SC", "STKaiti", "KaiTi", serif;
   font-size: 0.75rem;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.65);
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #000000;
+  background: rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 0.625rem;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -1911,9 +1915,9 @@ body {
   width: 100%;
   padding: 0.55rem 0.5rem;
   font-family: "Songti SC", "STKaiti", "KaiTi", serif;
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.75);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #000000;
   letter-spacing: 0.1em;
   border-radius: 0.5rem;
   cursor: pointer;
@@ -1924,12 +1928,12 @@ body {
 }
 
 .im-category-btn:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.95);
+  background: rgba(0, 0, 0, 0.05);
+  color: #000000;
 }
 
 .im-category-icon {
-  color: rgba(255, 255, 255, 0.45);
+  color: rgba(0, 0, 0, 0.6);
   transition: transform 0.25s ease;
 }
 
@@ -1952,8 +1956,8 @@ body {
   gap: 0.25rem;
   padding: 0.3rem 0.6rem 0.35rem;
   font-family: "Songti SC", "STKaiti", "KaiTi", serif;
-  font-size: 0.72rem;
-  font-weight: 500;
+  font-size: 0.75rem;
+  font-weight: 700;
   letter-spacing: 0.04em;
   border-radius: 42% 58% 51% 49% / 58% 42% 56% 44%;
   cursor: pointer;
@@ -1962,35 +1966,37 @@ body {
 }
 
 .im-tag.is-stocked {
-  color: rgba(255, 255, 255, 0.9);
-  background: rgba(255, 255, 255, 0.15);
-  border-color: rgba(255, 255, 255, 0.2);
+  color: #000000;
+  background: rgba(148, 120, 72, 0.15);
+  border-color: rgba(148, 120, 72, 0.4);
+  box-shadow: 0 2px 6px rgba(148, 120, 72, 0.1);
 }
 
 .im-tag.is-stocked:hover {
-  background: rgba(255, 255, 255, 0.25);
+  background: rgba(148, 120, 72, 0.25);
   transform: scale(1.03);
 }
 
 .im-tag.is-unstocked {
-  color: rgba(255, 255, 255, 0.5);
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.1);
+  color: rgba(0, 0, 0, 0.65);
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(0, 0, 0, 0.15);
 }
 
 .im-tag.is-unstocked:hover {
-  color: rgba(255, 255, 255, 0.7);
-  border-color: rgba(255, 255, 255, 0.18);
+  color: rgba(0, 0, 0, 0.85);
+  border-color: rgba(0, 0, 0, 0.25);
 }
 
 .im-tag.is-custom {
-  color: rgba(235, 215, 175, 0.9);
-  background: rgba(255, 240, 200, 0.1);
-  border-color: rgba(220, 200, 160, 0.2);
+  color: #000000;
+  background: rgba(167, 139, 250, 0.15);
+  border-color: rgba(167, 139, 250, 0.4);
+  box-shadow: 0 2px 6px rgba(167, 139, 250, 0.1);
 }
 
 .im-tag.is-custom:hover {
-  background: rgba(255, 240, 200, 0.18);
+  background: rgba(167, 139, 250, 0.25);
 }
 
 .im-tag:active {
@@ -1998,14 +2004,14 @@ body {
 }
 
 .im-tag-check {
-  color: rgba(136, 168, 128, 0.7);
+  color: #000000;
 }
 
 .im-custom-section-title {
   font-family: "Songti SC", "STKaiti", "KaiTi", serif;
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: rgba(148, 100, 52, 0.7);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #000000;
   letter-spacing: 0.08em;
   padding: 0.5rem 0.25rem;
 }

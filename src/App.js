@@ -23,6 +23,8 @@ import { useTouchFeedback, useKeyboardNavigation, useCocktailApi } from './hooks
 import { InteractiveButton, SwipeableCard, PageTransition, Modal } from './components/ui';
 import IngredientEditModal from './components/IngredientEditModal';
 import cupRippleImage from './assets/cup-ripple.jpg';
+import btnWatercolor from './assets/btn-watercolor.png';
+import btnWatercolorWarm from './assets/btn-watercolor-warm.png';
 
 const iconMap = {
   Wine,
@@ -289,17 +291,17 @@ const InterventionModal = ({ isOpen, onClose, onSelectType }) => {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center" style={{ background: 'rgba(0,0,0,0.18)', backdropFilter: 'blur(12px)' }}
+      className="fixed inset-0 z-50 flex items-end justify-center" style={{ background: 'rgba(0,0,0,0.08)', backdropFilter: 'blur(12px)' }}
       onClick={onClose}
     >
       <div
         className="w-full max-w-4xl rounded-t-[2rem] p-8 pb-12 mb-20 animate-in slide-in-from-bottom duration-300"
-        style={{ background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(40px) saturate(1.2)', WebkitBackdropFilter: 'blur(40px) saturate(1.2)', border: '1px solid rgba(255,255,255,0.15)', boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.2)' }}
+        style={{ background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(40px) saturate(1.3)', WebkitBackdropFilter: 'blur(40px) saturate(1.3)', border: '1px solid rgba(255,255,255,0.5)', boxShadow: '0 8px 32px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.5)' }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex flex-col items-center">
           <Heart className="w-12 h-12 text-red-500 mb-6 fill-current animate-pulse" />
-          <h2 style={{ fontSize: '1.5rem', fontFamily: '"Songti SC",serif', fontWeight: 500, marginBottom: '2rem', textAlign: 'center', lineHeight: 1.6, color: 'rgba(255,255,255,0.95)', letterSpacing: '0.08em', textShadow: '0 1px 4px rgba(0,0,0,0.4)' }}>
+          <h2 style={{ fontSize: '1.5rem', fontFamily: '"Songti SC",serif', fontWeight: 500, marginBottom: '2rem', textAlign: 'center', lineHeight: 1.6, color: 'rgba(55, 48, 42, 0.92)', letterSpacing: '0.08em' }}>
             抱抱你。<br />此刻你是想...
           </h2>
           <div className="flex flex-col w-full gap-3">
@@ -309,12 +311,13 @@ const InterventionModal = ({ isOpen, onClose, onSelectType }) => {
               size="large"
               onClick={() => onSelectType('soothe')}
               style={{
-                background: 'rgba(139, 92, 246, 0.1)',
+                background: `url(${btnWatercolor}) center/cover no-repeat`,
                 backdropFilter: 'blur(12px)',
-                border: '1px solid rgba(139, 92, 246, 0.3)',
-                color: '#6B5B95',
+                border: '1px solid rgba(192, 132, 252, 0.3)',
+                color: 'rgba(55, 48, 42, 0.85)',
                 height: '56px',
-                boxShadow: '0 4px 12px rgba(139, 92, 246, 0.1)'
+                boxShadow: '0 4px 12px rgba(168, 134, 230, 0.15)',
+                fontWeight: 600
               }}
             >
               🥰 温柔治愈片刻
@@ -325,11 +328,13 @@ const InterventionModal = ({ isOpen, onClose, onSelectType }) => {
               size="large"
               onClick={() => onSelectType('vent')}
               style={{
-                background: 'rgba(255,107,107,0.1)',
+                background: `url(${btnWatercolor}) center/cover no-repeat`,
                 backdropFilter: 'blur(12px)',
-                border: '1px solid rgba(255,107,107,0.3)',
-                color: '#FF6B6B',
-                height: '56px'
+                border: '1px solid rgba(249, 168, 212, 0.3)',
+                color: 'rgba(55, 48, 42, 0.85)',
+                height: '56px',
+                boxShadow: '0 4px 12px rgba(249, 168, 212, 0.15)',
+                fontWeight: 600
               }}
             >
               💥 肆意释放压力
@@ -2114,7 +2119,9 @@ const CustomDrinkModal = ({ isOpen, onClose, onSave }) => {
           className="ingredient-btn-confirm"
           style={{
             width: '100%',
-            background: 'linear-gradient(135deg, rgba(148, 120, 72, 0.8) 0%, rgba(128, 108, 72, 0.75) 40%, rgba(108, 124, 112, 0.7) 100%)',
+            background: `url(${btnWatercolorWarm}) center/cover no-repeat`,
+            color: 'rgba(55, 48, 42, 0.88)',
+            border: '1px solid rgba(192, 132, 252, 0.3)',
             opacity: isLoading || !name.trim() ? 0.6 : 1
           }}
         >

@@ -110,14 +110,14 @@ const MoodInputSection = ({
   }, []);
 
   return (
-    <div className="flex-1 flex flex-col items-center px-6 pt-6 pb-20 bg-dreamy-gradient w-full min-h-screen h-screen relative overflow-hidden trae-browser-inspect-draggable">
+    <div className="flex-1 flex flex-col items-center px-6 pt-[calc(env(safe-area-inset-top,0px)+1.25rem)] pb-24 bg-dreamy-gradient w-full min-h-[100svh] relative overflow-x-hidden overflow-y-auto trae-browser-inspect-draggable">
       <div className="absolute top-0 left-1/4 w-96 h-96 bg-purple-200/40 rounded-full blur-[120px] pointer-events-none mix-blend-multiply"></div>
       <div className="absolute top-1/4 right-0 w-80 h-80 bg-blue-200/40 rounded-full blur-[100px] pointer-events-none mix-blend-multiply"></div>
       <div className="absolute bottom-1/3 left-0 w-72 h-72 bg-pink-200/40 rounded-full blur-[100px] pointer-events-none mix-blend-multiply"></div>
       <div className="text-center mb-4 sm:mb-6 z-10">
-        <h2 className="text-2xl xs:text-[24px] sm:text-[28px] font-extrabold text-gray-800 mb-2 sm:mb-3 tracking-wide mx-auto text-center relative top-[10px]" style={{ fontFamily: 'serif' }}>此刻，心境如何？</h2>
+        <h2 className="text-2xl xs:text-[24px] sm:text-[28px] font-extrabold text-gray-800 mb-2 sm:mb-3 tracking-wide mx-auto text-center" style={{ fontFamily: 'serif' }}>此刻，心境如何？</h2>
         <p
-          className="text-gray-500 text-xs sm:text-sm font-light tracking-wider mx-auto text-center italic relative top-[10px]"
+          className="text-gray-500 text-xs sm:text-sm font-light tracking-wider mx-auto text-center italic"
           style={{ fontFamily: '"FZYouSong", "方正悠宋", serif' }}
         >
           万般心绪，皆可入杯
@@ -176,7 +176,7 @@ const MoodInputSection = ({
           );
         })}
       </div>
-      <div className="relative flex-1 w-full flex flex-col items-center justify-center pb-12 sm:pb-16">
+      <div className="relative flex-1 w-full flex flex-col items-center justify-start pt-2 sm:pt-3 pb-12 sm:pb-16">
         <div className="relative z-20 w-[320px] sm:w-[420px] max-w-[92vw] transition-all duration-500">
           <img
             src={cupRippleImage}
@@ -727,8 +727,8 @@ const ExploreSection = ({
   }, [searchQuery, onSearch]);
 
   return (
-    <div className="flex-1 flex flex-col bg-dreamy-gradient max-w-4xl mx-auto w-full h-screen overflow-hidden relative pb-24">
-      <header className="sticky top-0 z-40 px-4 pt-8 pb-2">
+    <div className="flex-1 flex flex-col bg-dreamy-gradient max-w-4xl mx-auto w-full min-h-[100svh] overflow-x-hidden overflow-y-auto relative pb-24">
+      <header className="sticky top-0 z-40 px-4 pt-[calc(env(safe-area-inset-top,0px)+1rem)] pb-2 bg-dreamy-gradient/80 backdrop-blur-md">
         <div className="flex flex-col gap-4">
           <div className="flex items-center gap-3 w-full">
             <div className="flex-1 relative group">
@@ -844,9 +844,17 @@ const ExploreSection = ({
         {!apiLoading && !apiError && apiDrinks.length > 0 && (
           <div className="grid grid-cols-2 gap-3 sm:gap-4">
             {apiDrinks.map((drink) => (
-              <SwipeableCard
+              <div
                 key={drink.id}
-                onTap={() => onSelectDrink(drink)}
+                role="button"
+                tabIndex={0}
+                onClick={() => onSelectDrink(drink)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onSelectDrink(drink);
+                  }
+                }}
                 style={{
                   ...cardFeedback,
                   borderRadius: '20px sm:24px',
@@ -855,7 +863,8 @@ const ExploreSection = ({
                   backdropFilter: 'blur(12px)',
                   border: '1px solid rgba(255, 255, 255, 0.6)',
                   boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.07)',
-                  minWidth: 0
+                  minWidth: 0,
+                  cursor: 'pointer'
                 }}
               >
                 <div className="p-2 sm:p-3 pb-0">
@@ -888,7 +897,7 @@ const ExploreSection = ({
                     {drink.nameEn || drink.sub || drink.subName || ''}
                   </p>
                 </div>
-              </SwipeableCard>
+              </div>
             ))}
           </div>
         )}
@@ -1698,7 +1707,7 @@ const App = () => {
   return (
     <div
       ref={mainContentRef}
-      className={`min-h-screen font-sans w-full relative shadow-2xl overflow-hidden flex flex-col transition-colors duration-700 ${getBackgroundClass()}`}
+      className={`min-h-screen font-sans w-full relative shadow-2xl overflow-x-hidden flex flex-col transition-colors duration-700 ${getBackgroundClass()}`}
       tabIndex={-1}
     >
       <main className="flex-1 flex flex-col w-full relative">

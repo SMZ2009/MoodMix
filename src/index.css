@@ -86,15 +86,13 @@
     border-radius: 999px;
     pointer-events: none;
     background:
-      conic-gradient(
-        from 132deg,
+      conic-gradient(from 132deg,
         transparent 0deg 15deg,
         color-mix(in srgb, white 58%, var(--mood-ring-color)) 15deg,
         color-mix(in srgb, white 34%, var(--mood-ring-color)) 74deg,
         color-mix(in srgb, var(--mood-ring-color) 72%, transparent) 150deg,
         color-mix(in srgb, var(--mood-ring-color) 34%, transparent) 268deg,
-        transparent 345deg 360deg
-      );
+        transparent 345deg 360deg);
     filter: blur(0.24px);
     opacity: 0.96;
     transform: rotate(-7deg);
@@ -348,7 +346,7 @@ body {
     min-height: -webkit-stretch;
     min-height: stretch;
   }
-  
+
   .pb-nav-safe {
     padding-bottom: calc(var(--bottom-nav-height, 70px) + env(safe-area-inset-bottom, 0px));
   }
@@ -358,15 +356,15 @@ body {
   .pb-safe {
     padding-bottom: calc(env(safe-area-inset-bottom) + 20px);
   }
-  
+
   .pt-safe {
     padding-top: env(safe-area-inset-top);
   }
-  
+
   .pl-safe {
     padding-left: env(safe-area-inset-left);
   }
-  
+
   .pr-safe {
     padding-right: env(safe-area-inset-right);
   }
@@ -890,9 +888,10 @@ body {
 @keyframes fill-up {
   0% {
     top: 120%;
-    filter: grayscale(100%) drop-shadow(0 0 0 rgba(0,0,0,0));
+    filter: grayscale(100%) drop-shadow(0 0 0 rgba(0, 0, 0, 0));
     transform: rotate(0deg);
   }
+
   100% {
     top: -30%;
     filter: grayscale(0%) drop-shadow(0 0 30px rgba(167, 139, 250, 0.6));
@@ -905,9 +904,11 @@ body {
     opacity: 0;
     transform: translateY(100px) scale(0);
   }
+
   20% {
     opacity: 0.8;
   }
+
   100% {
     opacity: 0;
     transform: translateY(-300px) scale(1.5);
@@ -918,6 +919,7 @@ body {
   0% {
     transform: rotate(0deg) translateX(25px) rotate(0deg);
   }
+
   100% {
     transform: rotate(360deg) translateX(25px) rotate(-360deg);
   }
@@ -928,9 +930,11 @@ body {
     transform: translateY(100%) scale(0);
     opacity: 0;
   }
+
   50% {
     opacity: 1;
   }
+
   100% {
     transform: translateY(-50%) scale(1.5);
     opacity: 0;
@@ -1023,7 +1027,7 @@ body {
 
 .ingredient-modal-container {
   padding: 1.25rem 1.25rem 1rem;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.78);
   backdrop-filter: blur(40px) saturate(1.2);
   -webkit-backdrop-filter: blur(40px) saturate(1.2);
   border-radius: 1.5rem;
@@ -1034,28 +1038,35 @@ body {
   box-shadow:
     0 8px 32px rgba(0, 0, 0, 0.08),
     inset 0 1px 0 rgba(255, 255, 255, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.5);
   animation: modal-ink-appear 0.4s cubic-bezier(0.22, 0.68, 0, 1.04) both;
 }
 
 @keyframes modal-ink-appear {
-  0% { opacity: 0; transform: scale(0.96) translateY(8px); }
-  100% { opacity: 1; transform: scale(1) translateY(0); }
+  0% {
+    opacity: 0;
+    transform: scale(0.96) translateY(8px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 
 .ingredient-modal-title {
   font-family: "Songti SC", "STKaiti", "KaiTi", "SimSun", serif;
   font-size: 1.25rem;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.95);
+  color: rgba(55, 48, 42, 0.92);
   letter-spacing: 0.16em;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+  text-shadow: none;
 }
 
 .ingredient-modal-subtitle {
   font-family: "Songti SC", "STKaiti", "KaiTi", serif;
   font-size: 0.72rem;
-  color: rgba(255, 255, 255, 0.65);
+  color: rgba(100, 90, 80, 0.6);
   letter-spacing: 0.24em;
   font-weight: 300;
   margin-bottom: 0.5rem;
@@ -1065,14 +1076,12 @@ body {
   position: relative;
   height: 1px;
   margin: 0.25rem 0 0.75rem;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0.2) 15%,
-    rgba(255, 255, 255, 0.35) 50%,
-    rgba(255, 255, 255, 0.2) 85%,
-    transparent 100%
-  );
+  background: linear-gradient(90deg,
+      transparent 0%,
+      rgba(160, 140, 180, 0.25) 15%,
+      rgba(160, 140, 180, 0.4) 50%,
+      rgba(160, 140, 180, 0.25) 85%,
+      transparent 100%);
   border-radius: 999px;
 }
 
@@ -1083,14 +1092,12 @@ body {
   left: 20%;
   right: 20%;
   height: 1px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 248, 230, 0.5) 30%,
-    rgba(255, 248, 230, 0.6) 50%,
-    rgba(255, 248, 230, 0.5) 70%,
-    transparent
-  );
+  background: linear-gradient(90deg,
+      transparent,
+      rgba(255, 248, 230, 0.5) 30%,
+      rgba(255, 248, 230, 0.6) 50%,
+      rgba(255, 248, 230, 0.5) 70%,
+      transparent);
 }
 
 .ingredient-search-wrapper {
@@ -1100,20 +1107,20 @@ body {
   gap: 0.5rem;
   padding: 0.5rem 0.75rem;
   margin-bottom: 0.75rem;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(180, 160, 200, 0.25);
   border-radius: 0.75rem;
   transition: all 0.3s ease;
 }
 
 .ingredient-search-wrapper:focus-within {
-  background: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.65);
   border-color: rgba(255, 255, 255, 0.25);
   box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.06);
 }
 
 .ingredient-search-icon {
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(100, 90, 80, 0.55);
   flex-shrink: 0;
 }
 
@@ -1124,12 +1131,12 @@ body {
   outline: none;
   font-family: "Songti SC", "STKaiti", "KaiTi", serif;
   font-size: 0.875rem;
-  color: rgba(255, 255, 255, 0.9);
+  color: rgba(55, 48, 42, 0.88);
   letter-spacing: 0.06em;
 }
 
 .ingredient-search-input::placeholder {
-  color: rgba(255, 255, 255, 0.45);
+  color: rgba(100, 90, 80, 0.4);
   font-style: italic;
 }
 
@@ -1155,7 +1162,7 @@ body {
 .ingredient-section-label {
   font-family: "Songti SC", "STKaiti", "KaiTi", serif;
   font-size: 0.7rem;
-  color: rgba(255, 255, 255, 0.55);
+  color: rgba(100, 90, 80, 0.55);
   letter-spacing: 0.14em;
   margin-bottom: 0.5rem;
   padding-left: 2px;
@@ -1172,8 +1179,8 @@ body {
   align-items: center;
   gap: 0.5rem;
   padding: 0.6rem 0.75rem;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.45);
+  border: 1px solid rgba(180, 160, 200, 0.2);
   border-radius: 0.625rem;
   transition: all 0.25s ease;
   cursor: pointer;
@@ -1182,7 +1189,7 @@ body {
 }
 
 .ingredient-search-item:hover {
-  background: rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.65);
   border-color: rgba(255, 255, 255, 0.2);
 }
 
@@ -1195,25 +1202,25 @@ body {
   font-family: "Songti SC", "STKaiti", "KaiTi", serif;
   font-size: 0.85rem;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.9);
+  color: rgba(55, 48, 42, 0.88);
   letter-spacing: 0.06em;
   margin-right: 0.4rem;
 }
 
 .ingredient-search-item-en {
   font-size: 0.68rem;
-  color: rgba(255, 255, 255, 0.45);
+  color: rgba(100, 90, 80, 0.45);
   font-weight: 400;
 }
 
 .ingredient-search-item-cat {
   font-family: "Songti SC", "STKaiti", "KaiTi", serif;
   font-size: 0.62rem;
-  color: rgba(255, 255, 255, 0.55);
+  color: rgba(100, 90, 80, 0.55);
   letter-spacing: 0.08em;
   white-space: nowrap;
   padding: 0.15rem 0.4rem;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.05);
   border-radius: 0.3rem;
 }
 
@@ -1224,11 +1231,11 @@ body {
   font-family: "Songti SC", "STKaiti", "KaiTi", serif;
   font-size: 0.7rem;
   font-weight: 500;
-  color: rgba(235, 215, 175, 0.9);
+  color: rgba(120, 80, 160, 0.8);
   white-space: nowrap;
   padding: 0.2rem 0.5rem;
   border-radius: 0.4rem;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(192, 132, 252, 0.1);
   transition: all 0.2s ease;
 }
 
@@ -1255,8 +1262,8 @@ body {
   margin-top: 0.25rem;
   font-family: "Songti SC", "STKaiti", "KaiTi", serif;
   font-size: 0.8rem;
-  color: rgba(235, 215, 175, 0.85);
-  background: rgba(255, 255, 255, 0.06);
+  color: rgba(120, 80, 160, 0.75);
+  background: rgba(255, 255, 255, 0.4);
   border: 1px dashed rgba(255, 255, 255, 0.18);
   border-radius: 0.625rem;
   cursor: pointer;
@@ -1287,8 +1294,8 @@ body {
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.3);
+  background: rgba(0, 0, 0, 0.05);
+  color: rgba(100, 90, 80, 0.3);
   margin-bottom: 0.75rem;
 }
 
@@ -1296,14 +1303,14 @@ body {
 .ingredient-empty-state p {
   font-family: "Songti SC", "STKaiti", "KaiTi", serif;
   font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(100, 90, 80, 0.6);
   letter-spacing: 0.1em;
   margin-bottom: 0.25rem;
 }
 
 .ingredient-empty-state span {
   font-size: 0.72rem;
-  color: rgba(255, 255, 255, 0.45);
+  color: rgba(100, 90, 80, 0.45);
   letter-spacing: 0.06em;
 }
 
@@ -1327,7 +1334,7 @@ body {
   font-family: "Songti SC", "STKaiti", "KaiTi", serif;
   font-size: 0.78rem;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.65);
+  color: rgba(80, 70, 60, 0.7);
   letter-spacing: 0.1em;
   border-radius: 0.4rem;
   cursor: pointer;
@@ -1338,12 +1345,12 @@ body {
 }
 
 .ingredient-category-header:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.85);
+  background: rgba(0, 0, 0, 0.03);
+  color: rgba(55, 48, 42, 0.88);
 }
 
 .ingredient-category-header.is-active {
-  color: rgba(255, 255, 255, 0.95);
+  color: rgba(55, 48, 42, 0.92);
 }
 
 .ingredient-category-count {
@@ -1366,8 +1373,15 @@ body {
 }
 
 @keyframes tags-fade-in {
-  0% { opacity: 0; transform: translateY(-4px); }
-  100% { opacity: 1; transform: translateY(0); }
+  0% {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .ingredient-ink-tag {
@@ -1379,10 +1393,10 @@ body {
   font-family: "Songti SC", "STKaiti", "KaiTi", serif;
   font-size: 0.75rem;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.85);
+  color: rgba(55, 48, 42, 0.8);
   letter-spacing: 0.06em;
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(180, 160, 200, 0.25);
   border-radius: 42% 58% 51% 49% / 58% 42% 56% 44%;
   cursor: pointer;
   transition: all 0.25s ease;
@@ -1402,9 +1416,9 @@ body {
 }
 
 .ingredient-ink-tag:hover {
-  background: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.7);
   border-color: rgba(255, 255, 255, 0.28);
-  color: rgba(255, 255, 255, 1);
+  color: rgba(55, 48, 42, 0.95);
   transform: scale(1.03);
 }
 
@@ -1426,7 +1440,7 @@ body {
   gap: 0.5rem;
   padding-top: 0.75rem;
   margin-top: 0.5rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid rgba(180, 160, 200, 0.2);
 }
 
 .ingredient-btn-reset {
@@ -1438,9 +1452,9 @@ body {
   font-family: "Songti SC", "STKaiti", "KaiTi", serif;
   font-size: 0.8rem;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.65);
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(80, 70, 60, 0.65);
+  background: rgba(255, 255, 255, 0.4);
+  border: 1px solid rgba(180, 160, 200, 0.2);
   border-radius: 0.75rem;
   cursor: pointer;
   transition: all 0.25s ease;
@@ -1448,8 +1462,8 @@ body {
 }
 
 .ingredient-btn-reset:hover {
-  background: rgba(255, 255, 255, 0.15);
-  color: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.55);
+  color: rgba(55, 48, 42, 0.85);
 }
 
 .ingredient-btn-reset:active {
@@ -1466,21 +1480,19 @@ body {
   font-family: "Songti SC", "STKaiti", "KaiTi", serif;
   font-size: 0.85rem;
   font-weight: 700;
-  color: rgba(255, 252, 245, 0.95);
-  background: linear-gradient(
-    135deg,
-    rgba(148, 120, 72, 0.8) 0%,
-    rgba(128, 108, 72, 0.75) 40%,
-    rgba(108, 124, 112, 0.7) 100%
-  );
-  border: none;
+  color: rgba(55, 48, 42, 0.88);
+  background-image: url('./assets/btn-watercolor.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  border: 1px solid rgba(192, 132, 252, 0.3);
   border-radius: 0.75rem;
   cursor: pointer;
   transition: all 0.25s ease;
   letter-spacing: 0.12em;
   box-shadow:
-    0 4px 12px rgba(148, 120, 72, 0.15),
-    inset 0 1px 0 rgba(255, 248, 230, 0.15);
+    0 4px 16px rgba(168, 134, 230, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
   position: relative;
   overflow: hidden;
 }
@@ -1489,12 +1501,10 @@ body {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(255, 248, 230, 0.12) 50%,
-    transparent 100%
-  );
+  background: linear-gradient(90deg,
+      transparent 0%,
+      rgba(255, 248, 230, 0.12) 50%,
+      transparent 100%);
   transform: translateX(-100%);
   transition: transform 0.8s ease;
 }
@@ -1505,8 +1515,8 @@ body {
 
 .ingredient-btn-confirm:hover {
   box-shadow:
-    0 6px 16px rgba(148, 120, 72, 0.2),
-    inset 0 1px 0 rgba(255, 248, 230, 0.2);
+    0 6px 20px rgba(168, 134, 230, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
 .ingredient-btn-confirm:active {
@@ -1547,7 +1557,7 @@ body {
   font-family: "Songti SC", "STKaiti", "KaiTi", serif;
   font-size: 0.82rem;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.8);
+  color: rgba(55, 48, 42, 0.85);
   letter-spacing: 0.1em;
   margin-bottom: 0.4rem;
 }
@@ -1555,37 +1565,37 @@ body {
 .oriental-input {
   width: 100%;
   padding: 0.6rem 0.85rem;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(180, 160, 200, 0.25);
   border-radius: 0.75rem;
   font-family: "Songti SC", "STKaiti", "KaiTi", serif;
   font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.9);
+  color: rgba(55, 48, 42, 0.88);
   letter-spacing: 0.04em;
   outline: none;
   transition: all 0.3s ease;
 }
 
 .oriental-input:focus {
-  background: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.7);
   border-color: rgba(255, 255, 255, 0.28);
   box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.06);
 }
 
 .oriental-input::placeholder {
-  color: rgba(255, 255, 255, 0.45);
+  color: rgba(100, 90, 80, 0.45);
   font-style: italic;
 }
 
 .oriental-textarea {
   width: 100%;
   padding: 0.6rem 0.85rem;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(180, 160, 200, 0.25);
   border-radius: 0.75rem;
   font-family: "Songti SC", "STKaiti", "KaiTi", serif;
   font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.9);
+  color: rgba(55, 48, 42, 0.88);
   letter-spacing: 0.04em;
   outline: none;
   resize: none;
@@ -1593,25 +1603,25 @@ body {
 }
 
 .oriental-textarea:focus {
-  background: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.7);
   border-color: rgba(255, 255, 255, 0.28);
   box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.06);
 }
 
 .oriental-textarea::placeholder {
-  color: rgba(255, 255, 255, 0.45);
+  color: rgba(100, 90, 80, 0.45);
   font-style: italic;
 }
 
 .oriental-select {
   width: 100%;
   padding: 0.6rem 0.85rem;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(180, 160, 200, 0.25);
   border-radius: 0.75rem;
   font-family: "Songti SC", "STKaiti", "KaiTi", serif;
   font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.9);
+  color: rgba(55, 48, 42, 0.88);
   letter-spacing: 0.04em;
   outline: none;
   transition: all 0.3s ease;
@@ -1635,7 +1645,7 @@ body {
   width: 100%;
   height: 8rem;
   border-radius: 1rem;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.4);
   border: 1.5px dashed rgba(255, 255, 255, 0.2);
   overflow: hidden;
   cursor: pointer;
@@ -1654,7 +1664,7 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: rgba(255, 255, 255, 0.45);
+  color: rgba(100, 90, 80, 0.5);
 }
 
 .oriental-upload-placeholder span {
@@ -1692,9 +1702,9 @@ body {
   font-size: 0.82rem;
   font-weight: 500;
   letter-spacing: 0.06em;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: rgba(255, 255, 255, 0.65);
+  background: rgba(255, 255, 255, 0.4);
+  border: 1px solid rgba(180, 160, 200, 0.25);
+  color: rgba(100, 90, 80, 0.65);
   cursor: pointer;
   transition: all 0.25s ease;
 }
@@ -1704,8 +1714,8 @@ body {
 }
 
 .oriental-toggle-btn.is-active {
-  background: linear-gradient(135deg, rgba(148, 120, 72, 0.75) 0%, rgba(128, 108, 72, 0.7) 100%);
-  color: rgba(255, 252, 245, 0.95);
+  background: url('./assets/btn-watercolor-warm.png') center/cover no-repeat;
+  color: rgba(55, 48, 42, 0.88);
   border-color: transparent;
   box-shadow: 0 2px 8px rgba(148, 120, 72, 0.15);
   font-weight: 700;
@@ -1729,7 +1739,7 @@ body {
 .oriental-hint {
   font-family: "Songti SC", "STKaiti", "KaiTi", serif;
   font-size: 0.65rem;
-  color: rgba(148, 130, 100, 0.45);
+  color: rgba(100, 90, 80, 0.6);
   letter-spacing: 0.08em;
   text-align: center;
   margin-top: 0.75rem;
@@ -1757,7 +1767,7 @@ body {
   color: rgba(255, 255, 255, 0.95);
   letter-spacing: 0.12em;
   margin-left: 0.5rem;
-  text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 .im-back-btn {

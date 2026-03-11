@@ -20,9 +20,9 @@ const HelperModal = ({ onClose }) => {
           fontSize: '1.1rem',
           fontWeight: 700,
           fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif',
-          color: 'rgba(42, 40, 38, 0.88)',
+          color: 'rgba(255, 255, 255, 0.95)',
           letterSpacing: '0.1em',
-          textShadow: '0 1px 2px rgba(255,255,255,0.3)'
+          textShadow: '0 1px 4px rgba(0,0,0,0.4)'
         }}>生活容器对照表</h3>
         <InteractiveButton
           variant="icon"
@@ -50,8 +50,8 @@ const HelperModal = ({ onClose }) => {
             }}
           >
             <span className="text-2.5xl mr-3">{item.icon}</span>
-            <div style={{ flex: 1, fontWeight: 700, color: 'rgba(42,40,38,0.8)', fontSize: '0.875rem' }}>{item.label}</div>
-            <div style={{ fontSize: '1.1rem', fontWeight: 900, color: 'rgba(100, 130, 180, 0.85)', fontFamily: 'serif' }}>{item.value}</div>
+            <div style={{ flex: 1, fontWeight: 700, color: 'rgba(255, 255, 255, 0.85)', fontSize: '0.875rem' }}>{item.label}</div>
+            <div style={{ fontSize: '1.1rem', fontWeight: 900, color: 'rgba(235, 215, 175, 0.95)', fontFamily: 'serif' }}>{item.value}</div>
           </div>
         ))}
       </div>

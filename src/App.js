@@ -299,7 +299,7 @@ const InterventionModal = ({ isOpen, onClose, onSelectType }) => {
       >
         <div className="flex flex-col items-center">
           <Heart className="w-12 h-12 text-red-500 mb-6 fill-current animate-pulse" />
-          <h2 style={{ fontSize: '1.5rem', fontFamily: '"Songti SC",serif', fontWeight: 500, marginBottom: '2rem', textAlign: 'center', lineHeight: 1.6, color: 'rgba(42,40,38,0.85)', letterSpacing: '0.08em', textShadow: '0 1px 2px rgba(255,255,255,0.3)' }}>
+          <h2 style={{ fontSize: '1.5rem', fontFamily: '"Songti SC",serif', fontWeight: 500, marginBottom: '2rem', textAlign: 'center', lineHeight: 1.6, color: 'rgba(255,255,255,0.95)', letterSpacing: '0.08em', textShadow: '0 1px 4px rgba(0,0,0,0.4)' }}>
             抱抱你。<br />此刻你是想...
           </h2>
           <div className="flex flex-col w-full gap-3">
@@ -1790,8 +1790,8 @@ const ConfirmDeleteModal = ({ isOpen, onClose, onConfirm }) => {
   return (
     <Modal isOpen={isOpen} onClose={onClose} position="center">
       <div style={{ background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(40px) saturate(1.2)', WebkitBackdropFilter: 'blur(40px) saturate(1.2)', border: '1px solid rgba(255,255,255,0.15)', boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.2)' }} className="rounded-2xl p-6 w-full max-w-sm mx-auto">
-        <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem', fontFamily: '"Songti SC",serif', color: 'rgba(42,40,38,0.88)', letterSpacing: '0.1em', textShadow: '0 1px 2px rgba(255,255,255,0.3)' }}>确认删除</h2>
-        <p style={{ color: 'rgba(80,72,60,0.6)', marginBottom: '1.5rem', fontSize: '0.875rem', fontFamily: '"Songti SC",serif' }}>确定要删除这条赏味记录吗？此操作无法撤销。</p>
+        <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem', fontFamily: '"Songti SC",serif', color: 'rgba(255,255,255,0.95)', letterSpacing: '0.1em', textShadow: '0 1px 4px rgba(0,0,0,0.4)' }}>确认删除</h2>
+        <p style={{ color: 'rgba(255,255,255,0.65)', marginBottom: '1.5rem', fontSize: '0.875rem', fontFamily: '"Songti SC",serif' }}>确定要删除这条赏味记录吗？此操作无法撤销。</p>
         <div className="flex justify-end space-x-3">
           <InteractiveButton variant="text" onClick={onClose}>
             取消
@@ -1840,7 +1840,7 @@ const DakaModal = ({ drink, onClose, onSave }) => {
   return (
     <Modal isOpen={true} onClose={onClose} position="center">
       <div style={{ background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(40px) saturate(1.2)', WebkitBackdropFilter: 'blur(40px) saturate(1.2)', border: '1px solid rgba(255,255,255,0.15)', boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.2)' }} className="rounded-2xl p-6 w-full max-w-sm mx-auto">
-        <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '1rem', fontFamily: '"Songti SC",serif', color: 'rgba(42,40,38,0.88)', letterSpacing: '0.1em', textShadow: '0 1px 2px rgba(255,255,255,0.3)' }}>为 {drink.name} 打卡</h2>
+        <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '1rem', fontFamily: '"Songti SC",serif', color: 'rgba(255,255,255,0.95)', letterSpacing: '0.1em', textShadow: '0 1px 4px rgba(0,0,0,0.4)' }}>为 {drink.name} 打卡</h2>
 
         {/* 可选图片上传 */}
         <div
@@ -1877,7 +1877,7 @@ const DakaModal = ({ drink, onClose, onSave }) => {
           />
         </div>
 
-        <p style={{ color: 'rgba(80,72,60,0.6)', marginBottom: '0.5rem', fontSize: '0.875rem', fontFamily: '"Songti SC",serif' }}>记录下此刻的口味、心情或任何想法…</p>
+        <p style={{ color: 'rgba(255,255,255,0.65)', marginBottom: '0.5rem', fontSize: '0.875rem', fontFamily: '"Songti SC",serif' }}>记录下此刻的口味、心情或任何想法…</p>
         <textarea
           value={note}
           onChange={(e) => setNote(e.target.value)}

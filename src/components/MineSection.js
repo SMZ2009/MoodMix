@@ -161,7 +161,7 @@ const MineSection = ({ userInventory, onUpdateInventory, favorites, onSelectDrin
             </div>
 
             {/* 原料库区域 - 限制两行，超出用 ... 省略 */}
-            <div className="flex flex-col gap-2 mb-6 px-6 pt-4 bg-white/30 backdrop-blur-md transition-all">
+            <div className="flex flex-col gap-2 mb-6 px-6 py-4 bg-white/30 backdrop-blur-md rounded-2xl transition-all hover:bg-white/40 shadow-sm">
                 <div className="flex items-center justify-between">
                     <h3 className="text-sm font-bold text-[#111813]">原料库</h3>
                     <button
@@ -171,8 +171,8 @@ const MineSection = ({ userInventory, onUpdateInventory, favorites, onSelectDrin
                         管理 <ChevronRight size={12} />
                     </button>
                 </div>
-                    <div className="w-full relative pb-1">
-                    <div className="flex flex-wrap gap-2 py-1 max-h-[4.4rem] overflow-hidden">
+                <div className="w-full">
+                    <div className="flex flex-wrap gap-2 py-2 max-h-[5rem] overflow-hidden">
                         {allInventoryItems.length === 0 ? (
                             <div className="text-xs text-gray-400 italic">暂无原料，点击管理添加</div>
                         ) : (
@@ -190,7 +190,7 @@ const MineSection = ({ userInventory, onUpdateInventory, favorites, onSelectDrin
                                 return (
                                     <span
                                         key={item.id}
-                                        className={`px-3 py-1.5 rounded-full text-[11px] font-semibold ${color} border border-white/20 backdrop-blur-sm shadow-sm whitespace-nowrap`}
+                                        className={`px-3 py-1.5 rounded-full text-[11px] font-semibold ${color} border border-white/20 backdrop-blur-sm shadow-sm whitespace-nowrap transition-transform hover:scale-105`}
                                     >
                                         {item.name}
                                     </span>
@@ -207,14 +207,14 @@ const MineSection = ({ userInventory, onUpdateInventory, favorites, onSelectDrin
             </div>
 
             {/* Tab 切换栏 - sticky定位，吸附在顶部 */}
-            <div className="sticky top-0 z-40 px-6 py-3 bg-white/90 backdrop-blur-xl border-b border-white/50 shadow-sm">
+            <div className="sticky top-0 z-40 px-6 py-3 bg-white/90 backdrop-blur-xl border-b border-white/50 shadow-sm rounded-t-2xl">
                     <div className="flex p-1 bg-gray-100 rounded-xl">
                         {['favorites', 'collections'].map((id) => (
                             <button
                                 key={id}
                                 onClick={() => setMineTab(id)}
-                                className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${mineTab === id ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400'
-                                    }`}
+                                className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${mineTab === id ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400'}
+                                    `}
                             >
                                 {id === 'favorites' ? '喜欢 ❤️' : '赏味集 📖'}
                             </button>
@@ -222,7 +222,7 @@ const MineSection = ({ userInventory, onUpdateInventory, favorites, onSelectDrin
                     </div>
                 </div>
 
-            <div className="px-6 py-4 pb-24 w-full">
+            <div className="px-6 py-4 pb-32 w-full">
                         {mineTab === 'favorites' && (
                     <div className="grid grid-cols-2 gap-3 sm:gap-4">
                             {favorites.map((drink) => (
@@ -231,7 +231,7 @@ const MineSection = ({ userInventory, onUpdateInventory, favorites, onSelectDrin
                                     onTap={() => onSelectDrink(drink)}
                                     style={{
                                         ...cardFeedback,
-                                        borderRadius: '20px sm:24px',
+                                        borderRadius: '20px',
                                         overflow: 'hidden',
                                         background: 'rgba(255, 255, 255, 0.45)',
                                         backdropFilter: 'blur(12px)',
@@ -242,7 +242,7 @@ const MineSection = ({ userInventory, onUpdateInventory, favorites, onSelectDrin
                                 >
                                     <div className="p-2 sm:p-3 pb-0">
                                         <div
-                                            className="relative aspect-[4/5] bg-cover bg-center rounded-xl sm:rounded-2xl overflow-hidden shadow-inner"
+                                            className="relative aspect-[4/5] bg-cover bg-center rounded-xl overflow-hidden shadow-inner"
                                             style={{ backgroundImage: `url(${drink.image})` }}
                                         >
                                             <button
@@ -354,7 +354,7 @@ const DakaNoteCard = ({ note, onDelete }) => {
         onTouchEnd={handleDragEnd}
       >
         <div className="flex items-start gap-4">
-          <img src={note.image} alt={note.name} className="w-16 h-16 rounded-lg object-cover flex-shrink-0" />
+          <img src={note.customImage || note.image} alt={note.name} className="w-16 h-16 rounded-lg object-cover flex-shrink-0" />
           <div className="flex-1 min-w-0">
             <h4 className="font-bold text-gray-800 truncate">{note.name}</h4>
             <p className="text-xs text-gray-400 mb-2">{new Date(note.dakaTime).toLocaleString()}</p>

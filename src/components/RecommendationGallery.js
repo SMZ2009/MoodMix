@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ChevronLeft, Shuffle, Heart, Wine, Droplets, GlassWater, Snowflake, Check, AlertCircle } from 'lucide-react';
 import { generatePhilosophyTags } from '../engine/philosophyTags';
 
-const RecommendationGallery = ({ drinks, onBack, onStartMaking, onShuffle, onNavigate, onLikeDrink, onUnlikeDrink, favoriteDrinks = [], moodResult = null, customQuotes = {} }) => {
+const RecommendationGallery = ({ drinks, onBack, onStartMaking, onShuffle, onNavigate, onLikeDrink, onUnlikeDrink, favoriteDrinks = [], moodResult = null, customQuotes = {}, validation = null }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [touchStart, setTouchStart] = useState(null);
   const [touchEnd, setTouchEnd] = useState(null);
@@ -196,6 +196,7 @@ const RecommendationGallery = ({ drinks, onBack, onStartMaking, onShuffle, onNav
                     isLiked={favoriteDrinks.some(d => d.id === drink.id)}
                     moodResult={moodResult}
                     customQuote={customQuotes?.[drink.id]}
+                    validation={validation}
                     onLike={() => {
                       if (onLikeDrink) onLikeDrink(drink);
                     }}
@@ -209,18 +210,6 @@ const RecommendationGallery = ({ drinks, onBack, onStartMaking, onShuffle, onNav
           </div>
         </div>
 
-        {/* Progress Indicator - Bottom */}
-        <div className="absolute bottom-8 left-0 right-0 flex items-center justify-center gap-2 z-30">
-          <span className="text-white/80 text-xs font-medium">{currentIndex + 1}</span>
-          <div className="w-12 h-1 bg-white/20 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-white rounded-full transition-all duration-500"
-              style={{ width: `${((currentIndex + 1) / drinks.length) * 100}%` }}
-            />
-          </div>
-          <span className="text-white/80 text-xs font-medium">{drinks.length}</span>
-        </div>
-
       </main>
 
 
@@ -229,7 +218,7 @@ const RecommendationGallery = ({ drinks, onBack, onStartMaking, onShuffle, onNav
 };
 
 // Enhanced Card Content Component
-const CardContent = ({ drink, isActive, isLiked, moodResult, customQuote, onLike, onUnlike }) => {
+const CardContent = ({ drink, isActive, isLiked, moodResult, customQuote, validation, onLike, onUnlike }) => {
   const philosophy = generatePhilosophyTags(drink.dimensions, moodResult, drink.name);
 
   return (
@@ -260,27 +249,11 @@ const CardContent = ({ drink, isActive, isLiked, moodResult, customQuote, onLike
         }}
       />
 
-      {/* Availability Badge - Top Left */}
+      {/* Quality Badge - Top Left */}
       <div className="absolute top-3 left-3 z-20">
-        {drink.isReadyToMake !== undefined && (
-          <div
-            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[11px] font-semibold backdrop-blur-md border transition-all duration-300 ${
-              drink.isReadyToMake
-                ? 'bg-emerald-500/25 border-emerald-400/30 text-emerald-100 shadow-lg shadow-emerald-500/10'
-                : 'bg-amber-500/25 border-amber-400/30 text-amber-100 shadow-lg shadow-amber-500/10'
-            }`}
-          >
-            {drink.isReadyToMake ? (
-              <>
-                <Check size={12} className="text-emerald-300" />
-                <span>原料齐备</span>
-              </>
-            ) : (
-              <>
-                <AlertCircle size={12} className="text-amber-300" />
-                <span>缺 {drink.missingCount} 种</span>
-              </>
-            )}
+        {validation?.uiHints?.showBadge && validation.uiHints.badgeText && (
+          <div className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[11px] font-semibold backdrop-blur-md border bg-white/15 border-white/30 text-white shadow-lg animate-in fade-in duration-500">
+            <span>{validation.uiHints.badgeText}</span>
           </div>
         )}
       </div>
@@ -348,7 +321,7 @@ const CardContent = ({ drink, isActive, isLiked, moodResult, customQuote, onLike
           </p>
         )}
 
-        {/* Ingredients */}
+        {/* Ingredients + Availability */}
         {(drink.briefIngredients || (drink.ingredients && drink.ingredients.length > 0)) && (
           <div className="flex items-center gap-2 text-white/80 flex-wrap mt-1">
             <span className="text-[10px] uppercase tracking-widest text-white/50">原料</span>
@@ -365,6 +338,21 @@ const CardContent = ({ drink, isActive, isLiked, moodResult, customQuote, onLike
                 </div>
               </React.Fragment>
             ))}
+            {/* Availability Status - Inline */}
+            {drink.isReadyToMake !== undefined && (
+              <>
+                <span className="text-white/30 mx-1">·</span>
+                <span className={`text-[10px] font-medium ${
+                  drink.isReadyToMake ? 'text-emerald-300' : 'text-amber-300'
+                }`}>
+                  {drink.isReadyToMake ? (
+                    <><Check size={10} className="inline mr-0.5" />齐备</>
+                  ) : (
+                    <><AlertCircle size={10} className="inline mr-0.5" />缺{drink.missingCount}种</>
+                  )}
+                </span>
+              </>
+            )}
           </div>
         )}
       </div>

@@ -2,6 +2,7 @@ const STORAGE_KEYS = {
   INVENTORY: 'moodmix_inventory',
   FAVORITES: 'moodmix_favorites',
   COLLECTIONS: 'moodmix_collections',
+  CUSTOM_DRINKS: 'moodmix_custom_drinks',
 };
 
 const DEFAULT_FAVORITES = [];
@@ -366,7 +367,7 @@ export const collectionStorage = {
     return collections;
   },
 
-  saveDakaNote(drink, note) {
+  saveDakaNote(drink, note, customImage = null) {
     const collections = this.getCollections();
     let collection = collections.find(c => c.name === 'daka');
 
@@ -381,9 +382,19 @@ export const collectionStorage = {
       // Update existing note
       collection.drinks[existingEntryIndex].note = note;
       collection.drinks[existingEntryIndex].dakaTime = new Date().toISOString();
+      // 更新自定义图片（如果提供了）
+      if (customImage) {
+        collection.drinks[existingEntryIndex].customImage = customImage;
+      }
     } else {
       // Add new entry
-      collection.drinks.push({ ...drink, note: note, dakaTime: new Date().toISOString() });
+      const newEntry = { 
+        ...drink, 
+        note: note, 
+        dakaTime: new Date().toISOString(),
+        ...(customImage && { customImage })  // 只有上传了才存储
+      };
+      collection.drinks.push(newEntry);
     }
 
     this.setCollections(collections);
@@ -409,10 +420,58 @@ export const collectionStorage = {
   }
 };
 
+// 自定义饮品存储
+export const customDrinkStorage = {
+  getCustomDrinks() {
+    return getItem(STORAGE_KEYS.CUSTOM_DRINKS, []);
+  },
+
+  setCustomDrinks(drinks) {
+    return setItem(STORAGE_KEYS.CUSTOM_DRINKS, drinks);
+  },
+
+  addCustomDrink(drink) {
+    const drinks = this.getCustomDrinks();
+    const newDrink = {
+      ...drink,
+      id: `custom_${Date.now()}`,
+      createdAt: new Date().toISOString(),
+      isCustom: true
+    };
+    drinks.unshift(newDrink); // 新添加的放在最前面
+    this.setCustomDrinks(drinks);
+    return newDrink;
+  },
+
+  updateCustomDrink(drinkId, updates) {
+    const drinks = this.getCustomDrinks();
+    const index = drinks.findIndex(d => d.id === drinkId);
+    if (index > -1) {
+      drinks[index] = { ...drinks[index], ...updates, updatedAt: new Date().toISOString() };
+      this.setCustomDrinks(drinks);
+      return drinks[index];
+    }
+    return null;
+  },
+
+  removeCustomDrink(drinkId) {
+    const drinks = this.getCustomDrinks();
+    const newDrinks = drinks.filter(d => d.id !== drinkId);
+    this.setCustomDrinks(newDrinks);
+    return newDrinks;
+  },
+
+  getCustomDrink(drinkId) {
+    const drinks = this.getCustomDrinks();
+    return drinks.find(d => d.id === drinkId) || null;
+  }
+};
+
 const storage = {
   inventory: inventoryStorage,
   favorite: favoriteStorage,
-  collection: collectionStorage
+  collection: collectionStorage,
+  customDrink: customDrinkStorage
 };
 
 export default storage;

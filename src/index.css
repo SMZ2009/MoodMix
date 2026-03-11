@@ -3,15 +3,156 @@
 @tailwind utilities;
 
 @layer utilities {
+  .mood-ink-tag {
+    --mood-ink-color: rgba(89, 101, 110, 0.16);
+    --mood-ink-accent: rgba(66, 78, 88, 0.68);
+    --mood-ring-color: rgba(214, 218, 223, 0.62);
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.64rem 1.12rem 0.72rem;
+    border: none;
+    background: transparent;
+    color: rgba(92, 101, 108, 0.72);
+    isolation: isolate;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    transition: color 420ms ease, transform 320ms ease;
+  }
+
+  .mood-ink-tag::before,
+  .mood-ink-tag::after {
+    content: "";
+    position: absolute;
+    inset: 0.08rem -0.12rem;
+    pointer-events: none;
+    border-radius: 42% 58% 51% 49% / 58% 42% 56% 44%;
+  }
+
+  .mood-ink-tag::before {
+    background:
+      radial-gradient(ellipse 38% 56% at 20% 56%, color-mix(in srgb, var(--mood-ink-color) 74%, transparent) 0%, transparent 74%),
+      radial-gradient(ellipse 44% 62% at 51% 48%, color-mix(in srgb, var(--mood-ink-color) 90%, transparent) 0%, transparent 72%),
+      radial-gradient(ellipse 34% 54% at 81% 54%, color-mix(in srgb, var(--mood-ink-color) 70%, transparent) 0%, transparent 76%),
+      radial-gradient(ellipse 90% 76% at 50% 52%, color-mix(in srgb, var(--mood-ink-color) 40%, transparent) 18%, transparent 80%),
+      linear-gradient(135deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.05) 52%, rgba(186, 194, 201, 0.08));
+    opacity: 0.82;
+    filter: blur(6px) saturate(0.86);
+    transform: scale(0.98);
+    mix-blend-mode: multiply;
+    backdrop-filter: blur(8px) saturate(1.08);
+    -webkit-backdrop-filter: blur(8px) saturate(1.08);
+  }
+
+  .mood-ink-tag::after {
+    background:
+      radial-gradient(ellipse 42% 60% at 18% 57%, color-mix(in srgb, var(--mood-ink-accent) 66%, transparent) 0%, transparent 74%),
+      radial-gradient(ellipse 42% 64% at 50% 46%, color-mix(in srgb, var(--mood-ink-accent) 96%, transparent) 0%, transparent 70%),
+      radial-gradient(ellipse 36% 56% at 82% 53%, color-mix(in srgb, var(--mood-ink-accent) 64%, transparent) 0%, transparent 76%),
+      radial-gradient(ellipse 92% 78% at 50% 52%, color-mix(in srgb, var(--mood-ink-accent) 40%, transparent) 10%, transparent 82%);
+    opacity: 0;
+    filter: blur(8px) saturate(1.02);
+    transform: scale(0.9);
+    transform-origin: center;
+    mix-blend-mode: multiply;
+  }
+
+  .mood-ink-tag:hover {
+    color: rgba(70, 79, 86, 0.88);
+    transform: scale(1.015);
+  }
+
+  .mood-ink-tag.is-selected {
+    color: rgba(48, 56, 62, 0.96);
+    --mood-ring-color: rgba(164, 139, 58, 0.34);
+  }
+
+  .mood-ink-tag__label {
+    position: relative;
+    z-index: 1;
+    padding: 0 0.34rem;
+    font-size: 0.82rem;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    transition: color 420ms ease;
+  }
+
+  .mood-ink-tag__label::before {
+    content: "";
+    position: absolute;
+    inset: -0.56rem -0.92rem;
+    border-radius: 999px;
+    pointer-events: none;
+    background:
+      conic-gradient(
+        from 132deg,
+        transparent 0deg 15deg,
+        color-mix(in srgb, white 58%, var(--mood-ring-color)) 15deg,
+        color-mix(in srgb, white 34%, var(--mood-ring-color)) 74deg,
+        color-mix(in srgb, var(--mood-ring-color) 72%, transparent) 150deg,
+        color-mix(in srgb, var(--mood-ring-color) 34%, transparent) 268deg,
+        transparent 345deg 360deg
+      );
+    filter: blur(0.24px);
+    opacity: 0.96;
+    transform: rotate(-7deg);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask-composite: exclude;
+    padding: 1px;
+    box-shadow: 0 0 0 0.35px rgba(255, 255, 255, 0.26) inset;
+  }
+
+  .mood-ink-tag__label.is-selected {
+    color: rgba(41, 48, 54, 0.98);
+  }
+
+  .mood-ink-tag:focus-visible {
+    outline: none;
+  }
+
+  .mood-ink-tag:focus-visible::before {
+    opacity: 0.84;
+  }
+
+  .mood-ink-tag:focus-visible::after,
+  .mood-ink-tag.is-selected::after {
+    opacity: 0.92;
+    animation: ink-bloom 620ms cubic-bezier(0.2, 0.74, 0.24, 1) forwards;
+  }
+
+  .mood-ink-tag.is-selected::before {
+    opacity: 0.34;
+  }
+
+  @media (min-width: 640px) {
+    .mood-ink-tag {
+      padding: 0.72rem 1.48rem 0.82rem;
+    }
+
+    .mood-ink-tag__label {
+      font-size: 0.92rem;
+    }
+
+    .mood-ink-tag__label::before {
+      inset: -0.62rem -1.06rem;
+    }
+  }
+
   .bg-dreamy-gradient {
     /* 
-      调整为以蓝白为主的清透渐变 
-      增加白色(#FFFFFF)和浅蓝色(#E0F2FE, #DBEAFE)的比例
-      紫色(#EDE9FE)仅作为极淡的点缀
+      使用背景图片替代渐变动画
+      图片路径：./background-dreamy.png
+      保持全屏覆盖，防止重复
     */
-    background: linear-gradient(-45deg, #FFFFFF, #E0F2FE, #DBEAFE, #FFFFFF, #EDE9FE);
-    background-size: 400% 400%;
-    animation: dreamy-flow 15s ease infinite;
+    background: url('./background-dreamy.png');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    background-repeat: no-repeat;
   }
 
   .glass-card {
@@ -32,6 +173,124 @@
     background: rgba(255, 255, 255, 0.8);
     border-color: rgba(255, 255, 255, 0.5);
     box-shadow: 0 0 0 4px rgba(233, 213, 255, 0.3);
+  }
+}
+
+@keyframes ink-bloom {
+  0% {
+    opacity: 0.08;
+    transform: scale(0.82);
+    filter: blur(11px) saturate(0.92);
+  }
+
+  58% {
+    opacity: 0.72;
+    transform: scale(1.04);
+    filter: blur(9px) saturate(1);
+  }
+
+  100% {
+    opacity: 0.92;
+    transform: scale(1.08);
+    filter: blur(8px) saturate(1.04);
+  }
+}
+
+@keyframes ember-drop-breathe {
+  0% {
+    opacity: 0.42;
+    transform: translateY(0) scale(0.94);
+    filter: drop-shadow(0 0 0 rgba(226, 164, 75, 0));
+  }
+
+  50% {
+    opacity: 0.88;
+    transform: translateY(-0.5px) scale(1.04);
+    filter: drop-shadow(0 0 8px rgba(226, 164, 75, 0.28));
+  }
+
+  100% {
+    opacity: 0.42;
+    transform: translateY(0) scale(0.94);
+    filter: drop-shadow(0 0 0 rgba(226, 164, 75, 0));
+  }
+}
+
+@keyframes seal-ember-pulse {
+  0% {
+    opacity: 0.2;
+    transform: scale(0.92);
+  }
+
+  50% {
+    opacity: 0.42;
+    transform: scale(1.08);
+  }
+
+  100% {
+    opacity: 0.2;
+    transform: scale(0.92);
+  }
+}
+
+@keyframes seal-ink-ripple {
+  0% {
+    opacity: 0;
+    transform: scale(0.82);
+  }
+
+  18% {
+    opacity: 0.16;
+    transform: scale(0.94);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1.34);
+  }
+}
+
+@keyframes jade-pendant-float {
+  0% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-4px);
+  }
+
+  100% {
+    transform: translateY(0);
+  }
+}
+
+@keyframes brush-breathe {
+  0% {
+    transform: rotate(45deg) translateY(0);
+  }
+
+  50% {
+    transform: rotate(45deg) translateY(-1.5px);
+  }
+
+  100% {
+    transform: rotate(45deg) translateY(0);
+  }
+}
+
+@keyframes ink-tap-ripple {
+  0% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+
+  20% {
+    opacity: 0.18;
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1.3);
   }
 }
 

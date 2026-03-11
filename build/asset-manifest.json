@@ -1,12 +1,15 @@
 {
   "files": {
-    "main.css": "/static/css/main.13faf3ed.css",
-    "main.js": "/static/js/main.cfb347ec.js",
-    "static/js/417.b9e65743.chunk.js": "/static/js/417.b9e65743.chunk.js",
+    "main.css": "/static/css/main.c2046825.css",
+    "main.js": "/static/js/main.8090f7b6.js",
+    "static/js/585.e0b9228b.chunk.js": "/static/js/585.e0b9228b.chunk.js",
+    "static/js/902.6a5a3367.chunk.js": "/static/js/902.6a5a3367.chunk.js",
+    "static/media/background-dreamy.png": "/static/media/background-dreamy.b93002a8bbc8dbd5324a.png",
+    "static/media/cup-ripple.jpg": "/static/media/cup-ripple.37c47b151f3a83e64b9a.jpg",
     "index.html": "/index.html"
   },
   "entrypoints": [
-    "static/css/main.13faf3ed.css",
-    "static/js/main.cfb347ec.js"
+    "static/css/main.c2046825.css",
+    "static/js/main.8090f7b6.js"
   ]
 }

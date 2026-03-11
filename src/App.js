@@ -2143,6 +2143,86 @@ const CustomDrinkModal = ({ isOpen, onClose, onSave }) => {
 
 export default App;
 
+// 自定义 SVG 图标：东方极简/毛笔白描感
+// 1. 特调 (Mix)：青瓷杯/琉璃盏剪影，非闭合线条，带升腾气韵
+const CustomMixIcon = ({ size = 24, className = "" }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    {/* 盏体（非闭合底座托起） */}
+    <path d="M4 10c0 4.5 3.5 7 8 7s8-2.5 8-7" />
+    <path d="M10 17v2" />
+    <path d="M8 19h8" />
+    {/* 升腾的茶气/酒香流线 */}
+    <path d="M12 4c-1.5 1.5-1.5 3 0 4.5s1.5 3 0 4.5" />
+    <path d="M15 5c-1 1-1 2 0 3" />
+    <path d="M9 6c1 1 1 2 0 3" />
+  </svg>
+);
+
+// 2. 灵感 (Explore)：抽象孔明灯，飘动升腾，底端小火晕
+const CustomExploreIcon = ({ size = 24, className = "" }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    {/* 孔明灯外罩轮廓 */}
+    <path d="M12 2C8.5 2 6 5.5 6 10c0 3.5 2.5 6 4 7l2 1 2-1c1.5-1.5 4-3.5 4-7 0-4.5-2.5-8-6-8z" />
+    {/* 灯口底托与火芯 */}
+    <path d="M10 17h4" />
+    <path d="M12 19v2" />
+    {/* 外侧微光虚线/星火碎片 */}
+    <path d="M4 10h1" />
+    <path d="M19 10h1" />
+    <path d="M16 4l1-1" />
+    <path d="M8 4l-1-1" />
+  </svg>
+);
+
+// 3. 我的 (Mine)：极简玉佩/圆润印章剪影，上方盘结，下方流苏
+const CustomMineIcon = ({ size = 24, className = "" }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    {/* 上方挂绳与盘结 */}
+    <path d="M12 2v2" />
+    <path d="M10 4l2 2 2-2" />
+    {/* 主体玉佩/同心圆璧 */}
+    <circle cx="12" cy="11" r="5" />
+    <circle cx="12" cy="11" r="2" />
+    {/* 下方流苏线条 */}
+    <path d="M12 16v5" />
+    <path d="M10 18v2" />
+    <path d="M14 18v2" />
+  </svg>
+);
+
 const NavigationBar = ({ activeTab, onTabChange }) => (
   <nav className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around px-6 py-3 bg-white/80 backdrop-blur-xl border-t border-white/40 w-full max-w-4xl mx-auto">
     <button 

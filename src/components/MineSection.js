@@ -82,7 +82,10 @@ const MineSection = ({ userInventory, onUpdateInventory, favorites, onSelectDrin
     }
 
     return (
-        <div className="bg-dreamy-gradient w-full min-h-[100svh] overflow-x-hidden">
+        <div
+            className="bg-dreamy-gradient w-full min-h-[100svh] overflow-x-hidden"
+            style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif' }}
+        >
             {/* 头部区域 */}
             <div className="flex flex-col items-center pt-[calc(env(safe-area-inset-top,0px)+1.25rem)] pb-4 px-6 bg-white/30 backdrop-blur-md border-b border-white/20">
                 {/* 头像 - 点击修改 */}
@@ -206,21 +209,74 @@ const MineSection = ({ userInventory, onUpdateInventory, favorites, onSelectDrin
                 </div>
             </div>
 
-            {/* Tab 切换栏 - sticky定位，吸附在顶部 */}
-            <div className="sticky top-0 z-40 px-6 py-3 bg-white/90 backdrop-blur-xl border-b border-white/50 shadow-sm rounded-t-2xl">
-                    <div className="flex p-1 bg-gray-100 rounded-xl">
-                        {['favorites', 'collections'].map((id) => (
-                            <button
-                                key={id}
-                                onClick={() => setMineTab(id)}
-                                className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${mineTab === id ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400'}
-                                    `}
-                            >
-                                {id === 'favorites' ? '喜欢 ❤️' : '赏味集 📖'}
-                            </button>
-                        ))}
+            {/* Tab 切换栏 - 更贴合整体水墨氛围 */}
+            <div className="sticky top-0 z-40 px-6 pt-3 pb-2">
+                <div
+                    className="relative overflow-hidden px-1 py-0.5"
+                    style={{
+                        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.22)'
+                    }}
+                >
+                    <div
+                        className="absolute -left-8 top-1/2 h-20 w-20 -translate-y-1/2 rounded-full blur-2xl pointer-events-none"
+                        style={{ background: 'rgba(177, 196, 221, 0.22)' }}
+                    />
+                    <div
+                        className="absolute -right-6 top-1/2 h-16 w-16 -translate-y-1/2 rounded-full blur-2xl pointer-events-none"
+                        style={{ background: 'rgba(229, 198, 181, 0.18)' }}
+                    />
+                    <div className="relative grid grid-cols-2 gap-2">
+                        {[
+                            { id: 'favorites', title: '喜欢', subtitle: '偏爱留香', accent: 'rgba(172, 103, 101, 0.16)' },
+                            { id: 'collections', title: '赏味集', subtitle: '杯中札记', accent: 'rgba(121, 143, 167, 0.16)' }
+                        ].map((tab) => {
+                            const isActive = mineTab === tab.id;
+
+                            return (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => setMineTab(tab.id)}
+                                    className="relative rounded-[1.15rem] px-3 py-2 transition-all duration-300"
+                                    style={{
+                                        background: isActive
+                                            ? `linear-gradient(180deg, rgba(255,255,255,0.84), rgba(248,242,235,0.68)), ${tab.accent}`
+                                            : 'transparent',
+                                        border: isActive
+                                            ? '1px solid rgba(255, 255, 255, 0.18)'
+                                            : '1px solid transparent',
+                                        boxShadow: isActive
+                                            ? 'none'
+                                            : 'none',
+                                        color: isActive ? '#2d2723' : 'rgba(92, 90, 86, 0.62)'
+                                    }}
+                                >
+                                    <div
+                                        style={{
+                                            fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif',
+                                            fontSize: '1rem',
+                                            fontWeight: 700,
+                                            letterSpacing: '0.12em'
+                                        }}
+                                    >
+                                        {tab.title}
+                                    </div>
+                                    <div
+                                        style={{
+                                            marginTop: '0.12rem',
+                                            fontFamily: '"FZYouSong", "方正悠宋", "Songti SC", serif',
+                                            fontSize: '0.66rem',
+                                            letterSpacing: '0.14em',
+                                            opacity: isActive ? 0.8 : 0.56
+                                        }}
+                                    >
+                                        {tab.subtitle}
+                                    </div>
+                                </button>
+                            );
+                        })}
                     </div>
                 </div>
+            </div>
 
             <div className="px-6 py-4 pb-32 w-full">
                         {mineTab === 'favorites' && (

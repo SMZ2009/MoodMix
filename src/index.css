@@ -1058,7 +1058,7 @@ body {
   font-family: "Songti SC", "STKaiti", "KaiTi", "SimSun", serif;
   font-size: 1.25rem;
   font-weight: 700;
-  color: rgba(55, 48, 42, 0.92);
+  color: #000000;
   letter-spacing: 0.16em;
   text-shadow: none;
 }
@@ -1066,7 +1066,7 @@ body {
 .ingredient-modal-subtitle {
   font-family: "Songti SC", "STKaiti", "KaiTi", serif;
   font-size: 0.72rem;
-  color: rgba(100, 90, 80, 0.6);
+  color: rgba(0, 0, 0, 0.75);
   letter-spacing: 0.24em;
   font-weight: 300;
   margin-bottom: 0.5rem;
@@ -1303,14 +1303,14 @@ body {
 .ingredient-empty-state p {
   font-family: "Songti SC", "STKaiti", "KaiTi", serif;
   font-size: 0.85rem;
-  color: rgba(100, 90, 80, 0.6);
+  color: #000000;
   letter-spacing: 0.1em;
   margin-bottom: 0.25rem;
 }
 
 .ingredient-empty-state span {
   font-size: 0.72rem;
-  color: rgba(100, 90, 80, 0.45);
+  color: rgba(0, 0, 0, 0.6);
   letter-spacing: 0.06em;
 }
 
@@ -1334,7 +1334,7 @@ body {
   font-family: "Songti SC", "STKaiti", "KaiTi", serif;
   font-size: 0.78rem;
   font-weight: 600;
-  color: rgba(80, 70, 60, 0.7);
+  color: rgba(0, 0, 0, 0.8);
   letter-spacing: 0.1em;
   border-radius: 0.4rem;
   cursor: pointer;
@@ -1350,7 +1350,7 @@ body {
 }
 
 .ingredient-category-header.is-active {
-  color: rgba(55, 48, 42, 0.92);
+  color: #000000;
 }
 
 .ingredient-category-count {
@@ -1393,7 +1393,7 @@ body {
   font-family: "Songti SC", "STKaiti", "KaiTi", serif;
   font-size: 0.75rem;
   font-weight: 500;
-  color: rgba(55, 48, 42, 0.8);
+  color: #000000;
   letter-spacing: 0.06em;
   background: rgba(255, 255, 255, 0.5);
   border: 1px solid rgba(180, 160, 200, 0.25);
@@ -1480,19 +1480,17 @@ body {
   font-family: "Songti SC", "STKaiti", "KaiTi", serif;
   font-size: 0.85rem;
   font-weight: 700;
-  color: rgba(55, 48, 42, 0.88);
-  background-image: url('./assets/btn-watercolor.png');
+  color: #ebdfc8 /* Light ink paper text on dark button */;
+  background: #3c3b36; /* Dark ink color */
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  border: 1px solid rgba(192, 132, 252, 0.3);
+  border: 1px solid #2a2924;
   border-radius: 0.75rem;
   cursor: pointer;
   transition: all 0.25s ease;
   letter-spacing: 0.12em;
-  box-shadow:
-    0 4px 16px rgba(168, 134, 230, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   position: relative;
   overflow: hidden;
 }
@@ -1557,7 +1555,7 @@ body {
   font-family: "Songti SC", "STKaiti", "KaiTi", serif;
   font-size: 0.82rem;
   font-weight: 600;
-  color: rgba(55, 48, 42, 0.85);
+  color: #000000;
   letter-spacing: 0.1em;
   margin-bottom: 0.4rem;
 }
@@ -1570,7 +1568,7 @@ body {
   border-radius: 0.75rem;
   font-family: "Songti SC", "STKaiti", "KaiTi", serif;
   font-size: 0.85rem;
-  color: rgba(55, 48, 42, 0.88);
+  color: #000000;
   letter-spacing: 0.04em;
   outline: none;
   transition: all 0.3s ease;
@@ -1583,7 +1581,7 @@ body {
 }
 
 .oriental-input::placeholder {
-  color: rgba(100, 90, 80, 0.45);
+  color: rgba(0, 0, 0, 0.5);
   font-style: italic;
 }
 
@@ -1595,7 +1593,7 @@ body {
   border-radius: 0.75rem;
   font-family: "Songti SC", "STKaiti", "KaiTi", serif;
   font-size: 0.85rem;
-  color: rgba(55, 48, 42, 0.88);
+  color: #000000;
   letter-spacing: 0.04em;
   outline: none;
   resize: none;
@@ -1609,7 +1607,7 @@ body {
 }
 
 .oriental-textarea::placeholder {
-  color: rgba(100, 90, 80, 0.45);
+  color: rgba(0, 0, 0, 0.5);
   font-style: italic;
 }
 
@@ -1621,7 +1619,7 @@ body {
   border-radius: 0.75rem;
   font-family: "Songti SC", "STKaiti", "KaiTi", serif;
   font-size: 0.85rem;
-  color: rgba(55, 48, 42, 0.88);
+  color: #000000;
   letter-spacing: 0.04em;
   outline: none;
   transition: all 0.3s ease;
@@ -1664,7 +1662,7 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: rgba(100, 90, 80, 0.5);
+  color: rgba(0, 0, 0, 0.6);
 }
 
 .oriental-upload-placeholder span {
@@ -1704,7 +1702,7 @@ body {
   letter-spacing: 0.06em;
   background: rgba(255, 255, 255, 0.4);
   border: 1px solid rgba(180, 160, 200, 0.25);
-  color: rgba(100, 90, 80, 0.65);
+  color: rgba(0, 0, 0, 0.7);
   cursor: pointer;
   transition: all 0.25s ease;
 }
@@ -1714,8 +1712,8 @@ body {
 }
 
 .oriental-toggle-btn.is-active {
-  background: url('./assets/btn-watercolor-warm.png') center/cover no-repeat;
-  color: rgba(55, 48, 42, 0.88);
+  background: #3c3b36; /* Ink color */
+  color: #ebdfc8;
   border-color: transparent;
   box-shadow: 0 2px 8px rgba(148, 120, 72, 0.15);
   font-weight: 700;
@@ -1739,7 +1737,7 @@ body {
 .oriental-hint {
   font-family: "Songti SC", "STKaiti", "KaiTi", serif;
   font-size: 0.65rem;
-  color: rgba(100, 90, 80, 0.6);
+  color: rgba(0, 0, 0, 0.6);
   letter-spacing: 0.08em;
   text-align: center;
   margin-top: 0.75rem;

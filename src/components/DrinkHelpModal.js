@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Send, Loader2 } from 'lucide-react';
 import { InteractiveButton } from './ui';
 import { inventoryStorage } from '../store/localStorageAdapter';
+import btnWatercolor from '../assets/btn-watercolor.png';
 
 const QUICK_QUESTIONS = [
   { label: '太甜了', question: '这杯酒太甜了，怎么调整？' },
@@ -70,18 +71,18 @@ const DrinkHelpModal = ({ drink, onClose }) => {
   if (!drink) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.18)', backdropFilter: 'blur(12px)' }}>
-      <div style={{ background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(40px) saturate(1.2)', WebkitBackdropFilter: 'blur(40px) saturate(1.2)', border: '1px solid rgba(255,255,255,0.15)', boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.2)' }} className="rounded-2xl w-full max-w-md max-h-[85vh] overflow-hidden flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.08)', backdropFilter: 'blur(12px)' }}>
+      <div style={{ background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(40px) saturate(1.3)', WebkitBackdropFilter: 'blur(40px) saturate(1.3)', border: '1px solid rgba(255,255,255,0.5)', boxShadow: '0 8px 32px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.5)' }} className="rounded-2xl w-full max-w-md max-h-[85vh] overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between p-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+        <div className="flex items-center justify-between p-4" style={{ borderBottom: '1px solid rgba(0, 0, 0, 0.1)' }}>
           <div>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 700, fontFamily: '"Songti SC","STKaiti","KaiTi",serif', color: 'rgba(255,255,255,0.95)', letterSpacing: '0.1em', textShadow: '0 1px 4px rgba(0,0,0,0.4)' }}>制作遇到问题？</h3>
-            <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.65)', marginTop: '2px' }}>{drink.name}</p>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 700, fontFamily: '"Songti SC","STKaiti","KaiTi",serif', color: '#000000', letterSpacing: '0.1em' }}>制作遇到问题？</h3>
+            <p style={{ fontSize: '0.75rem', color: 'rgba(0, 0, 0, 0.6)', marginTop: '2px' }}>{drink.name}</p>
           </div>
           <InteractiveButton
             variant="icon"
             onClick={onClose}
-            style={{ background: 'rgba(255,255,255,0.1)', width: '36px', height: '36px' }}
+            style={{ background: 'rgba(0,0,0,0.05)', width: '36px', height: '36px' }}
           >
             <X size={18} />
           </InteractiveButton>
@@ -91,7 +92,7 @@ const DrinkHelpModal = ({ drink, onClose }) => {
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {/* Quick questions */}
           <div>
-            <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.65)', marginBottom: '0.5rem', fontFamily: '"Songti SC",serif', letterSpacing: '0.06em' }}>快捷问题</p>
+            <p style={{ fontSize: '0.75rem', color: 'rgba(0, 0, 0, 0.6)', marginBottom: '0.5rem', fontFamily: '"Songti SC",serif', letterSpacing: '0.06em' }}>快捷问题</p>
             <div className="flex flex-wrap gap-2">
               {QUICK_QUESTIONS.map((q, idx) => (
                 <button
@@ -104,10 +105,13 @@ const DrinkHelpModal = ({ drink, onClose }) => {
                     fontFamily: '"Songti SC",serif',
                     letterSpacing: '0.04em',
                     transition: 'all 0.25s ease',
-                    background: question === q.question ? 'linear-gradient(135deg, rgba(148,120,72,0.8) 0%, rgba(128,108,72,0.75) 100%)' : 'rgba(255,255,255,0.08)',
-                    color: question === q.question ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.75)',
-                    border: question === q.question ? 'none' : '1px solid rgba(255,255,255,0.12)',
-                    cursor: 'pointer'
+                    background: question === q.question
+                      ? '#3c3b36'
+                      : 'rgba(255,255,255,0.5)',
+                    color: question === q.question ? '#ebdfc8' : 'rgba(0, 0, 0, 0.7)',
+                    border: question === q.question ? '1px solid #2a2924' : '1px solid rgba(0, 0, 0, 0.15)',
+                    cursor: 'pointer',
+                    boxShadow: question === q.question ? '0 2px 8px rgba(0, 0, 0, 0.2)' : 'none'
                   }}
                 >
                   {q.label}
@@ -118,7 +122,7 @@ const DrinkHelpModal = ({ drink, onClose }) => {
 
           {/* Question input */}
           <div>
-            <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.65)', marginBottom: '0.5rem', fontFamily: '"Songti SC",serif', letterSpacing: '0.06em' }}>描述你的问题</p>
+            <p style={{ fontSize: '0.75rem', color: 'rgba(0, 0, 0, 0.6)', marginBottom: '0.5rem', fontFamily: '"Songti SC",serif', letterSpacing: '0.06em' }}>描述你的问题</p>
             <textarea
               value={question}
               onChange={(e) => {
@@ -127,7 +131,7 @@ const DrinkHelpModal = ({ drink, onClose }) => {
               }}
               placeholder="例如：没有青柠汁可以用什么代替？摇酒器没有怎么办？"
               className="oriental-textarea"
-              style={{ height: '6rem' }}
+              style={{ height: '6rem', background: 'rgba(255,255,255,0.5)', color: '#000000', border: '1px solid rgba(0, 0, 0, 0.15)' }}
             />
           </div>
 
@@ -140,23 +144,23 @@ const DrinkHelpModal = ({ drink, onClose }) => {
 
           {/* AI Answer */}
           {answer && (
-            <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.08)', borderRadius: '0.75rem', border: '1px solid rgba(255,255,255,0.12)' }}>
-              <p style={{ fontSize: '0.75rem', color: 'rgba(235,215,175,0.95)', fontWeight: 500, marginBottom: '0.5rem', fontFamily: '"Songti SC",serif', letterSpacing: '0.06em' }}>调酒师建议</p>
-              <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.9)', lineHeight: 1.7, whiteSpace: 'pre-wrap', fontFamily: '"Songti SC",serif' }}>{answer}</p>
+            <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.5)', borderRadius: '0.75rem', border: '1px solid rgba(0, 0, 0, 0.1)' }}>
+              <p style={{ fontSize: '0.75rem', color: 'rgba(0, 0, 0, 0.8)', fontWeight: 500, marginBottom: '0.5rem', fontFamily: '"Songti SC",serif', letterSpacing: '0.06em' }}>调酒师建议</p>
+              <p style={{ fontSize: '0.85rem', color: '#000000', lineHeight: 1.7, whiteSpace: 'pre-wrap', fontFamily: '"Songti SC",serif' }}>{answer}</p>
             </div>
           )}
 
           {/* Loading state */}
           {isLoading && (
             <div className="flex items-center justify-center py-6">
-              <Loader2 style={{ width: '1.5rem', height: '1.5rem', color: 'rgba(235,215,175,0.9)' }} className="animate-spin" />
-              <span style={{ marginLeft: '0.5rem', fontSize: '0.85rem', color: 'rgba(255,255,255,0.65)', fontFamily: '"Songti SC",serif' }}>正在思考…</span>
+              <Loader2 style={{ width: '1.5rem', height: '1.5rem', color: 'rgba(168, 134, 230, 0.8)' }} className="animate-spin" />
+              <span style={{ marginLeft: '0.5rem', fontSize: '0.85rem', color: 'rgba(0, 0, 0, 0.65)', fontFamily: '"Songti SC",serif' }}>正在思考…</span>
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div style={{ padding: '1rem', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+        <div style={{ padding: '1rem', borderTop: '1px solid rgba(0, 0, 0, 0.1)' }}>
           <InteractiveButton
             variant="primary"
             fullWidth
@@ -165,10 +169,13 @@ const DrinkHelpModal = ({ drink, onClose }) => {
             style={{
               height: '48px',
               background: isLoading || !question.trim()
-                ? 'rgba(255,255,255,0.08)'
-                : 'linear-gradient(135deg, rgba(148,120,72,0.8) 0%, rgba(128,108,72,0.75) 40%, rgba(108,124,112,0.7) 100%)',
+                ? 'rgba(0, 0, 0, 0.1)'
+                : '#3c3b36',
               opacity: isLoading || !question.trim() ? 0.5 : 1,
-              color: isLoading || !question.trim() ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.95)'
+              color: isLoading || !question.trim() ? 'rgba(0, 0, 0, 0.4)' : '#ebdfc8',
+              border: isLoading || !question.trim() ? '1px solid rgba(0,0,0,0.1)' : '1px solid #2a2924',
+              boxShadow: isLoading || !question.trim() ? 'none' : '0 4px 12px rgba(0,0,0,0.3)',
+              fontWeight: 600
             }}
           >
             <Send size={18} className="mr-2" />

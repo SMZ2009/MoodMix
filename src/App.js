@@ -301,7 +301,7 @@ const InterventionModal = ({ isOpen, onClose, onSelectType }) => {
       >
         <div className="flex flex-col items-center">
           <Heart className="w-12 h-12 text-red-500 mb-6 fill-current animate-pulse" />
-          <h2 style={{ fontSize: '1.5rem', fontFamily: '"Songti SC",serif', fontWeight: 500, marginBottom: '2rem', textAlign: 'center', lineHeight: 1.6, color: 'rgba(55, 48, 42, 0.92)', letterSpacing: '0.08em' }}>
+          <h2 style={{ fontSize: '1.5rem', fontFamily: '"Songti SC",serif', fontWeight: 500, marginBottom: '2rem', textAlign: 'center', lineHeight: 1.6, color: '#000000', letterSpacing: '0.08em' }}>
             抱抱你。<br />此刻你是想...
           </h2>
           <div className="flex flex-col w-full gap-3">
@@ -311,12 +311,11 @@ const InterventionModal = ({ isOpen, onClose, onSelectType }) => {
               size="large"
               onClick={() => onSelectType('soothe')}
               style={{
-                background: `url(${btnWatercolor}) center/cover no-repeat`,
-                backdropFilter: 'blur(12px)',
-                border: '1px solid rgba(192, 132, 252, 0.3)',
-                color: 'rgba(55, 48, 42, 0.85)',
+                background: '#3c3b36',
+                border: '1px solid #2a2924',
+                color: '#ebdfc8',
                 height: '56px',
-                boxShadow: '0 4px 12px rgba(168, 134, 230, 0.15)',
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
                 fontWeight: 600
               }}
             >
@@ -328,12 +327,11 @@ const InterventionModal = ({ isOpen, onClose, onSelectType }) => {
               size="large"
               onClick={() => onSelectType('vent')}
               style={{
-                background: `url(${btnWatercolor}) center/cover no-repeat`,
-                backdropFilter: 'blur(12px)',
-                border: '1px solid rgba(249, 168, 212, 0.3)',
-                color: 'rgba(55, 48, 42, 0.85)',
+                background: '#3c3b36',
+                border: '1px solid #2a2924',
+                color: '#ebdfc8',
                 height: '56px',
-                boxShadow: '0 4px 12px rgba(249, 168, 212, 0.15)',
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
                 fontWeight: 600
               }}
             >
@@ -2119,9 +2117,10 @@ const CustomDrinkModal = ({ isOpen, onClose, onSave }) => {
           className="ingredient-btn-confirm"
           style={{
             width: '100%',
-            background: `url(${btnWatercolorWarm}) center/cover no-repeat`,
-            color: 'rgba(55, 48, 42, 0.88)',
-            border: '1px solid rgba(192, 132, 252, 0.3)',
+            background: isLoading || !name.trim() ? 'rgba(0,0,0,0.1)' : '#3c3b36',
+            color: isLoading || !name.trim() ? 'rgba(0,0,0,0.4)' : '#ebdfc8',
+            border: isLoading || !name.trim() ? '1px solid rgba(0,0,0,0.1)' : '1px solid #2a2924',
+            boxShadow: isLoading || !name.trim() ? 'none' : '0 4px 12px rgba(0,0,0,0.3)',
             opacity: isLoading || !name.trim() ? 0.6 : 1
           }}
         >

@@ -2121,7 +2121,11 @@ const CustomDrinkModal = ({ isOpen, onClose, onSave }) => {
             color: isLoading || !name.trim() ? 'rgba(0,0,0,0.4)' : '#ebdfc8',
             border: isLoading || !name.trim() ? '1px solid rgba(0,0,0,0.1)' : '1px solid #2a2924',
             boxShadow: isLoading || !name.trim() ? 'none' : '0 4px 12px rgba(0,0,0,0.3)',
-            opacity: isLoading || !name.trim() ? 0.6 : 1
+            opacity: isLoading || !name.trim() ? 0.6 : 1,
+            fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif',
+            fontSize: '1rem',
+            letterSpacing: '0.08em',
+            fontWeight: 700
           }}
         >
           {isLoading ? (
@@ -2131,7 +2135,6 @@ const CustomDrinkModal = ({ isOpen, onClose, onSave }) => {
             </span>
           ) : (
             <span className="flex items-center justify-center gap-2">
-              <Sparkles size={18} />
               保存饮品
             </span>
           )}

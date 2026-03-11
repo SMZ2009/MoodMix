@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 
 export const useSwipeGesture = (options = {}) => {
   const {
+    enabled = true,
     onSwipeLeft,
     onSwipeRight,
     onSwipeUp,
@@ -20,6 +21,8 @@ export const useSwipeGesture = (options = {}) => {
   const lastTimeRef = useRef(Date.now());
 
   const handleTouchStart = useCallback((e) => {
+    if (!enabled) return;
+
     // 兼容鼠标和触摸
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
@@ -29,10 +32,10 @@ export const useSwipeGesture = (options = {}) => {
     setIsDragging(true);
     lastPosRef.current = { x: clientX, y: clientY };
     lastTimeRef.current = Date.now();
-  }, []);
+  }, [enabled]);
 
   const handleTouchMove = useCallback((e) => {
-    if (!isDragging) return;
+    if (!enabled || !isDragging) return;
 
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
@@ -60,10 +63,10 @@ export const useSwipeGesture = (options = {}) => {
       const resistanceFactor = Math.max(1, Math.abs(deltaY) / 100 * resistance);
       setCurrentPos({ x: 0, y: deltaY / resistanceFactor });
     }
-  }, [isDragging, startPos.x, startPos.y, resistance]);
+  }, [enabled, isDragging, startPos.x, startPos.y, resistance]);
 
   const handleTouchEnd = useCallback(() => {
-    if (!isDragging) return;
+    if (!enabled || !isDragging) return;
 
     const swipeVelocity = Math.abs(velocity.x) > Math.abs(velocity.y) ? velocity.x : velocity.y;
     const swipeDistance = Math.abs(currentPos.x || currentPos.y);
@@ -83,7 +86,7 @@ export const useSwipeGesture = (options = {}) => {
     setIsDragging(false);
     setCurrentPos({ x: 0, y: 0 });
     setVelocity({ x: 0, y: 0 });
-  }, [isDragging, velocity, currentPos, threshold, onSwipeLeft, onSwipeRight, onSwipeUp, onSwipeDown]);
+  }, [enabled, isDragging, velocity, currentPos, threshold, onSwipeLeft, onSwipeRight, onSwipeUp, onSwipeDown]);
 
   const getTransform = () => {
     const x = currentPos.x;
@@ -99,6 +102,8 @@ export const useSwipeGesture = (options = {}) => {
   };
 
   useEffect(() => {
+    if (!enabled) return;
+
     const element = elementRef.current;
     if (!element) return;
 
@@ -124,7 +129,7 @@ export const useSwipeGesture = (options = {}) => {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [handleTouchStart, handleTouchMove, handleTouchEnd]);
+  }, [enabled, handleTouchStart, handleTouchMove, handleTouchEnd]);
 
   // --- 重要：必须有 return，否则 SwipeableCard 拿不到数据 ---
   return {

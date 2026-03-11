@@ -14,6 +14,8 @@ const SwipeableCard = ({
   threshold = 60,
   disabled = false
 }) => {
+  const swipeEnabled = !disabled && Boolean(onSwipeLeft || onSwipeRight || onSwipeUp || onSwipeDown);
+
   // --- 修改点 1: 从钩子中解构出 elementRef ---
   const {
     getTransform,
@@ -21,6 +23,7 @@ const SwipeableCard = ({
     isDragging,
     elementRef 
   } = useSwipeGesture({
+    enabled: swipeEnabled,
     onSwipeLeft,
     onSwipeRight,
     onSwipeUp,
@@ -50,13 +53,13 @@ const SwipeableCard = ({
   const mergedStyle = {
     ...customStyle,
     ...feedbackStyle,
-    transform: isDragging ? getTransform() : (customStyle.transform || undefined),
-    opacity: isDragging ? getOpacity() : (customStyle.opacity || undefined),
+    transform: swipeEnabled && isDragging ? getTransform() : (customStyle.transform || undefined),
+    opacity: swipeEnabled && isDragging ? getOpacity() : (customStyle.opacity || undefined),
     cursor: 'pointer',
-    touchAction: (onSwipeUp || onSwipeDown) ? 'none' : 'auto', // 只有设置了上下滑动回调时才阻止滚动
+    touchAction: swipeEnabled && (onSwipeUp || onSwipeDown) ? 'none' : 'auto',
     userSelect: 'none',
     WebkitUserSelect: 'none',
-    transition: isDragging ? 'none' : 'all 0.5s ease-out' // 让手动滑时更跟手，放开后有动画
+    transition: swipeEnabled && isDragging ? 'none' : 'all 0.5s ease-out'
   };
 
   const eventHandlers = getEventHandlers();

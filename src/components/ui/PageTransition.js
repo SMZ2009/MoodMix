@@ -161,8 +161,8 @@ const Modal = ({
           style={{
             position: 'absolute',
             inset: 0,
-            background: 'rgba(0, 0, 0, 0.5)',
-            backdropFilter: backdropBlur ? 'blur(4px)' : undefined,
+            background: 'rgba(0, 0, 0, 0.18)',
+            backdropFilter: backdropBlur ? 'blur(12px)' : undefined,
             opacity: isVisible ? 1 : 0,
             transition: 'opacity 0.2s ease',
             pointerEvents: isVisible ? 'auto' : 'none',

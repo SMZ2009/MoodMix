@@ -1543,3 +1543,467 @@ body {
     padding: 0.8rem 1.5rem;
   }
 }
+
+
+/* ══════════════════════════════════════════════════════════════════
+   东方韵味 — 复用型表单组件样式 (Oriental Reusable Form Styles)
+   ══════════════════════════════════════════════════════════════════ */
+
+.oriental-label {
+  display: block;
+  font-family: "Songti SC", "STKaiti", "KaiTi", serif;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: rgba(72, 60, 44, 0.78);
+  letter-spacing: 0.1em;
+  margin-bottom: 0.4rem;
+}
+
+.oriental-input {
+  width: 100%;
+  padding: 0.6rem 0.85rem;
+  background: rgba(255, 252, 245, 0.5);
+  border: 1px solid rgba(184, 168, 140, 0.25);
+  border-radius: 0.75rem;
+  font-family: "Songti SC", "STKaiti", "KaiTi", serif;
+  font-size: 0.85rem;
+  color: rgba(62, 52, 40, 0.85);
+  letter-spacing: 0.04em;
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+.oriental-input:focus {
+  background: rgba(255, 252, 245, 0.75);
+  border-color: rgba(168, 148, 112, 0.4);
+  box-shadow: 0 0 0 3px rgba(184, 164, 120, 0.1);
+}
+
+.oriental-input::placeholder {
+  color: rgba(148, 130, 100, 0.4);
+  font-style: italic;
+}
+
+.oriental-textarea {
+  width: 100%;
+  padding: 0.6rem 0.85rem;
+  background: rgba(255, 252, 245, 0.5);
+  border: 1px solid rgba(184, 168, 140, 0.25);
+  border-radius: 0.75rem;
+  font-family: "Songti SC", "STKaiti", "KaiTi", serif;
+  font-size: 0.85rem;
+  color: rgba(62, 52, 40, 0.85);
+  letter-spacing: 0.04em;
+  outline: none;
+  resize: none;
+  transition: all 0.3s ease;
+}
+
+.oriental-textarea:focus {
+  background: rgba(255, 252, 245, 0.75);
+  border-color: rgba(168, 148, 112, 0.4);
+  box-shadow: 0 0 0 3px rgba(184, 164, 120, 0.1);
+}
+
+.oriental-textarea::placeholder {
+  color: rgba(148, 130, 100, 0.4);
+  font-style: italic;
+}
+
+.oriental-select {
+  width: 100%;
+  padding: 0.6rem 0.85rem;
+  background: rgba(255, 252, 245, 0.5);
+  border: 1px solid rgba(184, 168, 140, 0.25);
+  border-radius: 0.75rem;
+  font-family: "Songti SC", "STKaiti", "KaiTi", serif;
+  font-size: 0.85rem;
+  color: rgba(62, 52, 40, 0.85);
+  letter-spacing: 0.04em;
+  outline: none;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23948264' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  padding-right: 2rem;
+}
+
+.oriental-select:focus {
+  background-color: rgba(255, 252, 245, 0.75);
+  border-color: rgba(168, 148, 112, 0.4);
+  box-shadow: 0 0 0 3px rgba(184, 164, 120, 0.1);
+}
+
+.oriental-upload-area {
+  position: relative;
+  width: 100%;
+  height: 8rem;
+  border-radius: 1rem;
+  background: rgba(248, 245, 240, 0.5);
+  border: 1.5px dashed rgba(184, 168, 140, 0.35);
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.oriental-upload-area:hover {
+  background: rgba(248, 245, 240, 0.7);
+  border-color: rgba(168, 148, 112, 0.5);
+}
+
+.oriental-upload-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: rgba(148, 130, 100, 0.4);
+}
+
+.oriental-upload-placeholder span {
+  font-family: "Songti SC", "STKaiti", "KaiTi", serif;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  margin-top: 0.4rem;
+}
+
+.oriental-upload-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(62, 52, 40, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.oriental-upload-area:hover .oriental-upload-overlay {
+  opacity: 1;
+}
+
+.oriental-toggle-group {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.oriental-toggle-btn {
+  flex: 1;
+  padding: 0.6rem 1rem;
+  border-radius: 0.75rem;
+  font-family: "Songti SC", "STKaiti", "KaiTi", serif;
+  font-size: 0.82rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  background: rgba(240, 236, 228, 0.5);
+  border: 1px solid rgba(194, 180, 155, 0.2);
+  color: rgba(128, 112, 88, 0.6);
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.oriental-toggle-btn:hover {
+  background: rgba(234, 228, 216, 0.7);
+}
+
+.oriental-toggle-btn.is-active {
+  background: linear-gradient(135deg, rgba(148, 120, 72, 0.75) 0%, rgba(128, 108, 72, 0.7) 100%);
+  color: rgba(255, 252, 245, 0.95);
+  border-color: transparent;
+  box-shadow: 0 2px 8px rgba(148, 120, 72, 0.15);
+  font-weight: 700;
+}
+
+.oriental-toggle-btn:active {
+  transform: scale(0.97);
+}
+
+.oriental-error {
+  padding: 0.5rem 0.75rem;
+  background: rgba(200, 120, 110, 0.1);
+  border: 1px solid rgba(200, 120, 110, 0.2);
+  border-radius: 0.625rem;
+  font-family: "Songti SC", "STKaiti", "KaiTi", serif;
+  font-size: 0.8rem;
+  color: rgba(180, 80, 70, 0.8);
+  letter-spacing: 0.04em;
+}
+
+.oriental-hint {
+  font-family: "Songti SC", "STKaiti", "KaiTi", serif;
+  font-size: 0.65rem;
+  color: rgba(148, 130, 100, 0.45);
+  letter-spacing: 0.08em;
+  text-align: center;
+  margin-top: 0.75rem;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   原料管理页（全屏） — 东方韵味 (Ingredient Manager Full Page)
+   ══════════════════════════════════════════════════════════════════ */
+
+.im-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  background: rgba(248, 245, 240, 0.35);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(194, 180, 155, 0.15);
+}
+
+.im-page-title {
+  font-family: "Songti SC", "STKaiti", "KaiTi", "SimSun", serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: rgba(62, 52, 40, 0.88);
+  letter-spacing: 0.12em;
+  margin-left: 0.5rem;
+}
+
+.im-back-btn {
+  padding: 0.5rem;
+  margin-left: -0.5rem;
+  border-radius: 50%;
+  color: rgba(88, 74, 56, 0.65);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.im-back-btn:hover {
+  background: rgba(204, 189, 164, 0.15);
+  color: rgba(62, 52, 40, 0.85);
+}
+
+.im-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.im-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  padding: 0 0.25rem;
+}
+
+.im-storage-title {
+  font-family: "Songti SC", "STKaiti", "KaiTi", serif;
+  font-size: 1rem;
+  font-weight: 700;
+  color: rgba(62, 52, 40, 0.85);
+  letter-spacing: 0.1em;
+}
+
+.im-storage-count {
+  font-family: "Songti SC", "STKaiti", "KaiTi", serif;
+  font-size: 0.7rem;
+  color: rgba(128, 112, 88, 0.5);
+  letter-spacing: 0.06em;
+}
+
+.im-custom-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.45rem 0.85rem;
+  font-family: "Songti SC", "STKaiti", "KaiTi", serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: rgba(255, 252, 245, 0.95);
+  background: linear-gradient(135deg, rgba(148, 120, 72, 0.78) 0%, rgba(128, 108, 72, 0.72) 100%);
+  border: none;
+  border-radius: 0.625rem;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  letter-spacing: 0.08em;
+  box-shadow: 0 2px 8px rgba(148, 120, 72, 0.12);
+}
+
+.im-custom-btn:hover {
+  box-shadow: 0 4px 12px rgba(148, 120, 72, 0.2);
+}
+
+.im-custom-btn:active {
+  transform: scale(0.96);
+}
+
+.im-custom-form {
+  margin-bottom: 1rem;
+  padding: 0.85rem;
+  background: rgba(255, 252, 245, 0.45);
+  border-radius: 0.875rem;
+  border: 1px solid rgba(194, 180, 155, 0.2);
+}
+
+.im-custom-form-title {
+  font-family: "Songti SC", "STKaiti", "KaiTi", serif;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: rgba(72, 60, 44, 0.78);
+  letter-spacing: 0.08em;
+  margin-bottom: 0.5rem;
+}
+
+.im-custom-form-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.im-form-btn-cancel {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  font-family: "Songti SC", "STKaiti", "KaiTi", serif;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: rgba(128, 112, 88, 0.6);
+  background: rgba(240, 236, 228, 0.5);
+  border: 1px solid rgba(194, 180, 155, 0.2);
+  border-radius: 0.625rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  letter-spacing: 0.06em;
+}
+
+.im-form-btn-cancel:hover {
+  background: rgba(234, 228, 216, 0.7);
+}
+
+.im-form-btn-add {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  font-family: "Songti SC", "STKaiti", "KaiTi", serif;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: rgba(255, 252, 245, 0.95);
+  background: linear-gradient(135deg, rgba(148, 120, 72, 0.8) 0%, rgba(128, 108, 72, 0.75) 100%);
+  border: none;
+  border-radius: 0.625rem;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  letter-spacing: 0.06em;
+}
+
+.im-form-btn-add:hover {
+  box-shadow: 0 2px 8px rgba(148, 120, 72, 0.15);
+}
+
+.im-form-btn-add:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.im-category-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.55rem 0.5rem;
+  font-family: "Songti SC", "STKaiti", "KaiTi", serif;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: rgba(72, 60, 44, 0.72);
+  letter-spacing: 0.1em;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: transparent;
+  border: none;
+  text-align: left;
+}
+
+.im-category-btn:hover {
+  background: rgba(204, 189, 164, 0.1);
+  color: rgba(62, 52, 40, 0.85);
+}
+
+.im-category-icon {
+  color: rgba(148, 130, 100, 0.4);
+  transition: transform 0.25s ease;
+}
+
+.im-category-icon.is-open {
+  transform: rotate(180deg);
+}
+
+.im-tags-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  padding: 0.4rem 0.25rem 0.75rem;
+  animation: tags-fade-in 0.3s ease both;
+}
+
+.im-tag {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.3rem 0.6rem 0.35rem;
+  font-family: "Songti SC", "STKaiti", "KaiTi", serif;
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  border-radius: 42% 58% 51% 49% / 58% 42% 56% 44%;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  border: 1px solid;
+}
+
+.im-tag.is-stocked {
+  color: rgba(72, 60, 44, 0.82);
+  background: rgba(208, 196, 168, 0.2);
+  border-color: rgba(184, 164, 120, 0.3);
+}
+
+.im-tag.is-stocked:hover {
+  background: rgba(208, 196, 168, 0.32);
+  transform: scale(1.03);
+}
+
+.im-tag.is-unstocked {
+  color: rgba(148, 130, 100, 0.5);
+  background: rgba(255, 252, 245, 0.3);
+  border-color: rgba(194, 180, 155, 0.18);
+}
+
+.im-tag.is-unstocked:hover {
+  color: rgba(128, 112, 88, 0.7);
+  border-color: rgba(184, 168, 140, 0.3);
+}
+
+.im-tag.is-custom {
+  color: rgba(148, 100, 52, 0.82);
+  background: rgba(228, 200, 148, 0.15);
+  border-color: rgba(208, 176, 112, 0.3);
+}
+
+.im-tag.is-custom:hover {
+  background: rgba(228, 200, 148, 0.25);
+}
+
+.im-tag:active {
+  transform: scale(0.96);
+}
+
+.im-tag-check {
+  color: rgba(136, 168, 128, 0.7);
+}
+
+.im-custom-section-title {
+  font-family: "Songti SC", "STKaiti", "KaiTi", serif;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: rgba(148, 100, 52, 0.7);
+  letter-spacing: 0.08em;
+  padding: 0.5rem 0.25rem;
+}

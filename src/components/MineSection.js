@@ -59,18 +59,18 @@ const MineSection = ({ userInventory, onUpdateInventory, favorites, onSelectDrin
         return (
             <div className="fixed inset-0 z-[150] flex flex-col bg-dreamy-gradient w-full h-[100vh] overflow-hidden">
                 {/* 头部导航 */}
-                <div className="flex items-center justify-between px-6 py-4 bg-white/30 backdrop-blur-md border-b border-white/20">
+                <div className="im-page-header">
                     <div className="flex items-center">
                         <button
                             onClick={() => {
                                 onUpdateInventory();
                                 setShowFullInventory(false);
                             }}
-                            className="p-2 -ml-2 rounded-full hover:bg-white/40 transition-colors"
+                            className="im-back-btn"
                         >
-                            <ArrowLeft size={20} className="text-gray-700" />
+                            <ArrowLeft size={20} />
                         </button>
-                        <h1 className="text-lg font-bold text-gray-800 ml-2">原料管理</h1>
+                        <h1 className="im-page-title">原料管理</h1>
                     </div>
 
                 </div>

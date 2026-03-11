@@ -2004,30 +2004,32 @@ const CustomDrinkModal = ({ isOpen, onClose, onSave }) => {
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} position="center">
-      <div className="bg-white rounded-2xl p-6 w-full max-w-sm mx-auto shadow-2xl max-h-[85vh] overflow-y-auto">
+      <div className="ingredient-modal-container" style={{ maxWidth: '440px' }}>
         {/* Header */}
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-gray-800">添加自创饮品</h2>
-          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-full transition-colors">
-            <X size={20} className="text-gray-500" />
+        <div className="flex items-center justify-between mb-1">
+          <h2 className="ingredient-modal-title">灵感入壶</h2>
+          <button onClick={onClose} className="p-2 -mr-2 text-gray-400/60 hover:text-gray-600/80 transition-colors rounded-full">
+            <X size={20} />
           </button>
         </div>
+        <p className="ingredient-modal-subtitle">一饮一味，皆是灵感</p>
+        <div className="ink-divider" />
 
         {/* Image Upload */}
         <div
-          className="relative w-full h-32 rounded-xl bg-gray-100 mb-4 overflow-hidden cursor-pointer group"
+          className="oriental-upload-area mb-4"
           onClick={() => fileInputRef.current?.click()}
         >
           {image ? (
             <img src={image} alt="Preview" className="w-full h-full object-cover" />
           ) : (
-            <div className="w-full h-full flex flex-col items-center justify-center text-gray-400">
-              <Camera size={32} className="mb-2" />
-              <span className="text-sm">点击上传图片</span>
+            <div className="oriental-upload-placeholder">
+              <Camera size={28} />
+              <span>点击上传图片</span>
             </div>
           )}
-          <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-            <Camera size={24} className="text-white" />
+          <div className="oriental-upload-overlay">
+            <Camera size={22} className="text-white/90" />
           </div>
           <input
             ref={fileInputRef}
@@ -2040,60 +2042,55 @@ const CustomDrinkModal = ({ isOpen, onClose, onSave }) => {
 
         {/* Name */}
         <div className="mb-3">
-          <label className="block text-sm font-medium text-gray-700 mb-1">饮品名称 *</label>
+          <label className="oriental-label">饮品名称 *</label>
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="如：蜜桃乌龙"
-            className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 text-sm"
+            className="oriental-input"
             maxLength={30}
           />
         </div>
 
         {/* Description */}
         <div className="mb-3">
-          <label className="block text-sm font-medium text-gray-700 mb-1">口感描述</label>
+          <label className="oriental-label">口感描述</label>
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="描述一下这款饮品的口感、风味..."
-            className="w-full h-20 px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 text-sm resize-none"
+            placeholder="描述一下这款饮品的口感、风味…"
+            className="oriental-textarea"
+            style={{ height: '5rem' }}
             maxLength={200}
           />
         </div>
 
         {/* Ingredients */}
         <div className="mb-3">
-          <label className="block text-sm font-medium text-gray-700 mb-1">主要原料 (可选)</label>
+          <label className="oriental-label">主要原料（可选）</label>
           <input
             type="text"
             value={ingredients}
             onChange={(e) => setIngredients(e.target.value)}
             placeholder="用逗号分隔，如：乌龙茶, 蜜桃, 冰块"
-            className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 text-sm"
+            className="oriental-input"
           />
         </div>
 
         {/* Alcoholic Toggle */}
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-2">含酒精</label>
-          <div className="flex gap-3">
+          <label className="oriental-label">含酒精</label>
+          <div className="oriental-toggle-group">
             <button
               onClick={() => setIsAlcoholic(false)}
-              className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${!isAlcoholic
-                  ? 'bg-emerald-500 text-white shadow-md'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
+              className={`oriental-toggle-btn ${!isAlcoholic ? 'is-active' : ''}`}
             >
               无酒精
             </button>
             <button
               onClick={() => setIsAlcoholic(true)}
-              className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${isAlcoholic
-                  ? 'bg-amber-500 text-white shadow-md'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
+              className={`oriental-toggle-btn ${isAlcoholic ? 'is-active' : ''}`}
             >
               含酒精
             </button>
@@ -2102,7 +2099,7 @@ const CustomDrinkModal = ({ isOpen, onClose, onSave }) => {
 
         {/* Error */}
         {error && (
-          <div className="mb-3 p-2 bg-red-50 text-red-600 text-sm rounded-lg">
+          <div className="oriental-error mb-3">
             {error}
           </div>
         )}
@@ -2112,9 +2109,10 @@ const CustomDrinkModal = ({ isOpen, onClose, onSave }) => {
           variant="primary"
           onClick={handleSubmit}
           disabled={isLoading || !name.trim()}
+          className="ingredient-btn-confirm"
           style={{
             width: '100%',
-            background: 'linear-gradient(135deg, #A78BFA 0%, #818CF8 100%)',
+            background: 'linear-gradient(135deg, rgba(148, 120, 72, 0.8) 0%, rgba(128, 108, 72, 0.75) 40%, rgba(108, 124, 112, 0.7) 100%)',
             opacity: isLoading || !name.trim() ? 0.6 : 1
           }}
         >
@@ -2131,7 +2129,7 @@ const CustomDrinkModal = ({ isOpen, onClose, onSave }) => {
           )}
         </InteractiveButton>
 
-        <p className="text-[10px] text-gray-400 text-center mt-3">
+        <p className="oriental-hint">
           AI 将根据您的描述自动分析饮品风味特征
         </p>
       </div>

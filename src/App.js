@@ -346,6 +346,121 @@ const InterventionModal = ({ isOpen, onClose, onSelectType }) => {
   );
 };
 
+const FriendlyNoticeModal = ({ isOpen, title, message, tone = 'default', onClose }) => {
+  if (!isOpen) return null;
+
+  const toneStyles = {
+    default: {
+      accent: 'rgba(118, 98, 126, 0.92)',
+      glow: 'rgba(137, 156, 196, 0.22)',
+      border: 'rgba(140, 129, 158, 0.22)'
+    },
+    warning: {
+      accent: 'rgba(147, 109, 72, 0.92)',
+      glow: 'rgba(214, 184, 137, 0.24)',
+      border: 'rgba(170, 134, 98, 0.24)'
+    },
+    error: {
+      accent: 'rgba(143, 90, 84, 0.92)',
+      glow: 'rgba(194, 136, 126, 0.22)',
+      border: 'rgba(171, 110, 103, 0.24)'
+    }
+  };
+
+  const currentTone = toneStyles[tone] || toneStyles.default;
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} position="center" closeOnBackdrop>
+      <div
+        className="rounded-[2rem] p-6 sm:p-7 w-[calc(100vw-2rem)] max-w-[22rem] sm:max-w-[24rem] mx-auto"
+        style={{
+          position: 'relative',
+          overflow: 'hidden',
+          background: 'linear-gradient(180deg, rgba(255,255,255,0.82), rgba(250,246,241,0.76))',
+          backdropFilter: 'blur(38px) saturate(1.25)',
+          WebkitBackdropFilter: 'blur(38px) saturate(1.25)',
+          border: `1px solid ${currentTone.border}`,
+          boxShadow: `0 20px 48px rgba(70, 62, 74, 0.16), inset 0 1px 0 rgba(255,255,255,0.58), 0 0 0 1px rgba(255,255,255,0.16)`
+        }}
+      >
+        <div
+          className="absolute -top-12 -left-10 w-36 h-36 rounded-full blur-3xl pointer-events-none"
+          style={{ background: currentTone.glow }}
+        />
+        <div
+          className="absolute -bottom-10 -right-8 w-32 h-32 rounded-full blur-3xl pointer-events-none"
+          style={{ background: 'rgba(235, 223, 200, 0.28)' }}
+        />
+
+        <div className="relative">
+          <div
+            className="inline-flex items-center justify-center px-3 py-1 rounded-full mb-4"
+            style={{
+              background: 'rgba(255,255,255,0.54)',
+              border: '1px solid rgba(255,255,255,0.44)',
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.5)'
+            }}
+          >
+            <span
+              style={{
+                fontSize: '0.72rem',
+                letterSpacing: '0.16em',
+                fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif',
+                color: currentTone.accent,
+                fontWeight: 700
+              }}
+            >
+              小提醒
+            </span>
+          </div>
+
+          <h3
+            style={{
+              fontSize: '1.25rem',
+              lineHeight: 1.4,
+              color: '#2f2b29',
+              fontWeight: 700,
+              fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif',
+              letterSpacing: '0.06em'
+            }}
+          >
+            {title}
+          </h3>
+          <p
+            style={{
+              marginTop: '0.85rem',
+              fontSize: '0.92rem',
+              lineHeight: 1.85,
+              color: 'rgba(43, 39, 36, 0.78)',
+              fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif',
+              letterSpacing: '0.04em'
+            }}
+          >
+            {message}
+          </p>
+
+          <InteractiveButton
+            variant="primary"
+            fullWidth
+            onClick={onClose}
+            style={{
+              marginTop: '1.5rem',
+              height: '50px',
+              background: currentTone.accent,
+              color: '#f7f0e4',
+              border: '1px solid rgba(66, 55, 60, 0.14)',
+              boxShadow: '0 10px 24px rgba(86, 73, 80, 0.18), inset 0 1px 0 rgba(255,255,255,0.18)',
+              fontWeight: 600
+            }}
+          >
+            知道了
+          </InteractiveButton>
+        </div>
+      </div>
+    </Modal>
+  );
+};
+
 
 
 const ResultsSection = ({
@@ -974,6 +1089,25 @@ const App = () => {
   const [customDrinks, setCustomDrinks] = useState([]);
   const [showDrinkHelpModal, setShowDrinkHelpModal] = useState(false);
   const [drinkHelpTarget, setDrinkHelpTarget] = useState(null);
+  const [friendlyNotice, setFriendlyNotice] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    tone: 'default'
+  });
+
+  const showFriendlyNotice = useCallback((title, message, tone = 'default') => {
+    setFriendlyNotice({
+      isOpen: true,
+      title,
+      message,
+      tone
+    });
+  }, []);
+
+  const closeFriendlyNotice = useCallback(() => {
+    setFriendlyNotice(prev => ({ ...prev, isOpen: false }));
+  }, []);
 
   const handleOpenDakaModal = (drink) => {
     setDakaDrink(drink);
@@ -1279,7 +1413,7 @@ const App = () => {
       if (!apiDrinks || apiDrinks.length === 0) {
         clearTimeout(longWaitTimer);
         setMixMode('home');
-        alert('饮品数据还在加载中，请稍后重试');
+        showFriendlyNotice('酒柜还在整理', '饮品数据尚未准备好，稍候片刻再开启仪轨。', 'warning');
         return;
       }
 
@@ -1312,7 +1446,7 @@ const App = () => {
       if (validation?.shouldBlock) {
         setMixMode('home');
         setValidationResult(validation);
-        alert(validation.userMessage || '此刻的心境需要换一种表达方式');
+        showFriendlyNotice('换一种说法试试', validation.userMessage || '此刻的心境需要换一种表达方式。', 'warning');
         return;
       }
 
@@ -1348,9 +1482,9 @@ const App = () => {
       console.error('分析/推荐出错:', error);
       clearTimeout(longWaitTimer);
       setMixMode('home');
-      alert('分析网络可能存在波动，请稍后重试');
+      showFriendlyNotice('灵感有些迟疑', '分析网络可能存在波动，请稍后再试。', 'error');
     }
-  }, [emotionType, interventionType, moodInput, selectedMood, sessionIngredients, apiDrinks, customDrinks, setRecommendationPool, setCurrentBatchIndex, setCurrentCardIndex, setMixMode, setShowRecommendationGallery, setCustomQuotes]);
+  }, [emotionType, interventionType, moodInput, selectedMood, sessionIngredients, apiDrinks, customDrinks, setRecommendationPool, setCurrentBatchIndex, setCurrentCardIndex, setMixMode, setShowRecommendationGallery, setCustomQuotes, showFriendlyNotice]);
 
   // 调用后端千问API进行情绪分析和饮品推荐
   const processMoodAndGenerate = useCallback(async () => {
@@ -1358,7 +1492,7 @@ const App = () => {
 
     // 空输入检查 - 用户什么都没输入也没选标签
     if (!combinedInput) {
-      alert('心里装着什么？说与我听，我为你寻一杯。');
+      showFriendlyNotice('还没听见你的心绪', '心里装着什么？说与我听，我为你寻一杯。', 'default');
       return;
     }
 
@@ -1406,7 +1540,7 @@ const App = () => {
       if (!apiDrinks || apiDrinks.length === 0) {
         clearTimeout(longWaitTimer);
         setMixMode('home');
-        alert('饮品数据还在加载中，请稍后重试');
+        showFriendlyNotice('酒柜还在整理', '饮品数据尚未准备好，稍候片刻再开启仪轨。', 'warning');
         return;
       }
 
@@ -1431,7 +1565,7 @@ const App = () => {
       if (agent1Output && !agent1Output.success && agent1Output.requiresReinput) {
         clearTimeout(longWaitTimer);
         setMixMode('home');
-        alert(agent1Output.userMessage || '输入格式不正确，请重新输入');
+        showFriendlyNotice('这句话还差一点', agent1Output.userMessage || '输入格式不正确，请重新输入。', 'warning');
         return;
       }
 
@@ -1473,7 +1607,7 @@ const App = () => {
       if (validation?.shouldBlock) {
         setMixMode('home');
         setValidationResult(validation);
-        alert(validation.userMessage || '此刻的心境需要换一种表达方式');
+        showFriendlyNotice('换一种说法试试', validation.userMessage || '此刻的心境需要换一种表达方式。', 'warning');
         return;
       }
 
@@ -1509,9 +1643,9 @@ const App = () => {
       console.error('分析/推荐出错:', error);
       clearTimeout(longWaitTimer);
       setMixMode('home');
-      alert('分析网络可能存在波动，请稍后重试');
+      showFriendlyNotice('灵感有些迟疑', '分析网络可能存在波动，请稍后再试。', 'error');
     }
-  }, [moodInput, selectedMood, sessionIngredients, apiDrinks, customDrinks]);
+  }, [moodInput, selectedMood, sessionIngredients, apiDrinks, customDrinks, showFriendlyNotice]);
 
   const toggleIngredient = useCallback((id) => {
     setCheckedIngredients(prev => ({ ...prev, [id]: !prev[id] }));
@@ -1754,6 +1888,14 @@ const App = () => {
           }}
         />
       )}
+
+      <FriendlyNoticeModal
+        isOpen={friendlyNotice.isOpen}
+        title={friendlyNotice.title}
+        message={friendlyNotice.message}
+        tone={friendlyNotice.tone}
+        onClose={closeFriendlyNotice}
+      />
     </div>
   );
 };

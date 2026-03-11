@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { X, Send, Loader2 } from 'lucide-react';
 import { InteractiveButton } from './ui';
 import { inventoryStorage } from '../store/localStorageAdapter';
-import btnWatercolor from '../assets/btn-watercolor.png';
 
 const QUICK_QUESTIONS = [
   { label: '太甜了', question: '这杯酒太甜了，怎么调整？' },

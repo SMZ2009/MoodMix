@@ -1,7 +1,6 @@
 import React from 'react';
 import { X } from 'lucide-react';
 import { InteractiveButton } from './ui';
-import btnWatercolor from '../assets/btn-watercolor.png';
 
 const HelperModal = ({ onClose }) => {
 

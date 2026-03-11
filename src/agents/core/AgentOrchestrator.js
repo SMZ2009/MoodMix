@@ -95,7 +95,7 @@ export class AgentOrchestrator {
             console.log(`│    - 情绪: ${moodData.emotion.physical.state}`);
           }
           if (moodData?.emotion?.philosophy?.wuxing) {
-            console.log(`│    - 五行: ${moodData.emotion.phosophy.wuxing}`);
+            console.log(`│    - 五行: ${moodData.emotion.philosophy.wuxing}`);
           }
           break;
           
@@ -264,14 +264,86 @@ export async function executeRecommendationPipeline(userInput, options = {}) {
   const { 
     ValidatorOptimizer 
   } = await import('../specialized/ValidatorOptimizer');
+  
+  // 导入实体提取和池过滤模块
+  const { extractEntities } = await import('../../engine/entityExtractor');
+  const { filterDrinkPool } = await import('../../engine/poolFilter');
 
+  // 检查饮品数据
+  const allDrinksOriginal = options.allDrinks || [];
+  if (allDrinksOriginal.length === 0) {
+    console.warn('⚠️ [Pipeline] allDrinks is empty - recommendations may fail');
+  }
+
+  // ========== 前置过滤：实体提取 + 候选池筛选 ==========
+  console.log('\n┌─ Entity Extraction ─────────────────────────────────────────┐');
+  
+  // 分离用户输入和原料信息（原料信息在换行符后）
+  const [pureUserInput, inventoryInfo] = userInput.split('\n');
+  const cleanUserInput = (pureUserInput || userInput).trim();
+  
+  // 1. 实体提取（仅对纯用户输入）
+  const entities = extractEntities(cleanUserInput);
+  console.log('│ 📝 实体提取结果:');
+  if (entities.drinkNames.length > 0) {
+    console.log(`│    - 饮品名: ${entities.drinkNames.map(e => e.matched).join(', ')}`);
+  }
+  if (entities.categories.length > 0) {
+    console.log(`│    - 品类: ${entities.categories.map(e => e.matched).join(', ')}`);
+  }
+  if (entities.flavors.length > 0) {
+    console.log(`│    - 风味: ${entities.flavors.map(e => e.matched).join(', ')}`);
+  }
+  if (entities.remainingInput) {
+    console.log(`│    - 情绪描述: "${entities.remainingInput}"`);
+  }
+  if (entities.drinkNames.length === 0 && entities.categories.length === 0 && entities.flavors.length === 0) {
+    console.log('│    - (未检测到饮品实体，将使用纯情绪匹配)');
+  }
+  console.log(`│    - 置信度: ${Math.round(entities.confidence * 100)}%`);
+  
+  // 2. 候选池过滤
+  const filterResult = filterDrinkPool(allDrinksOriginal, entities);
+  
+  console.log('│');
+  console.log(`│ 🔍 过滤结果: ${filterResult.stats?.total || allDrinksOriginal.length} → ${filterResult.filtered.length} 款`);
+  if (filterResult.filterApplied) {
+    console.log(`│    - 过滤原因: ${filterResult.reason}`);
+    if (filterResult.stats?.topMatches) {
+      console.log('│    - Top匹配:');
+      filterResult.stats.topMatches.slice(0, 3).forEach(m => {
+        console.log(`│      · ${m.name} (${m.score}分) ${m.reasons.join(', ')}`);
+      });
+    }
+  } else {
+    console.log(`│    - ${filterResult.reason === 'no_entities_detected' ? '无实体检测，使用全量池' : '回退到全量池'}`);
+  }
+  
+  console.log(`└${'─'.repeat(56)}┘`);
+
+  // 3. 决定传递给情绪分析的输入
+  // 如果有剩余情绪描述，用它；否则用纯用户输入
+  let inputForMoodAnalysis = entities.remainingInput || cleanUserInput;
+  
+  // 重新附加原料信息（如果有）
+  if (inventoryInfo) {
+    inputForMoodAnalysis += '\n' + inventoryInfo;
+  }
+  
   // 创建上下文
   const context = new AgentContext({
-    userInput,
+    userInput: inputForMoodAnalysis,           // 传递剩余情绪部分给情绪分析
+    originalInput: userInput,                   // 保留原始输入
     inventory: options.inventory || [],
-    allDrinks: options.allDrinks || [],
+    allDrinks: filterResult.filtered,           // 使用过滤后的候选池
     currentTime: options.currentTime || new Date().toISOString()
   });
+  
+  // 存储实体提取结果到上下文，供后续Agent使用
+  context.setIntermediate('extractedEntities', entities);
+  context.setIntermediate('filterApplied', filterResult.filterApplied);
+  context.setIntermediate('originalPoolSize', allDrinksOriginal.length);
+  context.setIntermediate('filteredPoolSize', filterResult.filtered.length);
 
   // 创建编排器
   const orchestrator = new AgentOrchestrator();
@@ -284,13 +356,11 @@ export async function executeRecommendationPipeline(userInput, options = {}) {
     .register(new CreativeCopywriter())
     .register(new ValidatorOptimizer());
 
-  // 定义工作流
+  // 定义工作流（只包含前3个Agent，向量搜索后再执行剩余Agent）
   orchestrator.defineWorkflow([
     'SemanticDistiller',
     'PatternAnalyzer', 
-    'VectorTranslator',
-    'CreativeCopywriter',
-    'ValidatorOptimizer'
+    'VectorTranslator'
   ]);
 
   // 执行工作流前3个Agent
@@ -337,15 +407,84 @@ export async function executeRecommendationPipeline(userInput, options = {}) {
     
     console.log(`└${'─'.repeat(56)}┘`);
     
-    // 继续执行剩余Agent
-    const remainingWorkflow = ['CreativeCopywriter', 'ValidatorOptimizer'];
-    for (const agentName of remainingWorkflow) {
-      const agent = orchestrator.agents.get(agentName);
-      if (agent) {
-        const agentResult = await agent.execute(context);
-        context.setOutput(agentName, agentResult);
-        orchestrator.printStageResult(agentName, agentResult, context);
+    // 继续执行剩余Agent（仅当有匹配结果时）
+    const matches = context.getIntermediate('matches');
+    if (matches && matches.length > 0) {
+      // 执行文案生成
+      const copywriter = orchestrator.agents.get('CreativeCopywriter');
+      if (copywriter) {
+        const copyResult = await copywriter.execute(context);
+        context.setOutput('CreativeCopywriter', copyResult);
+        orchestrator.printStageResult('CreativeCopywriter', copyResult, context);
       }
+      
+      // 执行验证优化
+      const validator = orchestrator.agents.get('ValidatorOptimizer');
+      if (validator) {
+        let validationResult = await validator.execute(context);
+        context.setOutput('ValidatorOptimizer', validationResult);
+        orchestrator.printStageResult('ValidatorOptimizer', validationResult, context);
+        
+        // 处理验证结果 - 重试逻辑
+        const validation = context.getIntermediate('validationReport');
+        
+        if (validation?.shouldRetry && !context.hasRetried) {
+          console.log('\n┌─ Retry Attempt ──────────────────────────────────────────┐');
+          console.log('│ 🔄 质量评分较低，尝试调整权重重新匹配...');
+          context.hasRetried = true;
+          
+          // 调整权重 - 提高匹配度权重
+          const vectorResult = context.getIntermediate('vectorResult');
+          if (vectorResult?.weights) {
+            const adjustedWeights = vectorResult.weights.map((w, i) => {
+              // 提高口味和香气维度的权重
+              if (i === 0 || i === 5) return Math.min(0.2, w * 1.2);
+              return w * 0.95;
+            });
+            // 归一化
+            const sum = adjustedWeights.reduce((a, b) => a + b, 0);
+            vectorResult.weights = adjustedWeights.map(w => w / sum);
+            context.setIntermediate('vectorResult', vectorResult);
+          }
+          
+          // 重新执行向量搜索
+          try {
+            const { evaluateAndSortDrinks } = await import('../../engine/vectorEngine');
+            const moodData = context.getIntermediate('moodData');
+            const pool = evaluateAndSortDrinks(moodData, context.allDrinks, context.inventory);
+            
+            const newMatches = pool.map((drink, idx) => ({
+              drink,
+              similarity: drink.similarity || (1 - idx * 0.05),
+              rank: idx + 1,
+              matchDetails: { weightedScore: drink.similarity, bonus: drink.bonus || 0, isRetry: true }
+            }));
+            
+            context.setIntermediate('matches', newMatches);
+            console.log(`│ ✅ 重试后找到 ${newMatches.length} 个匹配饮品`);
+            
+            // 重新验证
+            validationResult = await validator.execute(context);
+            context.setOutput('ValidatorOptimizer', validationResult);
+            orchestrator.printStageResult('ValidatorOptimizer', validationResult, context);
+          } catch (retryError) {
+            console.error('│ ❌ 重试失败:', retryError.message);
+          }
+          
+          console.log(`└${'─'.repeat(56)}┘`);
+        }
+        
+        // 检查是否需要降级处理
+        const finalValidation = context.getIntermediate('validationReport');
+        if (finalValidation?.qualityLevel === 'poor' && !finalValidation?.shouldBlock) {
+          console.log('│ ⚡ 质量较低，使用降级策略 - 按相似度排序');
+          // 降级策略：结果已经是按相似度排序的，只需记录状态
+          finalValidation.isDegraded = true;
+          context.setIntermediate('validationReport', finalValidation);
+        }
+      }
+    } else {
+      console.log('│ ⚠️ 跳过文案生成Agent，因为没有匹配结果');
     }
   }
   

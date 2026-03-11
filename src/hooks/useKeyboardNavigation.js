@@ -9,7 +9,6 @@ export const useKeyboardNavigation = (options = {}) => {
     onArrowDown,
     onEnter,
     onEscape,
-    onKeyD,
     cycle = true
   } = options;
 
@@ -75,13 +74,6 @@ export const useKeyboardNavigation = (options = {}) => {
         }
         break;
 
-      case 'd':
-      case 'D':
-        if (onKeyD) {
-          onKeyD();
-        }
-        break;
-
       case 'Tab':
         updateFocusableElements();
         break;
@@ -89,7 +81,7 @@ export const useKeyboardNavigation = (options = {}) => {
       default:
         break;
     }
-  }, [cycle, getFocusableIndex, onArrowLeft, onArrowRight, onArrowUp, onArrowDown, onEnter, onEscape, onKeyD, updateFocusableElements]);
+  }, [cycle, getFocusableIndex, onArrowLeft, onArrowRight, onArrowUp, onArrowDown, onEnter, onEscape, updateFocusableElements]);
 
   useEffect(() => {
     const container = containerRef.current;

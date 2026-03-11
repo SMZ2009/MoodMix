@@ -175,6 +175,7 @@ const DEFAULT_ANALYSIS = {
         drinkMapping: { action: '搅拌', actionScore: 2, ratio: '温和中庸', ratioScore: 10 }
     },
     isNegative: false,
+    negativeIntent: 'unclear',
     summary: '用户状态平稳，适合一杯温和的饮品'
 };
 
@@ -348,6 +349,25 @@ function localFallbackAnalysis(input) {
     // ─── 负面情绪检测 ───
     const negativeKeywords = ['慢', '累', '烦', '难', '压力', 'emo', '不开心', '糟', '委屈', '失败', '想哭', '崩溃', '绝望', '无助', '痛苦'];
     result.isNegative = negativeKeywords.some(kw => text.includes(kw));
+    
+    // ─── 负面意图检测 ───
+    if (result.isNegative) {
+        const ventKeywords = ['破', '砸', '释放', '发泄', '爆炸', '去死', '毁', '要疯', '摧毁', '拼了', '大叫', '一醉方休', '火大'];
+        const sootheKeywords = ['抱抱', '安慰', '温暖', '治愈', '静静', '平静', '不想说话', '懒', '休息', '安睡', '舒服', '安定', '宁静', '睡一觉'];
+        
+        const ventScore = ventKeywords.filter(kw => text.includes(kw)).length;
+        const sootheScore = sootheKeywords.filter(kw => text.includes(kw)).length;
+        
+        if (ventScore > 0 && sootheScore === 0) {
+            result.negativeIntent = 'vent';
+        } else if (sootheScore > 0 && ventScore === 0) {
+            result.negativeIntent = 'soothe';
+        } else {
+            result.negativeIntent = 'unclear';
+        }
+    } else {
+        result.negativeIntent = 'unclear';
+    }
 
     // ─── 躯体维度 ───
     if (text.includes('冷') || text.includes('寒')) {

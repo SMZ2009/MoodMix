@@ -1,26 +1,28 @@
 import React, { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import {
-  ChevronLeft, Heart, HelpCircle, Flame, Search, Bell,
+  ChevronLeft, Heart, HelpCircle, Flame, Search, Plus,
   Martini, User, Settings2, Maximize2,
-  Wine, Droplets, ThermometerSnowflake, Edit3,
+  Wine, Droplets, ThermometerSnowflake,
   Sparkles, Lightbulb, GlassWater,
-  MoreHorizontal, Users, HeartOff, Loader2
+  Users, HeartOff, Loader2, Camera, X
 } from 'lucide-react';
 
-import { inventoryStorage, favoriteStorage, collectionStorage } from './store/localStorageAdapter';
+import { inventoryStorage, favoriteStorage, collectionStorage, customDrinkStorage } from './store/localStorageAdapter';
 import HelperModal from './components/HelperModal';
+import DrinkHelpModal from './components/DrinkHelpModal';
 import FocusModeView from './components/FocusModeView';
-
 import RecommendationGallery from './components/RecommendationGallery';
 
+import { analyzeMood } from './api/moodAnalyzer';
 import { evaluateAndSortDrinks } from './engine/vectorEngine';
-import { extractRecommendationResult } from './agents';
+import { executeRecommendationPipeline, extractRecommendationResult } from './agents';
 import { generatePhilosophyTags } from './engine/philosophyTags';
 import { fetchLiveQuotes } from './api/quoteGenerator';
 import MineSection from './components/MineSection';
 import { useTouchFeedback, useKeyboardNavigation, useCocktailApi } from './hooks';
 import { InteractiveButton, SwipeableCard, PageTransition, Modal } from './components/ui';
 import IngredientEditModal from './components/IngredientEditModal';
+import cupRippleImage from './assets/cup-ripple.jpg';
 
 const iconMap = {
   Wine,
@@ -42,7 +44,48 @@ const DEFAULT_EXPLORE_CATEGORIES = [
   { label: '软饮料', value: 'Soft Drink' },
 ];
 
-const NEGATIVE_KEYWORDS = ['慢', '累', '烦', '难', '压力', 'emo', '不开心', '糟', '委屈', '失败'];
+const NEGATIVE_KEYWORDS = ['慢', '累', '烦', '难', '压力', 'emo', '不开心', '糟', '委屈', '失败', '丧', '崩溃', '绝望', '无助', '痛苦', '想哭', '伤心', '难过', '心塞'];
+
+// 发泄意图关键词 - 用户想释放压力、宣泄情绪
+const VENT_KEYWORDS = ['破', '砸', '释放', '发泄', '爆炸', '去死', '杀', '打', '毁', '摸不着头脑', '要疯', '爆粗口', '摧毁', '拼了', '大叫', '尖叫', '抱着啤酒哭', '一醉方休', '扎心', '火大'];
+
+// 安抚意图关键词 - 用户想被治愈、安慰
+const SOOTHE_KEYWORDS = ['抱抱', '安慰', '温暖', '治愈', '静静', '平静', '不想说话', '想家', '懒', '休息', '安睡', '舒服', '轻松', '安定', '宁静', '蹲着', '缩起来', '被窝里', '哭一场', '睡一觉'];
+
+const MOOD_INPUT_PLACEHOLDERS = [
+  '比如，心里有点空，又说不清为什么…',
+  '比如，平静，但隐隐有些期待…',
+  '比如，莫名烦躁，什么都不想做…',
+  '比如，老板又给我加薪了...'
+];
+
+/**
+ * 检测用户在负面情绪时的意图
+ * @returns {null | 'vent' | 'soothe'} - null表示无法自动判断，需要询问用户
+ */
+function detectNegativeIntent(input) {
+  const text = input.toLowerCase();
+  
+  const ventScore = VENT_KEYWORDS.filter(kw => text.includes(kw)).length;
+  const sootheScore = SOOTHE_KEYWORDS.filter(kw => text.includes(kw)).length;
+  
+  // 只有当某一方明显占优时才自动选择
+  if (ventScore > 0 && sootheScore === 0) {
+    return 'vent';
+  }
+  if (sootheScore > 0 && ventScore === 0) {
+    return 'soothe';
+  }
+  if (ventScore >= 2 && ventScore > sootheScore * 2) {
+    return 'vent';
+  }
+  if (sootheScore >= 2 && sootheScore > ventScore * 2) {
+    return 'soothe';
+  }
+  
+  // 无法明确判断，需要询问用户
+  return null;
+}
 
 
 
@@ -50,195 +93,195 @@ const NEGATIVE_KEYWORDS = ['慢', '累', '烦', '难', '压力', 'emo', '不开�
 const MoodInputSection = ({
   moodInput, setMoodInput, selectedMood, setSelectedMood, onGenerate, buttonFeedback, isMixing,
   ingredientCount, onEditIngredients, onNavigate, activeTab
-}) => (
-  <div className="flex-1 flex flex-col items-center px-4 sm:px-6 pt-5 sm:pt-6 pb-16 sm:pb-20 bg-dreamy-gradient w-full min-h-screen h-screen relative overflow-hidden" style={{ marginLeft: '20px' }}>
-    {/* Background Blobs */}
-    <div className="absolute top-0 left-1/4 w-64 sm:w-96 h-64 sm:h-96 bg-purple-200/40 rounded-full blur-[100px] pointer-events-none mix-blend-multiply"></div>
-    <div className="absolute top-1/4 right-0 w-56 sm:w-80 h-56 sm:h-80 bg-blue-200/40 rounded-full blur-[80px] pointer-events-none mix-blend-multiply"></div>
-    <div className="absolute bottom-1/4 left-0 w-48 sm:w-72 h-48 sm:h-72 bg-pink-200/40 rounded-full blur-[80px] pointer-events-none mix-blend-multiply"></div>
-    
-    {/* Header */}
-    <div className="text-center mb-3 sm:mb-4 z-10 flex-shrink-0">
-      <h2 className="text-xl sm:text-2xl lg:text-[26px] font-bold text-gray-800 mb-1 sm:mb-1.5 tracking-wide" style={{ fontFamily: 'serif' }}>现在的心情是?</h2>
-      <p className="text-gray-500 text-xs font-light tracking-wider">探索未知的味觉旅程</p>
-    </div>
+}) => {
+  const [placeholderIndex, setPlaceholderIndex] = useState(0);
 
-    {/* Input */}
-    <div className="w-full max-w-sm sm:max-w-md relative mb-3 sm:mb-4 z-10 flex-shrink-0 group">
-      <div className="absolute inset-0 bg-white/40 backdrop-blur-xl rounded-xl sm:rounded-2xl border border-white/60 group-focus-within:border-purple-300/60 group-focus-within:bg-white/70 group-focus-within:scale-[1.02] transition-all duration-500" style={{ boxShadow: 'rgba(139, 92, 246, 0.05) 0px 4px 24px, rgba(255, 255, 255, 0.6) 0px 1px 1px inset' }}></div>
-      <div className="relative flex items-center h-10 sm:h-11 lg:h-12 px-4 sm:px-5">
-        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-purple-400 mr-2.5 sm:mr-3 flex-shrink-0 transition-transform duration-500 group-focus-within:scale-110 group-focus-within:rotate-12" aria-hidden="true"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"></path><path d="M20 2v4"></path><path d="M22 4h-4"></path><circle cx="4" cy="20" r="2"></circle></svg>
-        <input className="bg-transparent border-none focus:outline-none focus:ring-0 text-gray-800 placeholder:text-gray-400 w-full text-sm sm:text-sm font-medium outline-none" placeholder="比如：微醺的周五夜晚..." value={moodInput} onChange={(e) => setMoodInput(e.target.value)}></input>
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setPlaceholderIndex((current) => (current + 1) % MOOD_INPUT_PLACEHOLDERS.length);
+    }, 5000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, []);
+
+  return (
+  <div className="flex-1 flex flex-col items-center px-6 pt-6 pb-20 bg-dreamy-gradient w-full min-h-screen h-screen relative overflow-hidden trae-browser-inspect-draggable">
+    <div className="absolute top-0 left-1/4 w-96 h-96 bg-purple-200/40 rounded-full blur-[120px] pointer-events-none mix-blend-multiply"></div>
+    <div className="absolute top-1/4 right-0 w-80 h-80 bg-blue-200/40 rounded-full blur-[100px] pointer-events-none mix-blend-multiply"></div>
+    <div className="absolute bottom-1/3 left-0 w-72 h-72 bg-pink-200/40 rounded-full blur-[100px] pointer-events-none mix-blend-multiply"></div>
+    <div className="text-center mb-4 sm:mb-6 z-10">
+      <h2 className="text-2xl xs:text-[24px] sm:text-[28px] font-extrabold text-gray-800 mb-2 sm:mb-3 tracking-wide mx-auto text-center relative top-[10px]" style={{ fontFamily: 'serif' }}>此刻，心境如何？</h2>
+      <p
+        className="text-gray-500 text-xs sm:text-sm font-light tracking-wider mx-auto text-center italic relative top-[10px]"
+        style={{ fontFamily: '"FZYouSong", "方正悠宋", serif' }}
+      >
+        万般心绪，皆可入杯
+      </p>
+    </div>
+    <div className="w-full max-w-[21rem] sm:max-w-[23rem] relative mb-4 sm:mb-6 z-10 group">
+      <div className="absolute inset-0 bg-white/10 backdrop-blur-[28px] sm:backdrop-blur-[34px] rounded-xl sm:rounded-2xl group-focus-within:bg-white/15 group-focus-within:scale-[1.02] transition-all duration-500" style={{ boxShadow: 'rgba(255, 255, 255, 0.22) 0px 10px 34px, rgba(154, 169, 186, 0.12) 0px 20px 44px' }}></div>
+      <div className="relative flex items-center h-10 sm:h-12 lg:h-14 px-3.5 sm:px-4.5">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="44"
+          height="44"
+          viewBox="0 0 24 24"
+          fill="none"
+          className="w-[36px] h-[36px] sm:w-[44px] sm:h-[44px] mr-1.5 sm:mr-2 flex-shrink-0 transition-transform duration-500 group-focus-within:scale-105"
+          style={{ animation: 'ember-drop-breathe 3s ease-in-out infinite' }}
+          aria-hidden="true"
+        >
+          <path d="M12.2 4.4C10.1 7 8.9 9.2 8.9 11.8C8.9 14.8 10.8 17 13 17C15 17 16.7 15.3 16.7 12.8C16.7 10.5 15.5 8.1 12.2 4.4Z" fill="rgba(228, 181, 94, 0.86)"></path>
+          <path d="M12.4 7.4C11.1 9 10.4 10.4 10.4 12C10.4 13.8 11.5 15 12.9 15C14.1 15 15 14 15 12.4C15 10.9 14.2 9.4 12.4 7.4Z" fill="rgba(255, 240, 196, 0.72)"></path>
+          <circle cx="16.7" cy="8.1" r="1" fill="rgba(255, 228, 168, 0.48)"></circle>
+        </svg>
+        <div className="relative flex-1">
+          {!moodInput && (
+            <span
+              className="absolute inset-y-0 left-0 flex items-center text-gray-400 text-sm sm:text-[15px] font-medium pointer-events-none"
+            >
+              {MOOD_INPUT_PLACEHOLDERS[placeholderIndex]}
+            </span>
+          )}
+          <input className="bg-transparent border-none focus:outline-none focus:ring-0 text-gray-800 w-full text-sm sm:text-[15px] font-medium outline-none" placeholder="" value={moodInput} onChange={(e) => setMoodInput(e.target.value)}></input>
+        </div>
       </div>
     </div>
-    
-    {/* Mood Tags */}
-    <div className="flex flex-wrap gap-2 sm:gap-3 justify-center mb-2 sm:mb-3 z-10 flex-shrink-0">
+    <div className="flex flex-wrap gap-2 sm:gap-4 justify-center mb-4 sm:mb-6 z-10">
       {[
-        { label: '放松', value: '#放松', color: 'bg-emerald-400', shadow: 'shadow-emerald-400/50' },
-        { label: '浪漫', value: '#浪漫', color: 'bg-pink-400', shadow: 'shadow-pink-400/50' },
-        { label: '难受', value: '#难受', color: 'bg-blue-400', shadow: 'shadow-blue-400/50' }
+        { label: '放松', value: '#放松' },
+        { label: '浪漫', value: '#浪漫' },
+        { label: '难受', value: '#难受' }
       ].map((mood) => {
         const isSelected = selectedMood === mood.value;
         return (
           <button
             key={mood.value}
+            type="button"
             onClick={() => setSelectedMood(isSelected ? null : mood.value)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-full border transition-all duration-300 ${
-              isSelected
-                ? 'bg-white/60 border-white/80 text-gray-800 shadow-lg'
-                : 'bg-white/30 border-white/40 hover:bg-white/50 hover:border-white/60 text-gray-600'
-            }`}
-            style={{ backdropFilter: 'blur(12px)' }}
+            className={`mood-ink-tag ${isSelected ? 'is-selected' : ''}`}
+            aria-pressed={isSelected}
+            style={{
+              '--mood-ink-color': isSelected ? 'rgba(224, 197, 110, 0.24)' : 'rgba(104, 114, 120, 0.2)',
+              '--mood-ink-accent': isSelected ? 'rgba(204, 172, 74, 0.82)' : 'rgba(72, 82, 89, 0.5)'
+            }}
           >
-            <span className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
-              isSelected ? `${mood.color} ${mood.shadow} shadow-lg scale-110` : 'bg-gray-300'
-            }`}></span>
-            <span className="text-xs font-medium">{mood.label}</span>
+            <span className={`mood-ink-tag__label ${isSelected ? 'is-selected' : ''}`}>{mood.label}</span>
           </button>
         );
       })}
     </div>
-    
-    {/* Main Content Area */}
-    <div className="relative flex-1 w-full flex flex-col items-center justify-between min-h-0 pt-3 sm:pt-6 pb-2">
+    <div className="relative flex-1 w-full flex flex-col items-center justify-center pb-12 sm:pb-16">
+      <div className="relative z-20 w-[320px] sm:w-[420px] max-w-[92vw] transition-all duration-500">
+        <img
+          src={cupRippleImage}
+          alt="杯子和水波"
+          className={`w-full h-auto object-contain select-none pointer-events-none transition-all duration-500 ${isMixing ? 'scale-[1.02] opacity-95' : 'scale-100 opacity-100'}`}
+        />
+      </div>
 
-      {/* Glass Card - Top Area */}
-      <div className="flex-1 flex items-center justify-center w-full">
-        <div
-          className="relative z-20 w-28 sm:w-36 lg:w-40 h-40 sm:h-52 lg:h-56 overflow-hidden transition-all duration-500 flex-shrink-0"
-        style={{
-          background: isMixing
-            ? 'linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.05) 100%)'
-            : 'linear-gradient(135deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0.1) 100%)',
-          backdropFilter: isMixing ? 'blur(10px)' : 'blur(20px)',
-          border: '1px solid rgba(255,255,255,0.4)',
-          boxShadow: isMixing
-            ? '0 0 30px rgba(167, 139, 250, 0.3), inset 0 1px 0 rgba(255,255,255,0.5)'
-            : '0 8px 32px rgba(31, 38, 135, 0.1), inset 0 1px 0 rgba(255,255,255,0.5)',
-          borderRadius: '8px 8px 32px 32px'
-        }}
+      <button
+        type="button"
+        className="relative z-30 -mt-1 sm:-mt-1.5 mb-0.5 sm:mb-1 px-5 py-2 text-[13px] sm:text-[14px] text-gray-700/80 transition-colors hover:text-gray-800 group"
+        style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif', fontWeight: 300, letterSpacing: '0.18em' }}
+        onClick={onEditIngredients}
+        aria-label={`三味已备，当前 ${ingredientCount} 种原料已就绪`}
       >
-        {/* 环绕杯子的玄幻光效 - 中下部 */}
-        <div className="absolute bottom-[18%] left-1/2 -translate-x-1/2 w-[120%] h-14 sm:h-20 pointer-events-none z-30">
-          {/* 星光粒子环绕 */}
-          {[...Array(8)].map((_, i) => (
-            <div
-              key={`orbit-${i}`}
-              className="absolute w-1.5 h-1.5 rounded-full animate-pulse"
+        <span
+          className="absolute inset-x-0 -inset-y-1 rounded-[999px] pointer-events-none"
+          style={{
+            background: 'radial-gradient(ellipse at 30% 46%, rgba(210, 170, 176, 0.18) 0%, rgba(210, 170, 176, 0.08) 34%, transparent 68%), radial-gradient(ellipse at 68% 52%, rgba(156, 184, 144, 0.18) 0%, rgba(156, 184, 144, 0.08) 32%, transparent 70%), radial-gradient(ellipse at 52% 50%, rgba(244, 241, 233, 0.12) 0%, transparent 74%)',
+            filter: 'blur(9px)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+            clipPath: 'polygon(6% 58%, 14% 36%, 30% 20%, 48% 12%, 66% 18%, 84% 34%, 95% 52%, 88% 66%, 72% 78%, 52% 84%, 30% 80%, 14% 72%)'
+          }}
+        />
+        <span className="relative inline-flex items-center gap-3">
+          <span>三味已备</span>
+          <span className="relative h-7 w-7 sm:h-8 sm:w-8">
+            <span
+              className="absolute inset-0 rounded-full opacity-0 group-active:opacity-100 group-active:[animation:ink-tap-ripple_420ms_ease-out]"
               style={{
-                background: `radial-gradient(circle, ${['#E9D5FF', '#FBCFE8', '#BFDBFE', '#DDD6FE', '#F9A8D4', '#93C5FD', '#C4B5FD', '#FBB6CE'][i]} 0%, transparent 70%)`,
-                boxShadow: `0 0 6px ${['#E9D5FF', '#FBCFE8', '#BFDBFE', '#DDD6FE', '#F9A8D4', '#93C5FD', '#C4B5FD', '#FBB6CE'][i]}`,
-                left: `${10 + i * 12}%`,
-                top: `${25 + (i % 3) * 25}%`,
-                animationDuration: `${1 + i * 0.2}s`,
-                animationDelay: `${i * 0.15}s`
+                background: 'radial-gradient(circle, rgba(88, 97, 104, 0.16) 0%, rgba(88, 97, 104, 0.08) 34%, transparent 70%)'
               }}
             />
-          ))}
-          
-          {/* 流动光环 */}
-          <div className="absolute inset-0 rounded-full bg-gradient-to-r from-purple-400/10 via-pink-300/20 to-blue-400/10 blur-md" />
-        </div>
-        {isMixing ? (
-          <>
-            {/* 1. Rising Liquid Blob (Wave + Dreamy Glow) */}
-            <div
-              className="absolute left-[-50%] w-[200%] aspect-square rounded-[38%] z-10"
-              style={{
-                background: 'linear-gradient(to top, #A78BFA, #818CF8, #F472B6)',
-                animation: 'fill-up 4s linear forwards',
-                opacity: 0.95,
-                willChange: 'transform'
-              }}
+            <span
+              className="absolute left-[10px] top-[3px] h-[18px] w-[1.5px] origin-bottom rounded-full bg-[rgba(118,96,73,0.72)] group-hover:[animation:brush-breathe_3.2s_ease-in-out_infinite]"
+              style={{ transform: 'rotate(45deg)' }}
             />
-
-            {/* 2. Particles (Reduced to 8 for performance) */}
-            {[...Array(8)].map((_, i) => (
-              <div
-                key={i}
-                className="particle absolute z-20"
-                style={{
-                  left: `${Math.random() * 80 + 10}%`,
-                  bottom: '0',
-                  width: '4px',
-                  height: '4px',
-                  backgroundColor: ['#fff', '#F472B6', '#A78BFA'][i % 3],
-                  animation: `particle-rise ${2.5}s ease-out infinite ${i * 0.3}s`,
-                  willChange: 'transform, opacity'
-                }}
-              />
-            ))}
-
-            {/* 3. Spoon (Simplified) */}
-            <div className="absolute inset-0 flex items-center justify-center spoon-path z-40">
-              <div className="w-1.5 h-64 bg-gradient-to-r from-gray-300 via-white to-gray-300 rounded-full origin-bottom transform -translate-y-16" />
-            </div>
-
-            {/* 4. Bubbles (Reduced to 4) */}
-            {[...Array(4)].map((_, i) => (
-              <div
-                key={`b-${i}`}
-                className="bubble z-20"
-                style={{
-                  left: `${20 + i * 20}%`,
-                  bottom: '10%',
-                  width: '6px',
-                  height: '6px',
-                  animationDelay: `${i * 0.5}s`,
-                  willChange: 'transform, opacity'
-                }}
-              />
-            ))}
-          </>
-        ) : (
-          /* Glass Reflection (Static State) */
-          <div
-            className="absolute top-0 left-0 right-0 h-1/2 rounded-t-[8px]"
-            style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.3) 0%, transparent 100%)' }}
-          />
-        )}
-        </div>
-      </div>
-
-      {/* Bottom Area - Badge & Button */}
-      <div className="flex flex-col items-center w-full">
-        {/* Inventory Badge */}
-        <div
-          className="relative z-30 flex items-center gap-2 px-4 py-2 rounded-full bg-white/70 border border-white/50 backdrop-blur-xl mb-4 sm:mb-6 cursor-pointer hover:bg-white/80 transition-colors"
-          style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}
-          onClick={onEditIngredients}
-        >
-          <span className="text-gray-700 text-xs font-medium">
-            {ingredientCount} 种原料已就绪
+            <span
+              className="absolute left-[13px] top-[14px] h-[8px] w-[3px] rounded-b-full rounded-t-[2px] bg-[rgba(72,77,82,0.78)] group-hover:[animation:brush-breathe_3.2s_ease-in-out_infinite]"
+              style={{ transform: 'rotate(45deg)' }}
+            />
+            <span
+              className="absolute left-[14px] top-[20px] h-[4px] w-[4px] rounded-full bg-[rgba(84,89,94,0.18)] opacity-70 group-active:opacity-100"
+              style={{ filter: 'blur(0.8px)' }}
+            />
           </span>
-          <Edit3 size={13} className="text-gray-400" />
-        </div>
+        </span>
+      </button>
 
-        {/* Generate Button */}
-        <div className="w-full max-w-xs sm:max-w-sm z-10 mb-2">
-          <button
-            onClick={onGenerate}
-            className="w-full h-11 sm:h-12 rounded-xl relative overflow-hidden group shadow-lg shadow-purple-200/50"
+      {/* Generate Button */}
+      <div className="mt-0.5 sm:mt-1 z-10">
+        <button
+          onClick={onGenerate}
+          className="relative w-[104px] h-[56px] sm:w-[116px] sm:h-[60px] overflow-visible rounded-[999px] group active:scale-[0.96] transition-transform duration-150"
+          style={{
+            background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.08) 100%)',
+            backdropFilter: 'blur(18px) saturate(1.05)',
+            WebkitBackdropFilter: 'blur(18px) saturate(1.05)',
+            boxShadow: '0 16px 28px rgba(104, 132, 145, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.28), inset 0 -8px 18px rgba(126, 155, 169, 0.08)',
+            animation: 'jade-pendant-float 5.6s ease-in-out infinite'
+          }}
+          aria-label="开启仪轨"
+        >
+          <span
+            className="absolute -inset-3 rounded-[999px] pointer-events-none"
             style={{
-              background: 'linear-gradient(135deg, #A78BFA 0%, #818CF8 100%)',
+              background: 'radial-gradient(ellipse at center, rgba(120, 176, 186, 0.16) 0%, rgba(207, 171, 104, 0.1) 42%, transparent 74%)',
+              filter: 'blur(8px)',
+              animation: 'seal-ink-ripple 3.8s ease-out infinite'
             }}
-          >
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-            {isMixing ? (
-              <span className="animate-pulse text-xs">正在解析你的心情...</span>
-            ) : (
-              <span className="relative z-10 flex items-center justify-center gap-2 text-white font-semibold text-sm">
-                <Sparkles size={16} className="text-white" />
-                开始生成
-              </span>
-            )}
-          </button>
-        </div>
+          />
+          <div
+            className="absolute inset-[3px] rounded-[999px] opacity-80"
+            style={{
+              border: '1px solid rgba(184, 213, 218, 0.32)',
+              boxShadow: 'inset 0 0 0 1px rgba(255, 248, 238, 0.1)'
+            }}
+          />
+          <div
+            className="absolute inset-0 rounded-[999px] opacity-90"
+            style={{
+              background: 'radial-gradient(circle at 34% 24%, rgba(255, 255, 255, 0.3), transparent 24%), linear-gradient(180deg, rgba(162, 208, 214, 0.1), rgba(232, 196, 121, 0.08))'
+            }}
+          />
+          {isMixing ? (
+            <span
+              className="absolute inset-0 flex items-center justify-center text-[12px] sm:text-[13px] font-semibold text-slate-700/88 animate-pulse"
+              style={{ fontFamily: '"FZQingKeBenYueSongS-R-GB", "方正清刻本悦宋简体", "Songti SC", serif', letterSpacing: '0.14em' }}
+            >
+              仪轨中
+            </span>
+          ) : (
+            <span
+              className="relative z-10 flex h-full w-full items-center justify-center text-[15px] sm:text-[17px] font-semibold text-slate-700/92"
+              style={{ fontFamily: '"FZQingKeBenYueSongS-R-GB", "方正清刻本悦宋简体", "Songti SC", serif', letterSpacing: '0.14em' }}
+            >
+              开启仪轨
+            </span>
+          )}
+        </button>
       </div>
+
+
     </div>
   </div>
-);
+  );
+};
 
 // Intervention Modal (instead of full page)
 const InterventionModal = ({ isOpen, onClose, onSelectType }) => {
@@ -525,6 +568,7 @@ const ExploreSection = ({
   onSearch,
   onNavigate,
   activeTab,
+  onAddCustomDrink,
 }) => {
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -538,7 +582,7 @@ const ExploreSection = ({
   }, [searchQuery, onSearch]);
 
   return (
-    <div className="flex-1 flex flex-col bg-dreamy-gradient w-full h-screen overflow-hidden relative">
+    <div className="flex-1 flex flex-col bg-dreamy-gradient max-w-4xl mx-auto w-full h-screen overflow-hidden relative">
       <header className="sticky top-0 z-40 px-4 pt-8 pb-2">
         <div className="flex flex-col gap-4">
           <div className="flex items-center gap-3 w-full">
@@ -551,7 +595,7 @@ const ExploreSection = ({
 
                 <input
                   className="bg-transparent border-none focus:outline-none focus:ring-0 w-full text-[15px] placeholder:text-gray-500/50 font-medium py-0 leading-none h-full outline-none text-gray-700"
-                  placeholder="Search cocktails ..."
+                  placeholder="Search cocktails, e.g. Margarita..."
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -561,9 +605,10 @@ const ExploreSection = ({
             </div>
             <InteractiveButton
               variant="icon"
+              onClick={onAddCustomDrink}
               style={{ ...cardFeedback, background: 'rgba(224, 231, 255, 0.4)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.4)' }}
             >
-              <Bell size={18} className="text-gray-600" />
+              <Plus size={18} className="text-gray-600" />
             </InteractiveButton>
           </div>
 
@@ -572,12 +617,10 @@ const ExploreSection = ({
             {displayCategories.map((cat, i) => {
               const isActive = category === cat.value;
               const isAll = cat.value === 'all';
-              // 酒精类：琥珀/橘色系
-              const ALCOHOL_CATS = ['鸡尾酒', '蒸馏酒', '啤酒', '葡萄酒'];
-              // 无酒精类：翡翠/绿色系
-              const NON_ALCOHOL_CATS = ['咖啡', '茶', '乳制品', '果汁', '软饮'];
+              // 酒精类（前5）：琥珀/橘色系
+              const ALCOHOL_CATS = ['鸡尾酒', '烈酒', '蒸馏酒', '啤酒', '葡萄酒', '利口酒'];
+              // 无酒精类（后5）：翡翠/绿色系
               const isAlcohol = ALCOHOL_CATS.includes(cat.value);
-              const isNonAlcohol = NON_ALCOHOL_CATS.includes(cat.value);
 
               // 配色方案
               let bgActive, bgInactive, colorActive, colorInactive, shadow;
@@ -589,22 +632,16 @@ const ExploreSection = ({
                 shadow = '0 4px 14px rgba(165, 180, 252, 0.35)';
               } else if (isAlcohol) {
                 bgActive = 'linear-gradient(135deg, #F59E0B 0%, #F97316 100%)';
-                bgInactive = 'linear-gradient(135deg, rgba(251, 191, 36, 0.2) 0%, rgba(249, 115, 22, 0.15) 100%)';
+                bgInactive = 'linear-gradient(135deg, rgba(251, 191, 36, 0.15) 0%, rgba(249, 115, 22, 0.12) 100%)';
                 colorActive = '#fff';
                 colorInactive = '#D97706';
-                shadow = isActive ? '0 6px 20px rgba(245, 158, 11, 0.4)' : '0 3px 12px rgba(245, 158, 11, 0.15)';
-              } else if (isNonAlcohol) {
+                shadow = isActive ? '0 4px 14px rgba(245, 158, 11, 0.35)' : '0 2px 8px rgba(0,0,0,0.02)';
+              } else {
                 bgActive = 'linear-gradient(135deg, #10B981 0%, #06B6D4 100%)';
                 bgInactive = 'linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(6, 182, 212, 0.1) 100%)';
                 colorActive = '#fff';
                 colorInactive = '#059669';
-                shadow = isActive ? '0 6px 20px rgba(16, 185, 129, 0.4)' : '0 3px 12px rgba(16, 185, 129, 0.15)';
-              } else {
-                bgActive = 'linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%)';
-                bgInactive = 'linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(139, 92, 246, 0.1) 100%)';
-                colorActive = '#fff';
-                colorInactive = '#4F46E5';
-                shadow = isActive ? '0 6px 20px rgba(99, 102, 241, 0.4)' : '0 3px 12px rgba(99, 102, 241, 0.15)';
+                shadow = isActive ? '0 4px 14px rgba(16, 185, 129, 0.35)' : '0 2px 8px rgba(0,0,0,0.02)';
               }
 
               return (
@@ -614,18 +651,17 @@ const ExploreSection = ({
                   size="small"
                   onClick={() => onCategoryChange(cat.value)}
                   style={{
-                    padding: '8px 20px',
+                    padding: '6px 16px',
                     height: 'auto',
-                    borderRadius: '28px',
+                    borderRadius: '24px',
                     background: isActive ? bgActive : bgInactive,
-                    backdropFilter: 'blur(10px)',
-                    border: isActive ? 'none' : '1px solid rgba(255,255,255,0.4)',
+                    backdropFilter: 'blur(8px)',
+                    border: isActive ? 'none' : '1px solid rgba(255,255,255,0.3)',
                     color: isActive ? colorActive : colorInactive,
                     boxShadow: shadow,
                     fontWeight: isActive ? 600 : 500,
                     whiteSpace: 'nowrap',
-                    fontSize: '14px',
-                    transition: 'all 0.3s ease',
+                    fontSize: '13px',
                   }}
                 >
                   {cat.label}
@@ -772,7 +808,7 @@ const BulbIcon = ({ isDaka }) => (
   />
 );
 
-const DrinkDetailSection = ({ drink, checkedIngredients, onToggleIngredient, onBack, onMore, onFocusMode, currentStep, cardFeedback, isLiked, onLikeDrink, isDaka, onDakaDrink }) => {
+const DrinkDetailSection = ({ drink, checkedIngredients, onToggleIngredient, onBack, onMore, onFocusMode, currentStep, cardFeedback, isLiked, onLikeDrink, isDaka, onDakaDrink, onHelp }) => {
   if (!drink) return null;
 
   const drinkIngredients = drink.ingredients || [];
@@ -780,7 +816,7 @@ const DrinkDetailSection = ({ drink, checkedIngredients, onToggleIngredient, onB
 
   return (
     <div className="fixed inset-0 z-50 bg-dreamy-gradient h-screen overflow-y-auto pb-36">
-      <div className="relative h-[40vh] w-full overflow-hidden">
+      <div className="relative h-[40vh] w-full max-w-4xl mx-auto overflow-hidden">
         <img src={drink.image} className="w-full h-full object-cover" alt={drink.name} />
         <div className="absolute top-8 inset-x-0 px-6 flex justify-between">
           <InteractiveButton
@@ -794,15 +830,16 @@ const DrinkDetailSection = ({ drink, checkedIngredients, onToggleIngredient, onB
           </InteractiveButton>
           <InteractiveButton
             variant="icon"
+            onClick={() => onHelp && onHelp(drink)}
             style={{ background: 'rgba(0,0,0,0.2)', backdropFilter: 'blur(8px)' }}
           >
-            <MoreHorizontal size={22} color="#fff" />
+            <HelpCircle size={22} color="#fff" />
           </InteractiveButton>
         </div>
         <div className="absolute bottom-0 left-0 right-0 h-10 bg-white rounded-t-[2.5rem]" />
       </div>
 
-      <div className="relative -mt-4 bg-white min-h-[55vh] px-6 pt-2">
+      <div className="relative -mt-4 bg-white min-h-[55vh] px-6 pt-2 max-w-4xl mx-auto">
         <div className="mb-6 pt-2">
           <h1 className="text-2xl font-bold text-gray-900 mb-1">{drink.name}</h1>
           {drink.nameEn && drink.nameEn !== drink.name && (
@@ -900,7 +937,7 @@ const DrinkDetailSection = ({ drink, checkedIngredients, onToggleIngredient, onB
         </div>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 p-5 bg-gradient-to-t from-white via-white to-transparent pt-10 z-[60]">
+      <div className="fixed bottom-0 inset-x-0 p-5 bg-gradient-to-t from-white via-white to-transparent pt-10 z-[60] max-w-4xl mx-auto left-0 right-0">
           <div className="flex space-x-4">
             <InteractiveButton
               variant="secondary"
@@ -950,11 +987,16 @@ const App = () => {
   const [showIngredientModal, setShowIngredientModal] = useState(false);
   const [moodResult, setMoodResult] = useState(null);
   const [customQuotes, setCustomQuotes] = useState({});
+    const [validationResult, setValidationResult] = useState(null);
   const [dakaDrinks, setDakaDrinks] = useState([]);
   const [showDakaModal, setShowDakaModal] = useState(false);
   const [dakaDrink, setDakaDrink] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deletingNoteId, setDeletingNoteId] = useState(null);
+  const [showCustomDrinkModal, setShowCustomDrinkModal] = useState(false);
+  const [customDrinks, setCustomDrinks] = useState([]);
+  const [showDrinkHelpModal, setShowDrinkHelpModal] = useState(false);
+  const [drinkHelpTarget, setDrinkHelpTarget] = useState(null);
 
   const handleOpenDakaModal = (drink) => {
     setDakaDrink(drink);
@@ -966,10 +1008,10 @@ const App = () => {
     setShowDakaModal(false);
   };
 
-  const handleSaveDakaNote = (drinkId, note) => {
+  const handleSaveDakaNote = (drinkId, note, customImage = null) => {
     const drinkToSave = dakaDrink;
     if (drinkToSave) {
-      collectionStorage.saveDakaNote(drinkToSave, note);
+      collectionStorage.saveDakaNote(drinkToSave, note, customImage);
       // Refresh daka drinks from storage
       const updatedDakaDrinks = collectionStorage.getDakaNotes();
       setDakaDrinks(updatedDakaDrinks);
@@ -995,6 +1037,22 @@ const App = () => {
   const handleCancelDeleteNote = () => {
     setShowDeleteConfirm(false);
     setDeletingNoteId(null);
+  };
+
+  // ─── 自定义饮品管理 ───
+  const handleOpenCustomDrinkModal = () => {
+    setShowCustomDrinkModal(true);
+  };
+
+  const handleCloseCustomDrinkModal = () => {
+    setShowCustomDrinkModal(false);
+  };
+
+  const handleSaveCustomDrink = (savedDrink) => {
+    // 刷新自定义饮品列表
+    const updatedDrinks = customDrinkStorage.getCustomDrinks();
+    setCustomDrinks(updatedDrinks);
+    console.log('✨ 自定义饮品已保存:', savedDrink.name);
   };
 
   // ─── TheCocktailDB API Hook ───
@@ -1070,6 +1128,17 @@ const App = () => {
       }
     };
     loadDakaNotes();
+
+    // 加载自定义饮品
+    const loadCustomDrinks = () => {
+      try {
+        const drinks = customDrinkStorage.getCustomDrinks();
+        setCustomDrinks(drinks);
+      } catch (error) {
+        console.error("Failed to load custom drinks", error);
+      }
+    };
+    loadCustomDrinks();
   }, []);
 
   const handleLikeDrink = useCallback((drink) => {
@@ -1198,141 +1267,77 @@ const App = () => {
     }
   });
 
-  const [buttonLoadingText, setButtonLoadingText] = useState('正在解析你的心情...');
+  const [buttonLoadingText, setButtonLoadingText] = useState('静心感受中…');
 
-  // 调用后端千问API进行情绪分析和饮品推荐
-  const processMoodAndGenerate = useCallback(async () => {
+  const handleStartGeneration = useCallback(async (type = null) => {
+    setMixMode('generating');
+    setButtonLoadingText('正在寻杯…');
+
+    // 记录干预类型
+    if (type) {
+      setInterventionType(type);
+    }
+
+    const currentInterventionType = type || interventionType;
     const combinedInput = (moodInput + (selectedMood || "")).trim();
-
-    // 如果有自定义原料，附加到 Prompt
-    let finalInputForAI = combinedInput;
+    
+    // 构造带有干预类型的输入
+    let finalInputForAI = combinedInput || '心情不太好';
+    if (currentInterventionType === 'soothe') {
+      finalInputForAI += ' (用户选择: 温柔治愈，需要安抚、温暖、低度、甘甜的饮品)';
+    } else if (currentInterventionType === 'vent') {
+      finalInputForAI += ' (用户选择: 发泄释放，需要刺激、冰冷、烈酒、酸苦的饮品)';
+    }
+    
     if (sessionIngredients.length > 0) {
       finalInputForAI += `\n(重要参考: 用户目前拥有的原料: ${sessionIngredients.join(', ')})`;
     }
 
-    // 首先检查是否为负面情绪（本地快速检测）
-    const isNegativeLocal = NEGATIVE_KEYWORDS.some(kw => combinedInput.toLowerCase().includes(kw)) || selectedMood === '#难受';
-
-    if (isNegativeLocal) {
-      // 负面情绪：设置情绪类型并显示干预弹窗，不播放动画
-      setEmotionType('negative');
-      setShowInterventionModal(true);
-      return;
-    }
-
-    // 非负面情绪：设置情绪类型
-    setEmotionType('positive');
-
-    // 播放动画并设定文案
-    setMixMode('generating');
-    setButtonLoadingText('正在深呼吸...');
-
-    // 动态文字：15秒后如果还在等待，则安抚用户
     const longWaitTimer = setTimeout(() => {
-      setButtonLoadingText('这杯酒需要多一点灵感...');
-    }, 15000);
-
-    const minDelay = new Promise(resolve => setTimeout(resolve, 4000));
-
-    if (!combinedInput) {
-      await minDelay;
-      clearTimeout(longWaitTimer);
-      setMixMode('home'); // Reset mixMode to stop animation
-      setShowRecommendationGallery(true);
-      return;
-    }
+      setButtonLoadingText('好饮不急，稍候片刻…');
+    }, 10000);
 
     try {
-      // 使用多Agent系统逐步执行推荐流程
-      const { 
-        SemanticDistiller 
-      } = await import('./agents/specialized/SemanticDistiller');
-      const { 
-        PatternAnalyzer 
-      } = await import('./agents/specialized/PatternAnalyzer');
-      const { 
-        VectorTranslator 
-      } = await import('./agents/specialized/VectorTranslator');
-      const { 
-        CreativeCopywriter 
-      } = await import('./agents/specialized/CreativeCopywriter');
-      const { 
-        ValidatorOptimizer 
-      } = await import('./agents/specialized/ValidatorOptimizer');
-      const { AgentContext, AgentOrchestrator } = await import('./agents/core');
-
-      const context = new AgentContext({
-        userInput: finalInputForAI,
-        inventory: sessionIngredients,
-        allDrinks: apiDrinks,
-        currentTime: new Date().toISOString()
-      });
-
-      const orchestrator = new AgentOrchestrator();
-      orchestrator
-        .register(new SemanticDistiller())
-        .register(new PatternAnalyzer())
-        .register(new VectorTranslator())
-        .register(new CreativeCopywriter())
-        .register(new ValidatorOptimizer())
-        .defineWorkflow([
-          'SemanticDistiller',
-          'PatternAnalyzer',
-          'VectorTranslator',
-          'CreativeCopywriter',
-          'ValidatorOptimizer'
-        ]);
-
-      const { results: agentResults, context: finalContext } = await orchestrator.executeWithCallback(
-        context,
-        // onStepComplete 回调 - 只在 console 显示进度
-        (agentName, stepResult, ctx, nextAgent) => {
-          const isRunning = stepResult.status === 'running';
-          if (isRunning) {
-            console.log(`🔄 Agent ${agentName} 开始执行...`);
-          } else {
-            console.log(`✅ Agent ${agentName} 完成`, stepResult.success ? '(成功)' : '(失败)');
-          }
-        },
-        // onWorkflowStart 回调
-        (info) => {
-          console.log('🚀 开始执行多Agent工作流:', info.workflow);
-        }
-      );
-
-      console.log('多Agent系统执行结果:', { results: agentResults, context: finalContext });
-      
-      clearTimeout(longWaitTimer);
-
-      // 检查Agent 1的验证错误（需要用户重新输入）
-      const agent1Output = finalContext.getOutput('SemanticDistiller');
-      if (agent1Output && !agent1Output.success && agent1Output.requiresReinput) {
+      // 检查饮品数据是否已加载
+      if (!apiDrinks || apiDrinks.length === 0) {
         clearTimeout(longWaitTimer);
         setMixMode('home');
-        alert(agent1Output.userMessage || '输入格式不正确，请重新输入');
+        alert('饮品数据还在加载中，请稍后重试');
         return;
       }
 
-      // 提取推荐结果
-      const recommendation = extractRecommendationResult(finalContext);
-      console.log('推荐结果:', recommendation);
-
-      // 检查是否为极度负面需要关怀
-      const moodData = finalContext.getIntermediate('moodData');
-      const timeoutOccurred = finalContext.getIntermediate('timeoutOccurred');
+      console.log(`\n🎯 负面情绪干预模式: ${currentInterventionType === 'vent' ? '💥 发泄释放' : '🥰 温柔安抚'}`);
       
-      // 如果发生超时，显示友好提示
-      if (timeoutOccurred && moodData?._userFriendlyMessage) {
-        console.log('💡 提示:', moodData._userFriendlyMessage);
-      }
-      if (moodData?.isNegative) {
-        setMixMode('home');
-        setShowInterventionModal(true);
-        return;
-      }
+      // 🚀 使用多Agent系统执行推荐流程
+      // 合并API饮品和用户自定义饮品（只包含有向量的）
+      const customDrinksWithVector = customDrinks.filter(d => d.vector && d.vector.length === 8);
+      const allDrinksForPipeline = [...apiDrinks, ...customDrinksWithVector];
+      
+      const agentPromise = executeRecommendationPipeline(finalInputForAI, {
+        inventory: sessionIngredients,
+        allDrinks: allDrinksForPipeline,
+        currentTime: new Date().toISOString(),
+        interventionType: currentInterventionType  // 传递干预类型
+      });
+
+      const agentResult = await agentPromise;
+      
+      console.log('多Agent系统执行结果:', agentResult);
+      clearTimeout(longWaitTimer);
 
       // 获取匹配结果
-      const matches = finalContext.getIntermediate('matches') || [];
+      const matches = agentResult.context.getIntermediate('matches') || [];
+      const moodData = agentResult.context.getIntermediate('moodData');
+      const patternAnalysis = agentResult.context.getIntermediate('patternAnalysis');
+      const validation = agentResult.context.getIntermediate('validationReport');
+      
+      // 检查是否需要阻断
+      if (validation?.shouldBlock) {
+        setMixMode('home');
+        setValidationResult(validation);
+        alert(validation.userMessage || '此刻的心境需要换一种表达方式');
+        return;
+      }
       
       // 转换为原有格式
       const pool = matches.map(m => ({
@@ -1341,16 +1346,11 @@ const App = () => {
         matchDetails: m.matchDetails
       }));
 
-      // 构建完整上下文并存储
-      const fullContextData = {
-        moodData: moodData,
-        patternAnalysis: finalContext.getIntermediate('patternAnalysis'),
-        vectorResult: finalContext.getIntermediate('vectorResult')
-      };
-      
-      // 将完整上下文存储在 moodResult 中
-      setMoodResult(fullContextData);
-      setRecommendationPool(pool);
+      // 合并 moodData 和 patternAnalysis 传递给组件
+      const contextData = { moodData, patternAnalysis };
+      setMoodResult(contextData);
+      setValidationResult(validation);
+      setRecommendationPool(pool.length > 0 ? pool : (apiDrinks.length > 0 ? apiDrinks.slice(0, 9) : []));
       setCurrentBatchIndex(0);
       setCurrentCardIndex(0);
       setMixMode('home');
@@ -1358,7 +1358,7 @@ const App = () => {
 
       // ✅ 非阻塞流式异步大模型文案润色
       if (pool.length > 0) {
-        fetchLiveQuotes(pool, fullContextData, 15).then((quotesMap) => {
+        fetchLiveQuotes(pool, contextData, 15).then((quotesMap) => {
           if (Object.keys(quotesMap).length > 0) {
             setCustomQuotes(prev => ({ ...prev, ...quotesMap }));
           }
@@ -1373,68 +1373,168 @@ const App = () => {
       setMixMode('home');
       alert('分析网络可能存在波动，请稍后重试');
     }
-  }, [moodInput, selectedMood, sessionIngredients, apiDrinks]);
+  }, [emotionType, interventionType, moodInput, selectedMood, sessionIngredients, apiDrinks, customDrinks, setRecommendationPool, setCurrentBatchIndex, setCurrentCardIndex, setMixMode, setShowRecommendationGallery, setCustomQuotes]);
 
-  const handleStartGeneration = useCallback((type = null) => {
-    setMixMode('generating');
+  // 调用后端千问API进行情绪分析和饮品推荐
+  const processMoodAndGenerate = useCallback(async () => {
+    const combinedInput = (moodInput + (selectedMood || "")).trim();
 
-    // 记录干预类型
-    if (type) {
-      setInterventionType(type);
+    // 空输入检查 - 用户什么都没输入也没选标签
+    if (!combinedInput) {
+      alert('心里装着什么？说与我听，我为你寻一杯。');
+      return;
     }
 
-    // Generate recommendations after intervention
-    setTimeout(async () => {
-      // 使用传入的 type 参数而不是 state 中的 interventionType（因为 state 更新是异步的）
-      const currentInterventionType = type || interventionType;
+    // 如果有自定义原料，附加到 Prompt
+    let finalInputForAI = combinedInput;
+    if (sessionIngredients.length > 0) {
+      finalInputForAI += `\n(重要参考: 用户目前拥有的原料: ${sessionIngredients.join(', ')})`;
+    }
 
-      const candidateSource = apiDrinks;
+    // 首先检查是否为负面情绪（本地快速检测）
+    const isNegativeLocal = NEGATIVE_KEYWORDS.some(kw => combinedInput.toLowerCase().includes(kw)) || selectedMood === '#难受';
 
-      // 根据情绪类型和干预类型构造专有的强烈覆盖向量进行伪分析
-      let mockMoodData = {
-        somatic: { physical: { intensity: 0.5 }, drinkMapping: { textureScore: 0, temperature: 0 } },
-        demand: { physical: { intensity: 1.0 }, drinkMapping: { actionScore: 3 } },
-        emotion: { physical: { intensity: 1.0 }, drinkMapping: { tasteScore: 5, colorCode: 3 } },
-        cognitive: { physical: { intensity: 0.5 }, drinkMapping: { aromaScore: 5 } },
-        time: { physical: { intensity: 0.5 }, drinkMapping: { temporality: new Date().getHours() } },
-        socialContext: { physical: { intensity: 0.5 }, drinkMapping: { ratioScore: 15, actionScore: 3 } }
-      };
+    if (isNegativeLocal) {
+      // 负面情绪：尝试自动检测用户意图
+      setEmotionType('negative');
+      
+      const autoIntent = detectNegativeIntent(combinedInput);
+      
+      if (autoIntent) {
+        // 自动检测到明确意图，直接开始生成
+        console.log(`🎯 自动检测到用户意图: ${autoIntent === 'vent' ? '发泄释放' : '温柔安抚'}`);
+        setInterventionType(autoIntent);
+        handleStartGeneration(autoIntent);
+      } else {
+        // 无法自动判断，显示弹窗询问用户
+        setShowInterventionModal(true);
+      }
+      return;
+    }
 
-      if (emotionType === 'negative' && currentInterventionType) {
-        if (currentInterventionType === 'soothe') {
-          // 🥰 温柔治愈片刻 - 抚慰策略：热饮、低度、甜
-          mockMoodData.demand.drinkMapping.actionScore = 4; // 舒缓
-          mockMoodData.somatic.drinkMapping.temperature = 5; // 热
-          mockMoodData.emotion.drinkMapping.tasteScore = 8; // 偏甜
-          mockMoodData.socialContext.drinkMapping.ratioScore = 5; // 超低度
-        } else if (currentInterventionType === 'vent') {
-          // 💥 肆意释放压力 - 刺激策略：冰、烈、酸
-          mockMoodData.demand.drinkMapping.actionScore = 1; // 刺激
-          mockMoodData.somatic.drinkMapping.temperature = -5; // 极冰
-          mockMoodData.emotion.drinkMapping.tasteScore = 1; // 偏酸苦
-          mockMoodData.socialContext.drinkMapping.ratioScore = 35; // 高度烈酒
-        }
-      } else if (emotionType === 'positive') {
-        // ☺️ 正面情绪：气泡感、高颜值、适中甜度
-        mockMoodData.demand.drinkMapping.actionScore = 2; // 欢快气泡
-        mockMoodData.emotion.drinkMapping.colorCode = 5; // 缤纷
-        mockMoodData.socialContext.drinkMapping.ratioScore = 15;
+    // 非负面情绪：设置情绪类型
+    setEmotionType('positive');
+
+    // 播放动画并设定文案
+    setMixMode('generating');
+    setButtonLoadingText('心与味，正在相遇…');
+
+    // 动态文字：10秒后如果还在等待，则安抚用户
+    const longWaitTimer = setTimeout(() => {
+      setButtonLoadingText('好饮不急，稍候片刻…');
+    }, 10000);
+
+    try {
+      // 检查饮品数据是否已加载
+      if (!apiDrinks || apiDrinks.length === 0) {
+        clearTimeout(longWaitTimer);
+        setMixMode('home');
+        alert('饮品数据还在加载中，请稍后重试');
+        return;
       }
 
-      // 执行向量加权双轨匹配算法，代替纯种过滤
-      const fullPool = evaluateAndSortDrinks(mockMoodData, candidateSource, sessionIngredients);
+      // 🚀 使用多Agent系统执行推荐流程
+      // 合并API饮品和用户自定义饮品（只包含有向量的）
+      const customDrinksWithVector = customDrinks.filter(d => d.vector && d.vector.length === 8);
+      const allDrinksForPipeline = [...apiDrinks, ...customDrinksWithVector];
+      
+      const agentPromise = executeRecommendationPipeline(finalInputForAI, {
+        inventory: sessionIngredients,
+        allDrinks: allDrinksForPipeline,
+        currentTime: new Date().toISOString()
+      });
 
-      // 取前9位或者满额混流
-      const finalPool = fullPool.slice(0, 9);
+      const agentResult = await agentPromise;
+      
+      console.log('多Agent系统执行结果:', agentResult);
+      clearTimeout(longWaitTimer);
 
-      setMoodResult(mockMoodData);
-      setRecommendationPool(finalPool.length > 0 ? finalPool : (apiDrinks.length > 0 ? apiDrinks.slice(0, 9) : []));
+      // 检查Agent 1的验证错误（需要用户重新输入）
+      const agent1Output = agentResult.context.getOutput('SemanticDistiller');
+      if (agent1Output && !agent1Output.success && agent1Output.requiresReinput) {
+        clearTimeout(longWaitTimer);
+        setMixMode('home');
+        alert(agent1Output.userMessage || '输入格式不正确，请重新输入');
+        return;
+      }
+
+      // 提取推荐结果
+      const recommendation = extractRecommendationResult(agentResult.context);
+      console.log('推荐结果:', recommendation);
+
+      // 检查是否为极度负面需要关怀
+      const moodData = agentResult.context.getIntermediate('moodData');
+      if (moodData?.isNegative) {
+        setEmotionType('negative');
+        
+        // 尝试使用 LLM 返回的 negativeIntent，否则本地检测
+        const llmIntent = moodData.negativeIntent;
+        const localIntent = detectNegativeIntent(combinedInput);
+        const finalIntent = (llmIntent && llmIntent !== 'unclear') ? llmIntent : localIntent;
+        
+        if (finalIntent) {
+          console.log(`🎯 自动检测到用户意图: ${finalIntent === 'vent' ? '发泄释放' : '温柔安抚'} (LLM: ${llmIntent}, 本地: ${localIntent})`);
+          setInterventionType(finalIntent);
+          clearTimeout(longWaitTimer);
+          setMixMode('home');
+          handleStartGeneration(finalIntent);
+        } else {
+          // 无法自动判断，显示弹窗询问用户
+          clearTimeout(longWaitTimer);
+          setMixMode('home');
+          setShowInterventionModal(true);
+        }
+        return;
+      }
+
+      // 获取匹配结果
+      const matches = agentResult.context.getIntermediate('matches') || [];
+      const patternAnalysis = agentResult.context.getIntermediate('patternAnalysis');
+      const validation = agentResult.context.getIntermediate('validationReport');
+      
+      // 检查是否需要阻断
+      if (validation?.shouldBlock) {
+        setMixMode('home');
+        setValidationResult(validation);
+        alert(validation.userMessage || '此刻的心境需要换一种表达方式');
+        return;
+      }
+      
+      // 转换为原有格式
+      const pool = matches.map(m => ({
+        ...m.drink,
+        similarity: m.similarity,
+        matchDetails: m.matchDetails
+      }));
+
+      // 合并 moodData 和 patternAnalysis 传递给组件
+      const contextData = { moodData, patternAnalysis };
+      setMoodResult(contextData);
+      setValidationResult(validation);
+      setRecommendationPool(pool);
       setCurrentBatchIndex(0);
       setCurrentCardIndex(0);
-      setMixMode('home'); // Reset mixMode to stop animation
+      setMixMode('home');
       setShowRecommendationGallery(true);
-    }, 4000);
-  }, [emotionType, interventionType, setRecommendationPool, setCurrentBatchIndex, setCurrentCardIndex, setMixMode, setShowRecommendationGallery, apiDrinks, sessionIngredients]);
+
+      // ✅ 非阻塞流式异步大模型文案润色
+      if (pool.length > 0) {
+        fetchLiveQuotes(pool, contextData, 15).then((quotesMap) => {
+          if (Object.keys(quotesMap).length > 0) {
+            setCustomQuotes(prev => ({ ...prev, ...quotesMap }));
+          }
+        }).catch(err => {
+          console.warn('Live quote generation failed non-fatally', err);
+        });
+      }
+
+    } catch (error) {
+      console.error('分析/推荐出错:', error);
+      clearTimeout(longWaitTimer);
+      setMixMode('home');
+      alert('分析网络可能存在波动，请稍后重试');
+    }
+  }, [moodInput, selectedMood, sessionIngredients, apiDrinks, customDrinks]);
 
   const toggleIngredient = useCallback((id) => {
     setCheckedIngredients(prev => ({ ...prev, [id]: !prev[id] }));
@@ -1463,13 +1563,13 @@ const App = () => {
   return (
     <div
       ref={mainContentRef}
-      className={`min-h-screen font-sans w-full relative flex flex-col transition-colors duration-700 overflow-y-auto ${getBackgroundClass()}`}
+      className={`min-h-screen font-sans w-full relative shadow-2xl overflow-hidden flex flex-col transition-colors duration-700 ${getBackgroundClass()}`}
       tabIndex={-1}
     >
-      <main className={`flex-1 flex flex-col w-full relative`}>
-        {activeTab === 'mix' && showRecommendationGallery && (
+      <main className="flex-1 flex flex-col w-full relative">
+        {activeTab === 'mix' && showRecommendationGallery && visibleDrinks.length > 0 && (
           <RecommendationGallery
-            drinks={visibleDrinks.length > 0 ? visibleDrinks : (apiDrinks.length > 0 ? apiDrinks.slice(0, 3) : [{ id: 'loading', name: '探索配方中...', image: '', abv: 0, ingredients: [] }])}
+            drinks={visibleDrinks}
             onBack={() => {
               setShowRecommendationGallery(false);
               setMixMode('home');
@@ -1484,6 +1584,7 @@ const App = () => {
             favoriteDrinks={favoriteDrinks}
             moodResult={moodResult}
             customQuotes={customQuotes}
+            validation={validationResult}
           />
         )}
 
@@ -1539,6 +1640,7 @@ const App = () => {
               onSearch={handleExploreSearch}
               onNavigate={handleNavClick}
               activeTab={activeTab}
+              onAddCustomDrink={handleOpenCustomDrinkModal}
             />
           </PageTransition>
         )}
@@ -1586,6 +1688,10 @@ const App = () => {
               }}
               isDaka={dakaDrinks.some(d => d.id === currentDrink?.id)}
               onDakaDrink={handleOpenDakaModal}
+              onHelp={(drink) => {
+                setDrinkHelpTarget(drink);
+                setShowDrinkHelpModal(true);
+              }}
             />
           </PageTransition>
         )}
@@ -1631,6 +1737,13 @@ const App = () => {
         />
       )}
 
+      {/* Custom Drink Modal */}
+      <CustomDrinkModal
+        isOpen={showCustomDrinkModal}
+        onClose={handleCloseCustomDrinkModal}
+        onSave={handleSaveCustomDrink}
+      />
+
       {/* Ingredient Edit Modal */}
       <Modal isOpen={showIngredientModal} onClose={() => setShowIngredientModal(false)} position="center">
         <IngredientEditModal
@@ -1653,6 +1766,17 @@ const App = () => {
         onClose={handleCancelDeleteNote}
         onConfirm={handleConfirmDeleteNote}
       />
+
+      {/* Drink Help Modal */}
+      {showDrinkHelpModal && (
+        <DrinkHelpModal
+          drink={drinkHelpTarget}
+          onClose={() => {
+            setShowDrinkHelpModal(false);
+            setDrinkHelpTarget(null);
+          }}
+        />
+      )}
     </div>
   );
 };
@@ -1686,6 +1810,29 @@ const ConfirmDeleteModal = ({ isOpen, onClose, onConfirm }) => {
 
 const DakaModal = ({ drink, onClose, onSave }) => {
   const [note, setNote] = useState('');
+  const [customImage, setCustomImage] = useState('');
+  const fileInputRef = useRef(null);
+
+  const handleImageUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        alert('图片大小不能超过2MB');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setCustomImage(event.target?.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemoveImage = (e) => {
+    e.stopPropagation();
+    setCustomImage('');
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
 
   if (!drink) return null;
 
@@ -1693,11 +1840,47 @@ const DakaModal = ({ drink, onClose, onSave }) => {
     <Modal isOpen={true} onClose={onClose} position="center">
       <div className="bg-white rounded-2xl p-6 w-full max-w-sm mx-auto shadow-2xl">
         <h2 className="text-xl font-bold mb-4 text-gray-800">为 {drink.name} 打卡</h2>
-        <p className="text-gray-500 mb-4 text-sm">记录下此刻的口味、心情或任何想法...</p>
+        
+        {/* 可选图片上传 */}
+        <div 
+          className="relative w-full h-28 rounded-xl mb-4 overflow-hidden cursor-pointer group"
+          onClick={() => fileInputRef.current?.click()}
+        >
+          {customImage ? (
+            <>
+              <img src={customImage} alt="打卡照片" className="w-full h-full object-cover" />
+              <button
+                onClick={handleRemoveImage}
+                className="absolute top-2 right-2 w-6 h-6 bg-black/50 rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-colors z-10"
+              >
+                <X size={14} />
+              </button>
+            </>
+          ) : (
+            <div 
+              className="w-full h-full bg-cover bg-center"
+              style={{ backgroundImage: `url(${drink.image})`, filter: 'brightness(0.7)' }}
+            >
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/30">
+                <Camera size={24} className="text-white/80 mb-1" />
+                <span className="text-white/80 text-xs">记录此刻 (可选)</span>
+              </div>
+            </div>
+          )}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleImageUpload}
+          />
+        </div>
+
+        <p className="text-gray-500 mb-2 text-sm">记录下此刻的口味、心情或任何想法...</p>
         <textarea
           value={note}
           onChange={(e) => setNote(e.target.value)}
-          className="w-full h-32 p-3 border border-gray-200 rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-purple-400 transition-shadow"
+          className="w-full h-24 p-3 border border-gray-200 rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-purple-400 transition-shadow text-sm"
           placeholder="例如：口感非常清爽，柠檬的酸味很突出..."
         />
         <div className="flex justify-end space-x-3">
@@ -1706,7 +1889,7 @@ const DakaModal = ({ drink, onClose, onSave }) => {
           </InteractiveButton>
           <InteractiveButton
             variant="primary"
-            onClick={() => onSave(drink.id, note)}
+            onClick={() => onSave(drink.id, note, customImage || null)}
             style={{ background: 'linear-gradient(135deg, #A78BFA 0%, #818CF8 100%)' }}
           >
             保存记录
@@ -1717,8 +1900,251 @@ const DakaModal = ({ drink, onClose, onSave }) => {
   );
 };
 
+// 自定义饮品添加弹窗
+const CustomDrinkModal = ({ isOpen, onClose, onSave }) => {
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [ingredients, setIngredients] = useState('');
+  const [isAlcoholic, setIsAlcoholic] = useState(false);
+  const [image, setImage] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  const fileInputRef = useRef(null);
+
+  const handleImageUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        setError('图片大小不能超过2MB');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setImage(event.target?.result);
+        setError('');
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!name.trim()) {
+      setError('请输入饮品名称');
+      return;
+    }
+
+    setIsLoading(true);
+    setError('');
+
+    try {
+      // 解析原料
+      const ingredientList = ingredients
+        .split(/[,，、\s]+/)
+        .map(s => s.trim())
+        .filter(Boolean);
+
+      // 调用AI生成维度向量
+      const apiUrl = process.env.NODE_ENV === 'production' 
+        ? '/api/generate-drink-dimensions'
+        : 'http://localhost:3001/api/generate-drink-dimensions';
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: name.trim(),
+          description: description.trim(),
+          ingredients: ingredientList,
+          isAlcoholic
+        })
+      });
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error || '生成失败');
+      }
+
+      // 构建饮品对象
+      const drinkData = {
+        name: name.trim(),
+        nameEn: null,
+        description: description.trim(),
+        ingredients: ingredientList.map(ing => ({ label: ing, name: ing })),
+        briefIngredients: ingredientList.map(ing => ({ label: ing })),
+        isAlcoholic,
+        image: image || 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=400&h=400&fit=crop',
+        vector: result.vector,
+        dimensions: result.dimensions,
+        abv: isAlcoholic ? (result.vector?.[6] || 15) : 0,
+        tags: isAlcoholic ? ['含酒精'] : ['无酒精']
+      };
+
+      // 保存到本地存储
+      const savedDrink = customDrinkStorage.addCustomDrink(drinkData);
+      
+      // 清空表单
+      setName('');
+      setDescription('');
+      setIngredients('');
+      setIsAlcoholic(false);
+      setImage('');
+      
+      onSave(savedDrink);
+      onClose();
+    } catch (err) {
+      console.error('Save custom drink error:', err);
+      setError(err.message || '保存失败，请重试');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} position="center">
+      <div className="bg-white rounded-2xl p-6 w-full max-w-sm mx-auto shadow-2xl max-h-[85vh] overflow-y-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-bold text-gray-800">添加自创饮品</h2>
+          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-full transition-colors">
+            <X size={20} className="text-gray-500" />
+          </button>
+        </div>
+
+        {/* Image Upload */}
+        <div 
+          className="relative w-full h-32 rounded-xl bg-gray-100 mb-4 overflow-hidden cursor-pointer group"
+          onClick={() => fileInputRef.current?.click()}
+        >
+          {image ? (
+            <img src={image} alt="Preview" className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full flex flex-col items-center justify-center text-gray-400">
+              <Camera size={32} className="mb-2" />
+              <span className="text-sm">点击上传图片</span>
+            </div>
+          )}
+          <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+            <Camera size={24} className="text-white" />
+          </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleImageUpload}
+          />
+        </div>
+
+        {/* Name */}
+        <div className="mb-3">
+          <label className="block text-sm font-medium text-gray-700 mb-1">饮品名称 *</label>
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="如：蜜桃乌龙"
+            className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 text-sm"
+            maxLength={30}
+          />
+        </div>
+
+        {/* Description */}
+        <div className="mb-3">
+          <label className="block text-sm font-medium text-gray-700 mb-1">口感描述</label>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="描述一下这款饮品的口感、风味..."
+            className="w-full h-20 px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 text-sm resize-none"
+            maxLength={200}
+          />
+        </div>
+
+        {/* Ingredients */}
+        <div className="mb-3">
+          <label className="block text-sm font-medium text-gray-700 mb-1">主要原料 (可选)</label>
+          <input
+            type="text"
+            value={ingredients}
+            onChange={(e) => setIngredients(e.target.value)}
+            placeholder="用逗号分隔，如：乌龙茶, 蜜桃, 冰块"
+            className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 text-sm"
+          />
+        </div>
+
+        {/* Alcoholic Toggle */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-2">含酒精</label>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setIsAlcoholic(false)}
+              className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
+                !isAlcoholic 
+                  ? 'bg-emerald-500 text-white shadow-md' 
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              无酒精
+            </button>
+            <button
+              onClick={() => setIsAlcoholic(true)}
+              className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
+                isAlcoholic 
+                  ? 'bg-amber-500 text-white shadow-md' 
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              含酒精
+            </button>
+          </div>
+        </div>
+
+        {/* Error */}
+        {error && (
+          <div className="mb-3 p-2 bg-red-50 text-red-600 text-sm rounded-lg">
+            {error}
+          </div>
+        )}
+
+        {/* Submit Button */}
+        <InteractiveButton
+          variant="primary"
+          onClick={handleSubmit}
+          disabled={isLoading || !name.trim()}
+          style={{ 
+            width: '100%',
+            background: 'linear-gradient(135deg, #A78BFA 0%, #818CF8 100%)',
+            opacity: isLoading || !name.trim() ? 0.6 : 1
+          }}
+        >
+          {isLoading ? (
+            <span className="flex items-center justify-center gap-2">
+              <Loader2 size={18} className="animate-spin" />
+              正在分析风味...
+            </span>
+          ) : (
+            <span className="flex items-center justify-center gap-2">
+              <Sparkles size={18} />
+              保存饮品
+            </span>
+          )}
+        </InteractiveButton>
+
+        <p className="text-[10px] text-gray-400 text-center mt-3">
+          AI 将根据您的描述自动分析饮品风味特征
+        </p>
+      </div>
+    </Modal>
+  );
+};
+
+export default App;
+
 const NavigationBar = ({ activeTab, onTabChange }) => (
-  <nav className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around px-6 py-3 bg-white/80 backdrop-blur-xl border-t border-white/40 w-full">
+  <nav className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around px-6 py-3 bg-white/80 backdrop-blur-xl border-t border-white/40 w-full max-w-4xl mx-auto">
     <button 
       onClick={() => onTabChange('mix')}
       className={`flex flex-col items-center gap-1 ${activeTab === 'mix' ? 'text-gray-800' : 'text-gray-400 hover:text-gray-600'} transition-colors`}
@@ -1760,5 +2186,3 @@ const NavigationBar = ({ activeTab, onTabChange }) => (
     </button>
   </nav>
 );
-
-export default App;

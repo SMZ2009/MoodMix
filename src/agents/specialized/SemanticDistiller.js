@@ -36,7 +36,7 @@ export class SemanticDistiller extends BaseAgent {
       return { 
         valid: false, 
         reason: 'empty',
-        userMessage: '请告诉我你此刻的心情或状态，我才能为你推荐合适的饮品～'
+        userMessage: '心里装着什么？说与我听，我为你寻一杯。'
       };
     }
     
@@ -48,7 +48,7 @@ export class SemanticDistiller extends BaseAgent {
       return {
         valid: false,
         reason: 'too_long',
-        userMessage: '输入有点长呢😅 可以简单描述一下你的心情吗？（200字以内）'
+        userMessage: '话多情深，但我只需知道——此刻，你是什么滋味？'
       };
     }
     
@@ -57,7 +57,7 @@ export class SemanticDistiller extends BaseAgent {
       return {
         valid: false,
         reason: 'unsupported_format_numbers',
-        userMessage: '纯数字我无法理解呢😅 可以描述一下你的心情吗？比如：开心、累、想放松'
+        userMessage: '数字难解心意，用几个字告诉我你的心境吧。'
       };
     }
     
@@ -66,7 +66,7 @@ export class SemanticDistiller extends BaseAgent {
       return {
         valid: false,
         reason: 'unsupported_format_letters',
-        userMessage: '纯字母我无法理解呢😅 可以用中文描述一下你的心情吗？'
+        userMessage: '字母难诉心绪，换几个汉字说说你此刻的感受？'
       };
     }
     
@@ -75,7 +75,7 @@ export class SemanticDistiller extends BaseAgent {
       return {
         valid: false,
         reason: 'unsupported_format_special',
-        userMessage: '特殊字符我无法理解呢😅 可以描述一下你的心情吗？'
+        userMessage: '符号无声，心情有味——用文字告诉我吧。'
       };
     }
     
@@ -84,7 +84,7 @@ export class SemanticDistiller extends BaseAgent {
       return {
         valid: false,
         reason: 'gibberish_numbers',
-        userMessage: '看起来像是随机数字😅 可以告诉我你现在的心情吗？'
+        userMessage: '这串数字，我读不懂。此刻心里是什么感觉？'
       };
     }
     
@@ -93,7 +93,7 @@ export class SemanticDistiller extends BaseAgent {
       return {
         valid: false,
         reason: 'gibberish_letters',
-        userMessage: '看起来像是随机字母😅 可以告诉我你现在的心情吗？'
+        userMessage: '这串字母，我读不懂。换个方式说说你的心情？'
       };
     }
     
@@ -102,7 +102,7 @@ export class SemanticDistiller extends BaseAgent {
       return {
         valid: false,
         reason: 'gibberish_keyboard',
-        userMessage: '看起来像是键盘乱按😅 可以告诉我你现在的心情吗？'
+        userMessage: '是心乱了吗？没关系，试着说说此刻的感受。'
       };
     }
     
@@ -113,7 +113,7 @@ export class SemanticDistiller extends BaseAgent {
       return {
         valid: false,
         reason: 'gibberish_chinese',
-        userMessage: '看起来像是无意义的重复😅 可以告诉我你现在的心情吗？'
+        userMessage: '话语兖了圈，说说你真正想表达的是什么？'
       };
     }
     
@@ -122,7 +122,7 @@ export class SemanticDistiller extends BaseAgent {
       return {
         valid: false,
         reason: 'knowledge_question',
-        userMessage: '我擅长根据心情推荐饮品，而不是回答问题😅 可以告诉我你现在的心情吗？'
+        userMessage: '我只懂以饮识心。告诉我你此刻的心境，其余交给我。'
       };
     }
     
@@ -131,7 +131,7 @@ export class SemanticDistiller extends BaseAgent {
       return {
         valid: false,
         reason: 'command_task',
-        userMessage: '我专注于根据心情推荐饮品😅 可以告诉我你现在的心情吗？'
+        userMessage: '我只做一件事——寻一杯与你此刻相配的饮品。'
       };
     }
     
@@ -140,7 +140,7 @@ export class SemanticDistiller extends BaseAgent {
       return {
         valid: false,
         reason: 'weather_news_stock',
-        userMessage: '我专注于根据心情推荐饮品😅 可以告诉我你现在的心情吗？'
+        userMessage: '世事纷扰，我只问你一句：此刻，心里是什么滋味？'
       };
     }
     
@@ -149,7 +149,7 @@ export class SemanticDistiller extends BaseAgent {
       return {
         valid: false,
         reason: 'tech_academic',
-        userMessage: '我专注于根据心情推荐饮品，而不是解答技术问题😅 可以告诉我你现在的心情吗？'
+        userMessage: '学问之外，我只懂以味抚心。说说你的心境？'
       };
     }
     
@@ -160,27 +160,7 @@ export class SemanticDistiller extends BaseAgent {
       return {
         valid: false,
         reason: 'ambiguous_multi_emotion',
-        userMessage: '你提到了好几种情绪😅 可以告诉我此刻最强烈的一种感受吗？'
-      };
-    }
-    
-    // 15. 过长文本无关键词
-    const relevantKeywords = [
-      '心情', '情绪', '感觉', '感受', '开心', '快乐', '难过', '伤心', '生气', '愤怒', 
-      '烦躁', '焦虑', '压力', '累', '疲惫', '舒服', '不爽', '郁闷', 'emo', '痛苦', 
-      '身体', '头疼', '头晕', '冷', '热', '发烧', '感冒', '胃', '肚子', '饿', '渴', 
-      '困', '失眠', '酸痛', '难受', '闷', '堵', '想', '要', '需要', '发泄', '放松', 
-      '安静', '独处', '社交', '聚会', '庆祝', '安慰', '鼓励', '动力', '能量', '清醒', 
-      '醉', '微醺', '今天', '刚才', '最近', '工作', '学习', '考试', '加班', '熬夜', 
-      '约会', '失恋', '分手', '吵架', '成功', '失败', '早上', '上午', '中午', '下午', 
-      '晚上', '深夜', '凌晨', '很', '非常', '特别', '有点', '稍微', '太', '超级'
-    ];
-    const hasRelevantKeyword = relevantKeywords.some(kw => lower.includes(kw));
-    if (!hasRelevantKeyword && trimmed.length > 20) {
-      return {
-        valid: false,
-        reason: 'no_keywords_long_text',
-        userMessage: '你说了好多，但我有点没get到重点😅 可以简单说下你现在的心情或身体状态吗？'
+        userMessage: '情绪如水，几股交汇。此刻，哪一股最涌？'
       };
     }
     

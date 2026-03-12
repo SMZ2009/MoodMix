@@ -96,7 +96,10 @@ const IngredientManager = ({ userInventory, onUpdate }) => {
                 <div>
                     <h2 className="im-storage-title">我的存储</h2>
                     <p className="im-storage-count">
-                        {[...(userInventory.standard || []).filter(i => i.in_stock), ...(userInventory.custom || []).filter(i => i.in_stock)].length} 味原料
+                        {new Set([
+                            ...(userInventory.standard || []).filter(i => i.in_stock).map(i => i.name_cn || i.name),
+                            ...(userInventory.custom || []).filter(i => i.in_stock).map(i => i.name_cn || i.name)
+                        ].filter(Boolean)).size} 味原料
                     </p>
                 </div>
                 {!showCustomForm && (

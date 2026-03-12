@@ -50,15 +50,16 @@ const MineSection = ({ userInventory, onUpdateInventory, favorites, onSelectDrin
 
     // Combine standard and custom for display (only in_stock items, de-duplicated by name)
     const allInventoryItems = useMemo(() => {
-        const customItems = (userInventory.custom || []).filter(i => i.in_stock).map(i => ({ ...i, id: `custom-${i.id}`, name: i.name_cn }));
-        const standardItems = (userInventory.standard || []).filter(i => i.in_stock).map(i => ({ ...i, id: i.ing_id, name: i.name_cn }));
+        const customItems = (userInventory.custom || []).filter(i => i.in_stock).map(i => ({ ...i, id: `custom-${i.id}`, name: i.name_cn || i.name }));
+        const standardItems = (userInventory.standard || []).filter(i => i.in_stock).map(i => ({ ...i, id: i.ing_id, name: i.name_cn || i.name }));
 
         const combined = [...customItems, ...standardItems];
         // 按名称去重
         const seen = new Set();
         return combined.filter(item => {
-            if (!item.name || seen.has(item.name)) return false;
-            seen.add(item.name);
+            const itemName = item.name?.trim();
+            if (!itemName || seen.has(itemName)) return false;
+            seen.add(itemName);
             return true;
         });
     }, [userInventory]);

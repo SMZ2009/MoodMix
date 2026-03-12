@@ -27,22 +27,22 @@ export class SemanticDistiller extends BaseAgent {
    */
   validateInput(context) {
     const input = context.userInput;
-    
+
     // 提取原始用户输入（去除原料附加信息）
     const originalInput = input.split('\n')[0] || input;
-    
+
     // 1. 空输入检查
     if (!originalInput || !originalInput.trim()) {
-      return { 
-        valid: false, 
+      return {
+        valid: false,
         reason: 'empty',
         userMessage: '心里装着什么？说与我听，我为你寻一杯。'
       };
     }
-    
+
     const trimmed = originalInput.trim();
     const lower = trimmed.toLowerCase();
-    
+
     // 2. 长度检查
     if (trimmed.length > 200) {
       return {
@@ -51,7 +51,7 @@ export class SemanticDistiller extends BaseAgent {
         userMessage: '话多情深，但我只需知道——此刻，你是什么滋味？'
       };
     }
-    
+
     // 3. 纯数字
     if (/^\d+$/.test(trimmed)) {
       return {
@@ -60,7 +60,7 @@ export class SemanticDistiller extends BaseAgent {
         userMessage: '数字难解心意，用几个字告诉我你的心境吧。'
       };
     }
-    
+
     // 4. 纯字母
     if (/^[a-zA-Z]+$/.test(trimmed)) {
       return {
@@ -69,7 +69,7 @@ export class SemanticDistiller extends BaseAgent {
         userMessage: '字母难诉心绪，换几个汉字说说你此刻的感受？'
       };
     }
-    
+
     // 5. 纯特殊字符
     if (/^[^\u4e00-\u9fa5a-zA-Z0-9]+$/.test(trimmed)) {
       return {
@@ -78,7 +78,7 @@ export class SemanticDistiller extends BaseAgent {
         userMessage: '符号无声，心情有味——用文字告诉我吧。'
       };
     }
-    
+
     // 6. 无意义重复数字
     if (/^(\d)\1{2,}$/.test(trimmed)) {
       return {
@@ -87,7 +87,7 @@ export class SemanticDistiller extends BaseAgent {
         userMessage: '这串数字，我读不懂。此刻心里是什么感觉？'
       };
     }
-    
+
     // 7. 无意义重复字母
     if (/^([a-z])\1{2,}$/i.test(trimmed)) {
       return {
@@ -96,7 +96,7 @@ export class SemanticDistiller extends BaseAgent {
         userMessage: '这串字母，我读不懂。换个方式说说你的心情？'
       };
     }
-    
+
     // 8. 键盘乱序
     if (/^(asdf|qwer|zxcv|wasd|fdsa|rewq|vcxz|qwerty|asdfgh|zxcvbn)$/i.test(trimmed)) {
       return {
@@ -105,7 +105,7 @@ export class SemanticDistiller extends BaseAgent {
         userMessage: '是心乱了吗？没关系，试着说说此刻的感受。'
       };
     }
-    
+
     // 9. 无意义重复汉字（排除情绪表达）
     const emotionalRepetitions = ['哈哈', '嘿嘿', '呵呵', '呜呜', '啊啊'];
     const isEmotional = emotionalRepetitions.some(emo => trimmed.includes(emo));
@@ -116,7 +116,7 @@ export class SemanticDistiller extends BaseAgent {
         userMessage: '话语兖了圈，说说你真正想表达的是什么？'
       };
     }
-    
+
     // 10. 知识性问题
     if (/什么是|什么叫|怎么.*做|如何.*做|为什么.*会|解释.*一下|介绍一下|告诉我.*关于/.test(lower)) {
       return {
@@ -125,7 +125,7 @@ export class SemanticDistiller extends BaseAgent {
         userMessage: '我只懂以饮识心。告诉我你此刻的心境，其余交给我。'
       };
     }
-    
+
     // 11. 指令/任务
     if (/帮我.*(订|点|买|查|搜|找)|给我.*(推荐|建议)|打开.*(软件|应用|程序)|设置.*(提醒|闹钟)/.test(lower)) {
       return {
@@ -134,7 +134,7 @@ export class SemanticDistiller extends BaseAgent {
         userMessage: '我只做一件事——寻一杯与你此刻相配的饮品。'
       };
     }
-    
+
     // 12. 天气/新闻/股票
     if (/天气.*怎么样|今天.*(下雨|晴天|多云)|.*(比赛|比分|赢了|输了)|.*(股票|基金|涨|跌)/.test(lower)) {
       return {
@@ -143,7 +143,7 @@ export class SemanticDistiller extends BaseAgent {
         userMessage: '世事纷扰，我只问你一句：此刻，心里是什么滋味？'
       };
     }
-    
+
     // 13. 技术/学术问题
     if (/(代码|编程|bug|算法|数据|模型|训练|神经网络|量子|物理|化学|数学).*(问题|怎么|为什么|是什么)/.test(lower)) {
       return {
@@ -152,7 +152,7 @@ export class SemanticDistiller extends BaseAgent {
         userMessage: '学问之外，我只懂以味抚心。说说你的心境？'
       };
     }
-    
+
     // 14. 模糊多情绪（需要澄清）
     const emotions = ['开心', '难过', '生气', '焦虑', '累', '兴奋', '烦', '郁闷'];
     const foundEmotions = emotions.filter(e => lower.includes(e));
@@ -163,18 +163,21 @@ export class SemanticDistiller extends BaseAgent {
         userMessage: '情绪如水，几股交汇。此刻，哪一股最涌？'
       };
     }
-    
+
     return { valid: true };
   }
 
   /**
-   * 核心处理：调用API解析用户输入
+   * 核心处理：通过 SSE 流式调用 API 解析用户输入
    */
   async process(context) {
     const { userInput, currentTime } = context;
-    
-    // 调用后端API进行情绪分析
-    const response = await fetch('/api/analyze_mood', {
+
+    const streamStart = performance.now();
+    console.log(`[SemanticDistiller] 使用流式 SSE 端点`);
+
+    // 使用流式端点
+    const response = await fetch('/api/analyze_mood_stream', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -184,54 +187,88 @@ export class SemanticDistiller extends BaseAgent {
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      
-      // 处理验证错误
-      if (response.status === 400 && errorData.error) {
-        throw new Error(`VALIDATION:${errorData.error}`);
-      }
-      
-      // 处理超时错误
-      if (response.status === 504 || errorData.error === 'timeout') {
-        context.setIntermediate('timeoutOccurred', true);
-        throw new Error('TIMEOUT');
-      }
-      
       throw new Error(`API error: ${response.status}`);
     }
 
-    const result = await response.json();
-    
-    if (!result.success) {
-      throw new Error(result.error || 'Analysis failed');
+    // 消费 SSE 流
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let accumulated = '';
+    let result = null;
+    let tokenCount = 0;
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      const text = decoder.decode(value, { stream: true });
+      const lines = text.split('\n').filter(line => line.startsWith('data: '));
+
+      for (const line of lines) {
+        try {
+          const data = JSON.parse(line.slice(6));
+
+          if (data.done) {
+            // 流结束
+            if (data.error) {
+              throw new Error(data.error);
+            }
+            result = data.data;
+            break;
+          } else if (data.delta) {
+            accumulated += data.delta;
+            tokenCount++;
+          }
+        } catch (e) {
+          if (e.message && !e.message.includes('JSON')) throw e;
+        }
+      }
+
+      if (result) break;
     }
 
+    // 如果流式没有返回解析好的 data，尝试从累积的文本自行解析
+    if (!result && accumulated) {
+      try {
+        const jsonMatch = accumulated.match(/\{[\s\S]*\}/);
+        result = JSON.parse(jsonMatch ? jsonMatch[0] : accumulated);
+      } catch (e) {
+        throw new Error('无法从流式输出解析 JSON');
+      }
+    }
+
+    if (!result) {
+      throw new Error('流式返回空内容');
+    }
+
+    const streamEnd = performance.now();
+    console.log(`[SemanticDistiller] 流式完成: ${tokenCount} tokens, ${Math.round(streamEnd - streamStart)}ms`);
+
     // 存储结果到上下文
-    context.setIntermediate('moodData', result.data);
-    context.setIntermediate('rawResponse', result.raw_response);
-    
-    return result.data;
+    context.setIntermediate('moodData', result);
+
+    return result;
   }
 
   /**
    * 错误处理与降级
    */
   async handleError(error, context) {
-    const isTimeout = error.name === 'AbortError' || 
-                      error.message?.includes('timeout') ||
-                      error.message === 'TIMEOUT';
-    
+    const isTimeout = error.name === 'AbortError' ||
+      error.message?.includes('timeout') ||
+      error.message === 'TIMEOUT';
+
     if (isTimeout) {
       console.error('[SemanticDistiller] API超时，使用本地降级分析');
-      
+
       // 使用本地关键词分析作为降级
       const { localFallbackAnalysis } = await import('../../api/moodAnalyzer');
       const fallback = localFallbackAnalysis(context.userInput);
-      
+
       context.setIntermediate('moodData', fallback);
       context.setIntermediate('usedFallback', true);
       context.setIntermediate('timeoutOccurred', true);
-      
+
       return {
         ...fallback,
         _timeoutHandled: true,
@@ -239,12 +276,12 @@ export class SemanticDistiller extends BaseAgent {
         _userFriendlyMessage: '网络有点慢，但我已经根据你的描述给出了推荐！试试看这杯饮品是否符合你的心情～'
       };
     }
-    
+
     // 验证错误不需要降级，直接抛出
     if (error.message?.startsWith('VALIDATION:')) {
       throw error;
     }
-    
+
     return null;
   }
 
@@ -255,14 +292,14 @@ export class SemanticDistiller extends BaseAgent {
     if (!result || typeof result !== 'object') {
       return { valid: false, reason: 'Invalid output format' };
     }
-    
+
     // 检查必要的维度
     const requiredDimensions = ['emotion', 'somatic', 'time', 'cognitive', 'demand', 'socialContext'];
     const missing = requiredDimensions.filter(dim => !result[dim]);
-    
+
     if (missing.length > 0) {
       console.warn(`[SemanticDistiller] 缺少维度: ${missing.join(', ')}，使用默认值填充`);
-      
+
       // 填充默认值
       const defaults = {
         cognitive: {
@@ -278,14 +315,14 @@ export class SemanticDistiller extends BaseAgent {
           drinkMapping: { ratioScore: 10 }
         }
       };
-      
+
       missing.forEach(dim => {
         result[dim] = defaults[dim];
       });
-      
+
       return { valid: true, filled: missing };
     }
-    
+
     return { valid: true };
   }
 }

@@ -3,7 +3,20 @@ import { ChevronLeft, Shuffle, Heart, Wine, Droplets, GlassWater, Snowflake, Che
 import { generatePhilosophyTags } from '../engine/philosophyTags';
 import { translateDrinkName, translateIngredient } from '../data/translations';
 
-const RecommendationGallery = ({ drinks, onBack, onStartMaking, onShuffle, onNavigate, onLikeDrink, onUnlikeDrink, favoriteDrinks = [], moodResult = null, customQuotes = {}, validation = null }) => {
+const RecommendationGallery = ({
+  drinks,
+  onBack,
+  onStartMaking,
+  onShuffle,
+  onNavigate,
+  onLikeDrink,
+  onUnlikeDrink,
+  favoriteDrinks = [],
+  moodResult = null,
+  customQuotes = {},
+  validation = null,
+  onShowAnalysis // 新增：显示开发者分析回调
+}) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [touchStart, setTouchStart] = useState(null);
   const [touchEnd, setTouchEnd] = useState(null);
@@ -111,7 +124,7 @@ const RecommendationGallery = ({ drinks, onBack, onStartMaking, onShuffle, onNav
     const zIndex = 10 - absOffset;
 
     return {
-      transform: `translateX(${baseTranslate}%) scale(${scale})`,
+      transform: `translateX(${baseTranslate} %) scale(${scale})`,
       opacity,
       zIndex,
       pointerEvents: absOffset === 0 ? 'auto' : 'none',
@@ -146,7 +159,13 @@ const RecommendationGallery = ({ drinks, onBack, onStartMaking, onShuffle, onNav
         </button>
 
         <div className="flex flex-col items-center">
-          <h1 className="text-lg font-bold tracking-wider text-gray-800" style={{ fontFamily: 'serif' }}>Mood Mix</h1>
+          <h1
+            className="text-lg font-bold tracking-wider text-gray-800 cursor-pointer hover:opacity-70 transition-opacity"
+            style={{ fontFamily: 'serif' }}
+            onClick={onShowAnalysis}
+          >
+            Mood Mix
+          </h1>
           <span className="text-[10px] text-gray-500 uppercase tracking-[0.2em]">Recommendation</span>
         </div>
 
@@ -181,7 +200,7 @@ const RecommendationGallery = ({ drinks, onBack, onStartMaking, onShuffle, onNav
               return (
                 <div
                   key={drink.id}
-                  className={`absolute inset-0 cursor-pointer rounded-2xl overflow-hidden ${isDragging ? '' : 'transition-all duration-500 cubic-bezier(0.34, 1.56, 0.64, 1)'}`}
+                  className={`absolute inset - 0 cursor - pointer rounded - 2xl overflow - hidden ${isDragging ? '' : 'transition-all duration-500 cubic-bezier(0.34, 1.56, 0.64, 1)'} `}
                   style={getCardStyle(index)}
                   onClick={() => {
                     if (index === currentIndex && onStartMaking) {
@@ -269,8 +288,8 @@ const CardContent = ({ drink, isActive, isLiked, moodResult, customQuote, valida
             onLike();
           }
         }}
-        className={`absolute top-3 right-3 z-30 flex h-8 w-8 items-center justify-center rounded-full transition-all duration-300 hover:scale-110 active:scale-95 ${isLiked ? 'text-red-400' : 'text-white/80 hover:text-white'
-          }`}
+        className={`absolute top - 3 right - 3 z - 30 flex h - 8 w - 8 items - center justify - center rounded - full transition - all duration - 300 hover: scale - 110 active: scale - 95 ${isLiked ? 'text-red-400' : 'text-white/80 hover:text-white'
+          } `}
         style={{
           background: isLiked
             ? 'rgba(239, 68, 68, 0.2)'
@@ -352,8 +371,8 @@ const CardContent = ({ drink, isActive, isLiked, moodResult, customQuote, valida
             {drink.isReadyToMake !== undefined && (
               <>
                 <span className="text-white/30 mx-1">·</span>
-                <span className={`text-[10px] font-medium ${drink.isReadyToMake ? 'text-emerald-300' : 'text-amber-300'
-                  }`}>
+                <span className={`text - [10px] font - medium ${drink.isReadyToMake ? 'text-emerald-300' : 'text-amber-300'
+                  } `}>
                   {drink.isReadyToMake ? (
                     <><Check size={10} className="inline mr-0.5" />齐备</>
                   ) : (

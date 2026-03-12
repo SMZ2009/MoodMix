@@ -187,20 +187,19 @@ const MineSection = ({ userInventory, onUpdateInventory, favorites, onSelectDrin
                             <div className="text-xs text-gray-400 italic">暂无原料，点击管理添加</div>
                         ) : (
                             allInventoryItems.map((item, idx) => {
-                                const colors = [
-                                    'bg-purple-400/80 text-white',
-                                    'bg-blue-400/80 text-white',
-                                    'bg-amber-400/80 text-white',
-                                    'bg-emerald-400/80 text-white',
-                                    'bg-rose-400/80 text-white',
-                                ];
-                                const color = colors[idx % colors.length];
                                 const isLastVisible = allInventoryItems.length > 8 ? idx < 7 : idx < 8;
                                 if (!isLastVisible) return null;
                                 return (
                                     <span
                                         key={item.id}
-                                        className={`px-3 py-1.5 rounded-full text-[11px] font-semibold ${color} border border-white/20 backdrop-blur-sm shadow-sm whitespace-nowrap transition-transform hover:scale-105`}
+                                        className="px-3 py-1.5 rounded-full text-[11px] font-semibold tracking-wider whitespace-nowrap transition-transform hover:scale-105"
+                                        style={{
+                                            background: 'rgba(255,255,255,0.55)',
+                                            border: '1px solid rgba(60,59,54,0.15)',
+                                            color: 'rgba(60,59,54,0.80)',
+                                            backdropFilter: 'blur(8px)',
+                                            WebkitBackdropFilter: 'blur(8px)'
+                                        }}
                                     >
                                         {item.name}
                                     </span>
@@ -208,7 +207,13 @@ const MineSection = ({ userInventory, onUpdateInventory, favorites, onSelectDrin
                             })
                         )}
                         {allInventoryItems.length > 8 && (
-                            <span className="px-3 py-1.5 rounded-full text-[11px] font-bold text-white bg-gray-600/80 border border-white/30 shadow-md whitespace-nowrap self-center">
+                            <span
+                                className="px-3 py-1.5 rounded-full text-[11px] font-bold tracking-wider whitespace-nowrap self-center shadow-sm"
+                                style={{
+                                    background: 'linear-gradient(135deg, rgba(60,59,54,0.90) 0%, rgba(40,39,34,0.95) 100%)',
+                                    color: '#f7f0e4',
+                                }}
+                            >
                                 ...共{allInventoryItems.length}种
                             </span>
                         )}

@@ -2055,6 +2055,12 @@ const App = () => {
         tone={friendlyNotice.tone}
         onClose={closeFriendlyNotice}
       />
+      {/* 开发者分析面板 */}
+      <DeveloperAnalysisModal
+        isOpen={showAnalysisModal}
+        onClose={() => setShowAnalysisModal(false)}
+        summary={lastExecutionSummary}
+      />
     </div>
   );
 };
@@ -2418,12 +2424,6 @@ const CustomDrinkModal = ({ isOpen, onClose, onSave }) => {
           AI 将根据您的描述自动分析饮品风味特征
         </p>
       </div>
-      {/* 开发者分析面板 */}
-      <DeveloperAnalysisModal
-        isOpen={showAnalysisModal}
-        onClose={() => setShowAnalysisModal(false)}
-        summary={lastExecutionSummary}
-      />
     </Modal>
   );
 };

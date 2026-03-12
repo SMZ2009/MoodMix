@@ -173,81 +173,103 @@ export class SemanticDistiller extends BaseAgent {
   async process(context) {
     const { userInput, currentTime } = context;
 
-    const streamStart = performance.now();
-    console.log(`[SemanticDistiller] 使用流式 SSE 端点`);
+    let lastError = null;
+    let attempts = 0;
 
-    // 使用流式端点
-    const response = await fetch('/api/analyze_mood_stream', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        user_input: userInput,
-        current_time: currentTime
-      })
-    });
+    while (attempts < this.maxRetries) {
+      attempts++;
+      try {
+        const streamStart = performance.now();
+        console.log(`[SemanticDistiller] 使用流式 SSE 端点 (尝试 ${attempts}/${this.maxRetries})`);
 
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
-    }
+        // 使用流式端点
+        const response = await fetch('/api/analyze_mood_stream', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user_input: userInput,
+            current_time: currentTime
+          })
+        });
 
-    // 消费 SSE 流
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let accumulated = '';
-    let result = null;
-    let tokenCount = 0;
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
+        // 消费 SSE 流
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let accumulated = '';
+        let result = null;
+        let tokenCount = 0;
 
-      const text = decoder.decode(value, { stream: true });
-      const lines = text.split('\n').filter(line => line.startsWith('data: '));
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
 
-      for (const line of lines) {
-        try {
-          const data = JSON.parse(line.slice(6));
+          const text = decoder.decode(value, { stream: true });
+          const lines = text.split('\n').filter(line => line.startsWith('data: '));
 
-          if (data.done) {
-            // 流结束
-            if (data.error) {
-              throw new Error(data.error);
+          for (const line of lines) {
+            try {
+              const data = JSON.parse(line.slice(6));
+
+              if (data.done) {
+                // 流结束
+                if (data.error) {
+                  throw new Error(data.error);
+                }
+                result = data.data;
+                break;
+              } else if (data.delta) {
+                accumulated += data.delta;
+                tokenCount++;
+              }
+            } catch (e) {
+              if (e.message && !e.message.includes('JSON')) throw e;
             }
-            result = data.data;
-            break;
-          } else if (data.delta) {
-            accumulated += data.delta;
-            tokenCount++;
           }
-        } catch (e) {
-          if (e.message && !e.message.includes('JSON')) throw e;
+
+          if (result) break;
+        }
+
+        // 如果流式没有返回解析好的 data，尝试从累积的文本自行解析
+        if (!result && accumulated) {
+          try {
+            const jsonMatch = accumulated.match(/\{[\s\S]*\}/);
+            result = JSON.parse(jsonMatch ? jsonMatch[0] : accumulated);
+          } catch (e) {
+            throw new Error('无法从流式输出解析 JSON');
+          }
+        }
+
+        if (!result) {
+          throw new Error('流式返回空内容');
+        }
+
+        const streamEnd = performance.now();
+        console.log(`[SemanticDistiller] 流式完成: ${tokenCount} tokens, ${Math.round(streamEnd - streamStart)}ms`);
+
+        // 存储结果到上下文
+        context.setIntermediate('moodData', result);
+
+        return result;
+
+      } catch (err) {
+        lastError = err;
+        console.warn(`[SemanticDistiller] 尝试 ${attempts} 失败: ${err.message}`);
+        // 验证错误不需要重试，直接抛出
+        if (err.message?.startsWith('VALIDATION:')) {
+          throw err;
+        }
+        // 如果还有重试机会，等待一小段时间
+        if (attempts < this.maxRetries) {
+          await new Promise(resolve => setTimeout(resolve, this.retryDelay || 1000));
         }
       }
-
-      if (result) break;
     }
 
-    // 如果流式没有返回解析好的 data，尝试从累积的文本自行解析
-    if (!result && accumulated) {
-      try {
-        const jsonMatch = accumulated.match(/\{[\s\S]*\}/);
-        result = JSON.parse(jsonMatch ? jsonMatch[0] : accumulated);
-      } catch (e) {
-        throw new Error('无法从流式输出解析 JSON');
-      }
-    }
-
-    if (!result) {
-      throw new Error('流式返回空内容');
-    }
-
-    const streamEnd = performance.now();
-    console.log(`[SemanticDistiller] 流式完成: ${tokenCount} tokens, ${Math.round(streamEnd - streamStart)}ms`);
-
-    // 存储结果到上下文
-    context.setIntermediate('moodData', result);
-
-    return result;
+    throw lastError || new Error('多次尝试均失败');
   }
 
   /**

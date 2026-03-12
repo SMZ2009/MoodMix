@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, Shuffle, Heart, Wine, Droplets, GlassWater, Snowflake, Check, AlertCircle } from 'lucide-react';
 import { generatePhilosophyTags } from '../engine/philosophyTags';
+import { translateDrinkName, translateIngredient } from '../data/translations';
 
 const RecommendationGallery = ({ drinks, onBack, onStartMaking, onShuffle, onNavigate, onLikeDrink, onUnlikeDrink, favoriteDrinks = [], moodResult = null, customQuotes = {}, validation = null }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -149,7 +150,7 @@ const RecommendationGallery = ({ drinks, onBack, onStartMaking, onShuffle, onNav
           <span className="text-[10px] text-gray-500 uppercase tracking-[0.2em]">Recommendation</span>
         </div>
 
-        <button 
+        <button
           onClick={onShuffle}
           className="flex items-center justify-center w-10 h-10 rounded-full bg-white/40 backdrop-blur-md border border-white/60 text-gray-700 hover:bg-white/60 hover:text-gray-900 transition-all duration-300 active:scale-95 shadow-sm"
         >
@@ -162,7 +163,7 @@ const RecommendationGallery = ({ drinks, onBack, onStartMaking, onShuffle, onNav
         {/* Stacked Cards Container */}
         <div className="w-full flex items-center justify-center">
           {/* Cards Stack */}
-          <div 
+          <div
             ref={containerRef}
             className="relative w-[85vw] max-w-sm h-[52vh] max-h-[400px]"
             onTouchStart={handleTouchStart}
@@ -190,7 +191,7 @@ const RecommendationGallery = ({ drinks, onBack, onStartMaking, onShuffle, onNav
                     }
                   }}
                 >
-                <CardContent
+                  <CardContent
                     drink={drink}
                     isActive={index === currentIndex}
                     isLiked={favoriteDrinks.some(d => d.id === drink.id)}
@@ -289,21 +290,22 @@ const CardContent = ({ drink, isActive, isLiked, moodResult, customQuote, valida
         <h2
           className="text-2xl font-bold leading-tight mb-3"
           style={{
-            fontFamily: 'serif',
+            fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif',
             textShadow: '0 2px 12px rgba(0,0,0,0.5)',
-            letterSpacing: '0.02em',
+            letterSpacing: '0.05em',
           }}
         >
-          {drink.name}
+          {drink.name_cn || translateDrinkName(drink.name) || drink.name}
         </h2>
 
         {/* Philosophy Tags */}
         <div className="mb-3">
           <div className="flex flex-wrap gap-2">
             {philosophy.tags.map(tag => (
-              <span 
-                key={tag} 
+              <span
+                key={tag}
                 className="px-3 py-1 rounded-full bg-white/15 text-white/90 border border-white/20 text-xs tracking-wider font-medium backdrop-blur-sm"
+                style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif' }}
               >
                 {tag}
               </span>
@@ -313,9 +315,12 @@ const CardContent = ({ drink, isActive, isLiked, moodResult, customQuote, valida
 
         {/* Custom Quote from LLM */}
         {customQuote && (
-          <p 
+          <p
             className="text-xs text-indigo-200 italic leading-relaxed mb-2 px-2"
-            style={{ textShadow: '0 0 8px rgba(165, 180, 252, 0.3)' }}
+            style={{
+              fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif',
+              textShadow: '0 0 8px rgba(165, 180, 252, 0.3)'
+            }}
           >
             {customQuote}
           </p>
@@ -334,7 +339,12 @@ const CardContent = ({ drink, isActive, isLiked, moodResult, customQuote, valida
                   {ing.icon === 'ThermometerSnowflake' && <Snowflake size={11} className="text-blue-300" />}
                   {ing.icon === 'GlassWater' && <GlassWater size={11} className="text-sky-300" />}
                   {ing.icon === 'Flame' && <Wine size={11} className="text-orange-300" />}
-                  <span className="text-xs font-medium">{ing.label || ing.name}</span>
+                  <span
+                    className="text-xs font-medium"
+                    style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif' }}
+                  >
+                    {translateIngredient(ing.label || ing.name)}
+                  </span>
                 </div>
               </React.Fragment>
             ))}
@@ -342,9 +352,8 @@ const CardContent = ({ drink, isActive, isLiked, moodResult, customQuote, valida
             {drink.isReadyToMake !== undefined && (
               <>
                 <span className="text-white/30 mx-1">·</span>
-                <span className={`text-[10px] font-medium ${
-                  drink.isReadyToMake ? 'text-emerald-300' : 'text-amber-300'
-                }`}>
+                <span className={`text-[10px] font-medium ${drink.isReadyToMake ? 'text-emerald-300' : 'text-amber-300'
+                  }`}>
                   {drink.isReadyToMake ? (
                     <><Check size={10} className="inline mr-0.5" />齐备</>
                   ) : (

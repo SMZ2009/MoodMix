@@ -787,14 +787,15 @@ const ExploreSection = ({
           <div className="flex items-center gap-3 w-full">
             <div className="flex-1 relative group">
               <div
-                className="flex items-center w-full h-12 rounded-2xl px-4 border border-white/40 bg-indigo-50/30 backdrop-blur-md shadow-sm transition-all 
-                           focus-within:bg-white/60 focus-within:border-purple-300/60 focus-within:shadow-[0_0_15px_rgba(167,139,250,0.1)]"
+                className="flex items-center w-full h-12 rounded-2xl px-4 border border-white/40 bg-white/30 backdrop-blur-xl shadow-sm transition-all 
+                           focus-within:bg-white/50 focus-within:border-white/60 focus-within:shadow-md"
               >
-                <Search className="text-gray-500/70 mr-2" size={18} />
+                <Search className="text-gray-400/80 mr-2" size={18} />
 
                 <input
-                  className="bg-transparent border-none focus:outline-none focus:ring-0 w-full text-[15px] placeholder:text-gray-500/50 font-medium py-0 leading-none h-full outline-none text-gray-700"
-                  placeholder="Search cocktails, e.g. Margarita..."
+                  className="bg-transparent border-none focus:outline-none focus:ring-0 w-full text-[15.5px] placeholder:text-gray-400/60 font-medium py-0 leading-none h-full outline-none text-gray-800"
+                  style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif', letterSpacing: '0.02em' }}
+                  placeholder="寻一抹微醺，觅万般心绪..."
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -816,31 +817,33 @@ const ExploreSection = ({
             {displayCategories.map((cat, i) => {
               const isActive = category === cat.value;
               const isAll = cat.value === 'all';
-              // 酒精类（前5）：琥珀/橘色系
+              // 酒精类: 赭石/茶褐色系
               const ALCOHOL_CATS = ['鸡尾酒', '烈酒', '蒸馏酒', '啤酒', '葡萄酒', '利口酒'];
-              // 无酒精类（后5）：翡翠/绿色系
               const isAlcohol = ALCOHOL_CATS.includes(cat.value);
 
-              // 配色方案
-              let bgActive, bgInactive, colorActive, colorInactive, shadow;
+              // 配色方案: 东方矿物色系 (舒缓、低饱和度)
+              let bgActive, bgInactive, colorActive, colorInactive, shadow, border;
               if (isAll) {
-                bgActive = 'linear-gradient(135deg, #A5B4FC 0%, #C4B5FD 50%, #F9A8D4 100%)';
-                bgInactive = 'linear-gradient(135deg, #A5B4FC 0%, #C4B5FD 50%, #F9A8D4 100%)';
-                colorActive = '#fff';
-                colorInactive = '#fff';
-                shadow = '0 4px 14px rgba(165, 180, 252, 0.35)';
+                bgActive = '#3c3b36'; // 焦茶
+                bgInactive = 'rgba(255, 255, 255, 0.6)';
+                colorActive = '#f7f0e4';
+                colorInactive = '#3c3b36';
+                shadow = isActive ? '0 8px 24px rgba(60, 59, 54, 0.18)' : 'none';
+                border = isActive ? 'none' : '1px solid rgba(60, 59, 54, 0.12)';
               } else if (isAlcohol) {
-                bgActive = 'linear-gradient(135deg, #F59E0B 0%, #F97316 100%)';
-                bgInactive = 'linear-gradient(135deg, rgba(251, 191, 36, 0.15) 0%, rgba(249, 115, 22, 0.12) 100%)';
-                colorActive = '#fff';
-                colorInactive = '#D97706';
-                shadow = isActive ? '0 4px 14px rgba(245, 158, 11, 0.35)' : '0 2px 8px rgba(0,0,0,0.02)';
+                bgActive = 'linear-gradient(135deg, #8b4513 0%, #a0522d 100%)'; // 赭石
+                bgInactive = 'rgba(255, 255, 255, 0.5)';
+                colorActive = '#f7f0e4';
+                colorInactive = '#8b4513';
+                shadow = isActive ? '0 8px 24px rgba(139, 69, 19, 0.15)' : 'none';
+                border = isActive ? 'none' : '1px solid rgba(139, 69, 19, 0.12)';
               } else {
-                bgActive = 'linear-gradient(135deg, #10B981 0%, #06B6D4 100%)';
-                bgInactive = 'linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(6, 182, 212, 0.1) 100%)';
-                colorActive = '#fff';
-                colorInactive = '#059669';
-                shadow = isActive ? '0 4px 14px rgba(16, 185, 129, 0.35)' : '0 2px 8px rgba(0,0,0,0.02)';
+                bgActive = 'linear-gradient(135deg, #4f7942 0%, #3d5229 100%)'; // 竹青/石绿
+                bgInactive = 'rgba(255, 255, 255, 0.5)';
+                colorActive = '#f7f0e4';
+                colorInactive = '#4f7942';
+                shadow = isActive ? '0 8px 24px rgba(79, 121, 66, 0.15)' : 'none';
+                border = isActive ? 'none' : '1px solid rgba(79, 121, 66, 0.12)';
               }
 
               return (
@@ -850,17 +853,19 @@ const ExploreSection = ({
                   size="small"
                   onClick={() => onCategoryChange(cat.value)}
                   style={{
-                    padding: '6px 16px',
+                    padding: '7px 18px',
                     height: 'auto',
-                    borderRadius: '24px',
+                    borderRadius: '50px',
                     background: isActive ? bgActive : bgInactive,
-                    backdropFilter: 'blur(8px)',
-                    border: isActive ? 'none' : '1px solid rgba(255,255,255,0.3)',
+                    backdropFilter: 'blur(12px)',
+                    border: border,
                     color: isActive ? colorActive : colorInactive,
                     boxShadow: shadow,
-                    fontWeight: isActive ? 600 : 500,
+                    fontWeight: 700,
                     whiteSpace: 'nowrap',
-                    fontSize: '13px',
+                    fontSize: '0.85rem',
+                    fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif',
+                    letterSpacing: '0.05em'
                   }}
                 >
                   {cat.label}

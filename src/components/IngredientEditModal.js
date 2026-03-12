@@ -210,7 +210,7 @@ const IngredientEditModal = ({ currentIngredients, onUpdate, onClose, onReset })
                                                     <button
                                                         key={name}
                                                         onClick={() => handleRemove(name)}
-                                                        className="ingredient-ink-tag"
+                                                        className="ingredient-ink-tag is-owned"
                                                         title={`点击移除「${name}」`}
                                                     >
                                                         <span>{name}</span>

@@ -387,12 +387,14 @@ const InterventionModal = ({ isOpen, onClose, onSelectType }) => {
               onClick={() => onSelectType('soothe')}
               className="group relative h-[58px] w-full rounded-2xl overflow-hidden transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
               style={{
-                background: 'linear-gradient(135deg, #4b5563 0%, #1f2937 100%)',
-                boxShadow: '0 12px 24px rgba(31, 41, 55, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.15)'
+                background: 'linear-gradient(135deg, rgba(60,59,54,0.88) 0%, rgba(40,39,34,0.95) 100%)',
+                boxShadow: '0 12px 24px rgba(60,54,40,0.20), inset 0 1px 0 rgba(255,255,255,0.12)',
+                backdropFilter: 'blur(8px)',
+                WebkitBackdropFilter: 'blur(8px)',
               }}
             >
               <span className="relative z-10 font-bold tracking-[0.15em] text-[#f7f0e4]" style={{ fontFamily: '"STKaiti", "KaiTi", serif' }}>
-                寻一抹宁静 (Soothe)
+                寻一抹宁静
               </span>
               <div
                 className="absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-500"
@@ -404,16 +406,18 @@ const InterventionModal = ({ isOpen, onClose, onSelectType }) => {
               onClick={() => onSelectType('vent')}
               className="group relative h-[58px] w-full rounded-2xl overflow-hidden transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
               style={{
-                background: 'transparent',
-                border: '1.5px solid #4b5563',
+                background: 'rgba(255,255,255,0.08)',
+                border: '1.5px solid rgba(60,59,54,0.35)',
+                backdropFilter: 'blur(12px)',
+                WebkitBackdropFilter: 'blur(12px)',
               }}
             >
-              <span className="relative z-10 font-bold tracking-[0.15em] text-[#4b5563]" style={{ fontFamily: '"STKaiti", "KaiTi", serif' }}>
-                觅一处疏解 (Vent)
+              <span className="relative z-10 font-bold tracking-[0.15em]" style={{ fontFamily: '"STKaiti", "KaiTi", serif', color: 'rgba(60,59,54,0.85)' }}>
+                觅一处疏解
               </span>
               <div
-                className="absolute inset-0 opacity-0 group-hover:opacity-5 transition-opacity duration-300"
-                style={{ background: '#4b5563' }}
+                className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                style={{ background: 'rgba(60,59,54,0.06)' }}
               />
             </button>
           </div>

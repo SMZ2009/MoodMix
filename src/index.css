@@ -2022,3 +2022,118 @@ body {
   letter-spacing: 0.08em;
   padding: 0.5rem 0.25rem;
 }
+
+.detail-glass-container {
+  background: linear-gradient(165deg, rgba(255, 255, 255, 0.94), rgba(248, 250, 252, 0.88));
+  backdrop-filter: blur(40px) saturate(1.4);
+  -webkit-backdrop-filter: blur(40px) saturate(1.4);
+  box-shadow:
+    0 -12px 48px rgba(0, 0, 0, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: 2.8rem 2.8rem 0 0;
+  min-height: 65vh;
+  position: relative;
+  z-index: 10;
+}
+
+.ink-wash-mask {
+  mask-image: linear-gradient(to bottom, black 75%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, black 75%, transparent 100%);
+}
+
+.oriental-title-large {
+  font-family: "Songti SC", "STKaiti", "KaiTi", serif;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  color: #1a1a1a;
+  line-height: 1.25;
+  text-shadow: 0 4px 12px rgba(255, 255, 255, 0.3);
+}
+
+.floating-action-bar {
+  background: rgba(255, 255, 255, 0.45);
+  backdrop-filter: blur(28px) saturate(1.5);
+  -webkit-backdrop-filter: blur(28px) saturate(1.5);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  border-radius: 2rem;
+  margin: 0 auto 1.5rem;
+  width: calc(100% - 2rem);
+  max-width: 480px;
+}
+
+.jade-action-btn {
+  background: linear-gradient(180deg, rgba(60, 59, 54, 0.9), rgba(40, 39, 34, 0.95));
+  color: #ebdfc8;
+  border-radius: 1.25rem;
+  font-family: "Songti SC", "STKaiti", "KaiTi", serif;
+  letter-spacing: 0.2em;
+  font-weight: 700;
+  transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+  box-shadow: 0 8px 24px rgba(60, 50, 40, 0.2);
+}
+
+.jade-action-btn:active {
+  transform: scale(0.96);
+  opacity: 0.9;
+}
+
+.soft-ingredient-pill {
+  background: radial-gradient(circle at top left, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.6));
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.02);
+  transition: all 0.4s ease;
+}
+
+.soft-ingredient-pill.is-checked {
+  opacity: 0.45;
+  filter: grayscale(0.8) blur(0.5px);
+  transform: scale(0.98);
+}
+
+.method-step-ink-point {
+  width: 1rem;
+  height: 1rem;
+  background: #3b3a36;
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 4px rgba(60, 58, 54, 0.08);
+  border-radius: 50%;
+  position: relative;
+  z-index: 5;
+}
+
+.method-line-vertical {
+  width: 1.5px;
+  background: linear-gradient(to bottom, #3b3a36 0%, rgba(60, 58, 54, 0.1) 100%);
+  opacity: 0.4;
+  position: absolute;
+  top: 1.25rem;
+  bottom: 0;
+  left: calc(0.5rem - 0.75px);
+}
+
+@keyframes jade-glow {
+
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+
+  50% {
+    opacity: 0.9;
+  }
+}
+
+.drink-hero-mask-layer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 120px;
+  background: linear-gradient(to top, white 20%, transparent);
+  pointer-events: none;
+  z-index: 5;
+}

@@ -91,23 +91,17 @@ const RecommendationGallery = ({ drinks, onBack, onStartMaking, onShuffle, onNav
     const offset = index - currentIndex;
     const absOffset = Math.abs(offset);
 
-    // 只显示前后1张卡片
-    if (absOffset > 1) {
-      return {
-        opacity: 0,
-        transform: `translateX(${offset > 0 ? 100 : -100}%) scale(0.7)`,
-        zIndex: 0,
-        pointerEvents: 'none',
-      };
-    }
 
-    const containerWidth = containerRef.current?.offsetWidth || 0;
+    const containerWidth = containerRef.current?.offsetWidth || 350;
     const isAtBoundary = (currentIndex === 0 && offset >= 0) || (currentIndex === drinks.length - 1 && offset <= 0);
     const boundaryFactor = isAtBoundary ? 0.3 : 1;
     const dragFactor = isDragging && offset === 0 ? dragOffset : 0;
-    const baseTranslate = offset * 70 + (dragFactor / containerWidth) * 70 * boundaryFactor;
-    const scale = 1 - absOffset * 0.12;
-    const opacity = 1 - absOffset * 0.3;
+
+    // 使用 25% 的百分比偏移，平衡堆叠感与可见性
+    const baseTranslate = offset * 25 + (dragFactor / containerWidth) * 100 * boundaryFactor;
+    const scale = 1 - absOffset * 0.08;
+    // 强制透明度，避免看起来像是延时加载
+    const opacity = offset === 0 ? 1 : Math.max(0.5, 0.8 - absOffset * 0.2);
     const zIndex = 10 - absOffset;
 
     return {
@@ -115,7 +109,7 @@ const RecommendationGallery = ({ drinks, onBack, onStartMaking, onShuffle, onNav
       opacity,
       zIndex,
       pointerEvents: absOffset === 0 ? 'auto' : 'none',
-      transition: isDragging ? 'none' : 'all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)',
+      transition: isDragging ? 'none' : 'transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease',
     };
   };
 
@@ -175,13 +169,12 @@ const RecommendationGallery = ({ drinks, onBack, onStartMaking, onShuffle, onNav
             onMouseLeave={handleMouseUp}
           >
             {drinks.map((drink, index) => {
-              const absOffset = Math.abs(index - currentIndex);
-              if (absOffset > 1) return null; // 只渲染前后1张
+              // 移除渲染限制，强制同时渲染 3 张卡片
 
               return (
                 <div
                   key={drink.id}
-                  className={`absolute inset-0 cursor-pointer rounded-2xl overflow-hidden ${isDragging ? '' : 'transition-all duration-500 cubic-bezier(0.34, 1.56, 0.64, 1)'}`}
+                  className={`absolute inset-0 cursor-pointer rounded-2xl overflow-hidden animate-in fade-in zoom-in duration-500 ${isDragging ? '' : ''}`}
                   style={getCardStyle(index)}
                   onClick={() => {
                     if (index === currentIndex && onStartMaking) {

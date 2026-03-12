@@ -182,18 +182,19 @@ const MineSection = ({ userInventory, onUpdateInventory, favorites, onSelectDrin
                     </button>
                 </div>
                 <div className="w-full">
-                    <div className="flex flex-wrap gap-2 py-2 max-h-[5rem] overflow-hidden">
+                    <div className="flex flex-row overflow-x-auto overflow-y-hidden no-scrollbar gap-2 py-2 w-full">
                         {allInventoryItems.length === 0 ? (
                             <div className="text-xs text-gray-400 italic">暂无原料，点击管理添加</div>
                         ) : (
                             allInventoryItems.map((item, idx) => {
-                                const isLastVisible = allInventoryItems.length > 8 ? idx < 7 : idx < 8;
-                                if (!isLastVisible) return null;
                                 return (
                                     <span
                                         key={item.id}
-                                        className="px-3 py-1.5 rounded-full text-[11px] font-semibold tracking-wider whitespace-nowrap transition-transform hover:scale-105"
+                                        className="px-3 py-1.5 rounded-full text-[11px] whitespace-nowrap transition-transform hover:scale-105 flex-shrink-0"
                                         style={{
+                                            fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif',
+                                            fontWeight: 600,
+                                            letterSpacing: '0.08em',
                                             background: 'rgba(255,255,255,0.55)',
                                             border: '1px solid rgba(60,59,54,0.15)',
                                             color: 'rgba(60,59,54,0.80)',
@@ -206,17 +207,18 @@ const MineSection = ({ userInventory, onUpdateInventory, favorites, onSelectDrin
                                 );
                             })
                         )}
-                        {allInventoryItems.length > 8 && (
-                            <span
-                                className="px-3 py-1.5 rounded-full text-[11px] font-bold tracking-wider whitespace-nowrap self-center shadow-sm"
-                                style={{
-                                    background: 'linear-gradient(135deg, rgba(60,59,54,0.90) 0%, rgba(40,39,34,0.95) 100%)',
-                                    color: '#f7f0e4',
-                                }}
-                            >
-                                ...共{allInventoryItems.length}种
-                            </span>
-                        )}
+                        <span
+                            className="px-3 py-1.5 rounded-full text-[11px] whitespace-nowrap self-center shadow-sm flex-shrink-0"
+                            style={{
+                                fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif',
+                                fontWeight: 700,
+                                letterSpacing: '0.08em',
+                                background: 'linear-gradient(135deg, rgba(60,59,54,0.90) 0%, rgba(40,39,34,0.95) 100%)',
+                                color: '#f7f0e4',
+                            }}
+                        >
+                            ...共{allInventoryItems.length}种
+                        </span>
                     </div>
                 </div>
             </div>

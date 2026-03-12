@@ -70,6 +70,17 @@ app.use('/api/cocktaildb', async (req, res) => {
 const SILICONFLOW_API_URL = 'https://api.siliconflow.cn/v1/chat/completions';
 const SILICONFLOW_MODEL = process.env.SILICONFLOW_MODEL || 'Qwen/Qwen2.5-72B-Instruct';
 
+// 优先使用原生 fetch (Node 18+)，否则回退到 node-fetch
+const getFetch = async () => {
+  if (typeof global !== 'undefined' && global.fetch) return global.fetch;
+  try {
+    return (await import('node-fetch')).default;
+  } catch (e) {
+    // 某些环境可能不支持 dynamic import
+    return null;
+  }
+};
+
 /**
  * POST /api/analyze_mood
  * 
@@ -207,12 +218,8 @@ app.post('/api/analyze_mood_stream', async (req, res) => {
       return;
     }
 
-    // 优先使用原生 fetch (Node 18+)，否则回退到 node-fetch
-    const getFetch = async () => {
-      if (typeof global !== 'undefined' && global.fetch) return global.fetch;
-      return (await import('node-fetch')).default;
-    };
     const currentFetch = await getFetch();
+    if (!currentFetch) throw new Error('Fetch implementation not found');
 
     const timeInfo = current_time || new Date().toISOString();
     const systemPrompt = buildSystemPrompt();
@@ -377,7 +384,8 @@ app.post('/api/generate_quotes', async (req, res) => {
   }
 
   try {
-    const fetch = (await import('node-fetch')).default;
+    const currentFetch = await getFetch();
+    if (!currentFetch) throw new Error('Fetch implementation not found');
 
     // 构造 Batch Prompt
     const systemPrompt = `你是一位深谙东方五行哲学与西方调酒艺术的诗人酒保。
@@ -395,20 +403,24 @@ app.post('/api/generate_quotes', async (req, res) => {
 
     let userContent = "请为以下饮品生成专属文案：\n";
     items.forEach(item => {
-      userContent += `ID: ${item.id}, 饮品名: ${item.name}, 辨证: ${item.diagnosis}, 策略: ${item.strategy}, 体感: ${item.sensory}, 饮品profile: ${item.contextPackage?.drinkProfile}\n`;
+      userContent += `ID: ${item.id}, 饮品名: ${item.name || '未知'}, 辨证: ${item.diagnosis || '无'}, 策略: ${item.strategy || '无'}, 体感: ${item.sensory || '无'}, 饮品profile: ${item.contextPackage?.drinkProfile || '无'}\n`;
     });
-    userContent += "\n请返回严格的 JSON 格式：\n{\n";
-    items.forEach(item => {
-      userContent += `  "${item.id}": "「诗歌」",\n`;
+    userContent += "\n请返回严格的 JSON 格式，不要包含任何 markdown 代码块标识，也不要有多余文字。注意不要有尾随逗号。格式示例：\n{\n";
+    items.forEach((item, index) => {
+      userContent += `  "${item.id}": "「诗歌」"${index === items.length - 1 ? '' : ','}\n`;
     });
     userContent += "}";
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s超时
+    const timeoutId = setTimeout(() => {
+      console.warn('[QuoteGenerator] Timeout triggered (45s)');
+      controller.abort();
+    }, 45000); // 45s超时，因为 batch 可能耗时较长
 
     let response;
     try {
-      response = await fetch(SILICONFLOW_API_URL, {
+      console.log(`[QuoteGenerator] Requesting batch quotes from ${SILICONFLOW_MODEL}...`);
+      response = await currentFetch(SILICONFLOW_API_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -420,8 +432,8 @@ app.post('/api/generate_quotes', async (req, res) => {
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userContent }
           ],
-          temperature: 0.7, // 稍微高一点，让诗句更有创造力
-          response_format: { type: 'json_object' }
+          temperature: 0.7,
+          max_tokens: 1000
         }),
         signal: controller.signal
       });
@@ -430,19 +442,28 @@ app.post('/api/generate_quotes', async (req, res) => {
     }
 
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`[QuoteGenerator] API error response [${response.status}]:`, errorText);
       throw new Error(`API 返回错误: ${response.status}`);
     }
 
     const result = await response.json();
-    const content = result.choices?.[0]?.message?.content;
+    const content = (result.choices?.[0]?.message?.content || '').trim();
 
     let parsedQuotes = {};
     if (content) {
-      const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/) || content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        parsedQuotes = JSON.parse(jsonMatch[1] || jsonMatch[0]);
-      } else {
-        parsedQuotes = JSON.parse(content);
+      try {
+        // 尝试提取 JSON 内容
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        const jsonStr = jsonMatch ? jsonMatch[0] : content;
+
+        // 健壮处理：移除 JSON 中的尾随逗号 (针对有些模型不听话的情况)
+        const sanitizedJson = jsonStr.replace(/,\s*([}\]])/g, '$1');
+
+        parsedQuotes = JSON.parse(sanitizedJson);
+      } catch (e) {
+        console.error('[QuoteGenerator] JSON Parse Error. Raw content:', content);
+        throw new Error('解析生成文案失败: ' + e.message);
       }
     }
 
@@ -476,7 +497,8 @@ app.post('/api/generate-drink-dimensions', async (req, res) => {
   }
 
   try {
-    const fetch = (await import('node-fetch')).default;
+    const currentFetch = await getFetch();
+    if (!currentFetch) throw new Error('Fetch implementation not found');
 
     const systemPrompt = `你是一位调酒和饮品专家，精通东方五行哲学与饮品风味分析。
 根据用户描述的饮品信息，生成8维风味向量。
@@ -512,7 +534,7 @@ app.post('/api/generate-drink-dimensions', async (req, res) => {
 
 饮品名称：${name.trim()}
 口感描述：${description || '未提供'}
-主要原料：${ingredients && ingredients.length > 0 ? ingredients.join(', ') : '未提供'}
+主要原料：${ingredients && Array.isArray(ingredients) && ingredients.length > 0 ? ingredients.join(', ') : '未提供'}
 含酒精：${isAlcoholic ? '是' : '否'}
 
 请根据以上信息，结合你的专业知识推断合理的风味向量。`;
@@ -522,7 +544,8 @@ app.post('/api/generate-drink-dimensions', async (req, res) => {
 
     let response;
     try {
-      response = await fetch(SILICONFLOW_API_URL, {
+      console.log(`[DrinkDimensions] Requesting analysis for "${name}" using ${SILICONFLOW_MODEL}...`);
+      response = await currentFetch(SILICONFLOW_API_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -534,8 +557,7 @@ app.post('/api/generate-drink-dimensions', async (req, res) => {
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userContent }
           ],
-          temperature: 0.5,
-          response_format: { type: 'json_object' }
+          temperature: 0.5
         }),
         signal: controller.signal
       });
@@ -548,20 +570,28 @@ app.post('/api/generate-drink-dimensions', async (req, res) => {
     }
 
     const result = await response.json();
-    const content = result.choices?.[0]?.message?.content;
+    const content = (result.choices?.[0]?.message?.content || '').trim();
 
     let parsed = {};
     if (content) {
-      const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/) || content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        parsed = JSON.parse(jsonMatch[1] || jsonMatch[0]);
-      } else {
-        parsed = JSON.parse(content);
+      try {
+        // 尝试提取 JSON 内容
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        const jsonStr = jsonMatch ? jsonMatch[0] : content;
+
+        // 健壮处理：移除 JSON 中的尾随逗号
+        const sanitizedJson = jsonStr.replace(/,\s*([}\]])/g, '$1');
+
+        parsed = JSON.parse(sanitizedJson);
+      } catch (e) {
+        console.error('[DrinkDimensions] JSON Parse Error. Raw content:', content);
+        throw new Error('解析饮品维度失败: ' + e.message);
       }
     }
 
     // 验证向量格式
     if (!parsed.vector || !Array.isArray(parsed.vector) || parsed.vector.length !== 8) {
+      console.error('[DrinkDimensions] Invalid vector format:', parsed.vector);
       throw new Error('生成的向量格式不正确');
     }
 

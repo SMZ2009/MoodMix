@@ -275,6 +275,15 @@ export async function executeRecommendationPipeline(userInput, options = {}) {
     console.warn('⚠️ [Pipeline] allDrinks is empty - recommendations may fail');
   }
 
+  // 1. 立即创建上下文 (为了能够在第一步就记录 Trace)
+  const context = new AgentContext({
+    userInput: userInput,
+    originalInput: userInput,
+    inventory: options.inventory || [],
+    allDrinks: allDrinksOriginal,
+    currentTime: options.currentTime || new Date().toISOString()
+  });
+
   // ========== 前置过滤：实体提取 + 候选池筛选 ==========
   context.recordTrace('PIPELINE_STEP', 'EntityExtraction', { status: 'start', description: '正在提取输入语境中的饮品名、品类与风味实体' });
   console.log('\n┌─ Entity Extraction ─────────────────────────────────────────┐');
@@ -325,23 +334,15 @@ export async function executeRecommendationPipeline(userInput, options = {}) {
 
   console.log(`└${'─'.repeat(56)}┘`);
 
-  // 3. 决定传递给情绪分析的输入
-  // 如果有剩余情绪描述，用它；否则用纯用户输入
-  let inputForMoodAnalysis = entities.remainingInput || cleanUserInput;
-
-  // 重新附加原料信息（如果有）
+  // 3. 更新上下文数据
+  // 如果分析到了更精准的意图，更新 userInput 使其更聚焦
+  context.userInput = entities.remainingInput || cleanUserInput;
   if (inventoryInfo) {
-    inputForMoodAnalysis += '\n' + inventoryInfo;
+    context.userInput += '\n' + inventoryInfo;
   }
 
-  // 创建上下文
-  const context = new AgentContext({
-    userInput: inputForMoodAnalysis,           // 传递剩余情绪部分给情绪分析
-    originalInput: userInput,                   // 保留原始输入
-    inventory: options.inventory || [],
-    allDrinks: filterResult.filtered,           // 使用过滤后的候选池
-    currentTime: options.currentTime || new Date().toISOString()
-  });
+  // 更新候选池为过滤后的结果
+  context.allDrinks = filterResult.filtered;
 
   // 存储实体提取结果到上下文，供后续Agent使用
   context.setIntermediate('extractedEntities', entities);

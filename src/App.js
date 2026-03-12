@@ -116,7 +116,7 @@ const MoodInputSection = ({
       <div className="absolute top-1/4 right-0 w-80 h-80 bg-blue-200/40 rounded-full blur-[100px] pointer-events-none mix-blend-multiply"></div>
       <div className="absolute bottom-1/3 left-0 w-72 h-72 bg-pink-200/40 rounded-full blur-[100px] pointer-events-none mix-blend-multiply"></div>
       <div className="text-center mb-4 sm:mb-6 z-10">
-        <h2 className="text-2xl xs:text-[24px] sm:text-[28px] font-extrabold text-gray-800 mb-2 sm:mb-3 tracking-wide mx-auto text-center" style={{ fontFamily: 'serif' }}>此刻，心境如何？</h2>
+        <h2 className="text-2xl xs:text-[24px] sm:text-[28px] font-extrabold text-gray-800 mb-2 sm:mb-3 tracking-wide mx-auto text-center" style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif' }}>此刻，心境如何？</h2>
         <p
           className="text-gray-500 text-xs sm:text-sm font-light tracking-wider mx-auto text-center italic"
           style={{ fontFamily: '"FZYouSong", "方正悠宋", serif' }}
@@ -145,6 +145,7 @@ const MoodInputSection = ({
             {!moodInput && (
               <span
                 className="absolute inset-y-0 left-0 flex items-center text-gray-400 text-sm sm:text-[15px] font-medium pointer-events-none"
+                style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif' }}
               >
                 {MOOD_INPUT_PLACEHOLDERS[placeholderIndex]}
               </span>
@@ -978,8 +979,16 @@ const ExploreSection = ({
                   </div>
                 </div>
                 <div className="px-3 sm:px-4 py-2 sm:py-3">
-                  <h3 className="font-bold text-sm sm:text-[15px] text-gray-800 leading-tight mb-0.5 sm:mb-1">{drink.name}</h3>
-                  <p className="text-[11px] sm:text-[12px] text-gray-400 leading-tight line-clamp-1 font-medium italic">
+                  <h3
+                    className="font-bold text-sm sm:text-[15px] text-gray-800 leading-tight mb-0.5 sm:mb-1"
+                    style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif' }}
+                  >
+                    {drink.name_cn || translateDrinkName(drink.name) || drink.name}
+                  </h3>
+                  <p
+                    className="text-[11px] sm:text-[12px] text-gray-400 leading-tight line-clamp-1 font-medium italic"
+                    style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif' }}
+                  >
                     {drink.nameEn || drink.sub || drink.subName || ''}
                   </p>
                 </div>
@@ -1052,7 +1061,9 @@ const DrinkDetailSection = ({ drink, checkedIngredients, onToggleIngredient, onB
 
       <div className="relative -mt-4 bg-white min-h-[55vh] px-6 pt-2 max-w-4xl mx-auto">
         <div className="mb-6 pt-2">
-          <h1 className="text-2xl font-bold text-gray-900 mb-1">{drink.name}</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-1" style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif' }}>
+            {drink.name_cn || translateDrinkName(drink.name) || drink.name}
+          </h1>
           {drink.nameEn && drink.nameEn !== drink.name && (
             <p className="text-sm text-gray-400 italic mb-3">{drink.nameEn}</p>
           )}
@@ -1098,7 +1109,9 @@ const DrinkDetailSection = ({ drink, checkedIngredients, onToggleIngredient, onB
                     <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-blue-500 shadow-sm">
                       <IngredientIcon size={18} />
                     </div>
-                    <span className="font-bold text-gray-800">{ing.name}</span>
+                    <span className="font-bold text-gray-800" style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif' }}>
+                      {translateIngredient(ing.name)}
+                    </span>
                   </div>
                   <span className="font-serif font-black text-gray-900">{ing.amount}{ing.unit}</span>
                 </div>

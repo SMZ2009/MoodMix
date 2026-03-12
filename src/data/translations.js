@@ -37,6 +37,8 @@ export const DRINK_NAMES = {
     'Sidecar': '侧车',
     'French 75': '法式75',
     'Aviation': '航空',
+    'Almeria': '阿尔梅里亚',
+    'Abilene': '阿比林',
     'Paloma': '帕洛玛',
     'Boulevardier': '林荫大道',
     'Penicillin': '盘尼西林',

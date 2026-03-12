@@ -45,19 +45,19 @@ const COCKTAILDB_BASE = 'https://www.thecocktaildb.com/api/json/v1/1';
 app.use('/api/cocktaildb', async (req, res) => {
   const path = req.originalUrl.replace('/api/cocktaildb', '') || '/';
   const targetUrl = `${COCKTAILDB_BASE}${path}`;
-  
+
   console.log('[CocktailDB Proxy]', req.method, targetUrl);
-  
+
   try {
     const response = await fetch(targetUrl);
     const status = response.status;
     const text = await response.text();
     console.log('[CocktailDB] Status:', status, 'Body:', text.substring(0, 200));
-    
+
     if (status !== 200) {
       return res.status(status).json({ error: 'CocktailDB API error', status, body: text });
     }
-    
+
     const data = JSON.parse(text);
     res.json(data);
   } catch (error) {
@@ -125,6 +125,7 @@ app.post('/api/analyze_mood', async (req, res) => {
             { role: 'user', content: userMessage }
           ],
           temperature: 0.5,
+          max_tokens: 800,
           response_format: { type: 'json_object' }
         }),
         signal: controller.signal
@@ -176,6 +177,135 @@ app.post('/api/analyze_mood', async (req, res) => {
       success: false,
       error: `分析失败: ${error.message}`
     });
+  }
+});
+
+// ═══════════════════════════════════════════
+// 端点：流式情绪分析 (SSE Streaming)
+// ═══════════════════════════════════════════
+app.post('/api/analyze_mood_stream', async (req, res) => {
+  const apiKey = process.env.SILICONFLOW_API_KEY;
+  if (!apiKey || apiKey === 'your_key_here') {
+    return res.status(500).json({ success: false, error: 'API Key 未配置' });
+  }
+
+  const { user_input, current_time } = req.body;
+  if (!user_input || typeof user_input !== 'string' || !user_input.trim()) {
+    return res.status(400).json({ success: false, error: '缺少 user_input' });
+  }
+
+  // 设置 SSE 头
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive',
+    'Access-Control-Allow-Origin': '*'
+  });
+
+  try {
+    const fetch = (await import('node-fetch')).default;
+    const timeInfo = current_time || new Date().toISOString();
+    const systemPrompt = buildSystemPrompt();
+    const userMessage = buildUserMessage(user_input.trim(), timeInfo);
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+    let response;
+    try {
+      response = await fetch(SILICONFLOW_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          model: SILICONFLOW_MODEL,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userMessage }
+          ],
+          temperature: 0.5,
+          max_tokens: 800,
+          stream: true
+        }),
+        signal: controller.signal
+      });
+    } finally {
+      clearTimeout(timeoutId);
+    }
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      res.write(`data: ${JSON.stringify({ error: `API error: ${response.status}`, done: true })}\n\n`);
+      res.end();
+      return;
+    }
+
+    let accumulated = '';
+    const reader = response.body;
+
+    reader.on('data', (chunk) => {
+      const text = chunk.toString();
+      const lines = text.split('\n').filter(line => line.trim().startsWith('data:'));
+
+      for (const line of lines) {
+        const data = line.replace(/^data:\s*/, '').trim();
+        if (data === '[DONE]') {
+          // 流结束，发送最终结果
+          try {
+            const jsonMatch = accumulated.match(/\{[\s\S]*\}/);
+            const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : accumulated);
+            res.write(`data: ${JSON.stringify({ done: true, data: parsed })}\n\n`);
+          } catch (e) {
+            res.write(`data: ${JSON.stringify({ done: true, error: '解析失败', raw: accumulated })}\n\n`);
+          }
+          res.end();
+          return;
+        }
+
+        try {
+          const parsed = JSON.parse(data);
+          const delta = parsed.choices?.[0]?.delta?.content || '';
+          if (delta) {
+            accumulated += delta;
+            // 每次有新 token 就推送进度
+            res.write(`data: ${JSON.stringify({ delta, done: false })}\n\n`);
+          }
+        } catch (e) {
+          // 忽略非 JSON 行
+        }
+      }
+    });
+
+    reader.on('end', () => {
+      if (!res.writableEnded) {
+        // 如果没收到 [DONE] 但流结束了
+        try {
+          const jsonMatch = accumulated.match(/\{[\s\S]*\}/);
+          const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : accumulated);
+          res.write(`data: ${JSON.stringify({ done: true, data: parsed })}\n\n`);
+        } catch (e) {
+          res.write(`data: ${JSON.stringify({ done: true, error: '解析失败' })}\n\n`);
+        }
+        res.end();
+      }
+    });
+
+    reader.on('error', (err) => {
+      console.error('[Stream] Error:', err.message);
+      if (!res.writableEnded) {
+        res.write(`data: ${JSON.stringify({ done: true, error: err.message })}\n\n`);
+        res.end();
+      }
+    });
+
+  } catch (error) {
+    console.error('[Stream] 请求失败:', error.message);
+    if (!res.writableEnded) {
+      res.write(`data: ${JSON.stringify({ done: true, error: error.message })}\n\n`);
+      res.end();
+    }
   }
 });
 
@@ -292,7 +422,7 @@ app.post('/api/generate-drink-dimensions', async (req, res) => {
   }
 
   const { name, description, ingredients, isAlcoholic } = req.body;
-  
+
   if (!name || typeof name !== 'string' || !name.trim()) {
     return res.status(400).json({ success: false, error: '缺少饮品名称' });
   }
@@ -388,8 +518,8 @@ app.post('/api/generate-drink-dimensions', async (req, res) => {
     }
 
     console.log(`[DrinkDimensions] Generated vector for "${name}": [${parsed.vector.join(', ')}]`);
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       vector: parsed.vector,
       dimensions: parsed.dimensions,
       reasoning: parsed.reasoning
@@ -406,155 +536,51 @@ app.post('/api/generate-drink-dimensions', async (req, res) => {
 // ═══════════════════════════════════════════
 
 function buildSystemPrompt() {
-  return `你是 MoodMix 心境分析引擎。你的任务是分析用户输入的一句话，从六个维度进行深度解析。
-每个维度同时包含"真实物理世界"和"东方哲学"两个层面。
+  return `你是 MoodMix 心境分析引擎。分析用户的一句话，从六个维度提取饮品推荐所需的结构化数据。
+严格返回 JSON，不加任何额外文字。
 
-你必须严格返回 JSON 格式，不要添加任何额外文字。
+## 六维框架（每个维度包含 physical + philosophy + drinkMapping）
 
-## 六维分析框架
+1. **emotion** - 情绪 → 五行映射(木怒酸/火喜苦/土思甘/金悲辛/水恐咸)
+2. **somatic** - 躯体感受 → 气机方向(升降浮沉) + 阴阳
+3. **time** - 时间 → 时辰/节气（用户未提及则用当前时间）
+4. **cognitive** - 认知/思维模式 → 神志状态
+5. **demand** - 诉求(止/动/破) → 仪轨类型
+6. **socialContext** - 社交环境 → 独处/群居
 
-### 1. 情绪维度 (emotion)
-- 物理层面：识别用户语段中表达的具体情感状态（如：沮丧、愤怒、狂喜）及其对应的生理反应
-- 东方哲学：映射至"五志"与五行归经
-  - 肝（怒）→ 木 → 酸味、青/绿色
-  - 心（喜）→ 火 → 苦味、红色
-  - 脾（思）→ 土 → 甘味、黄色
-  - 肺（悲）→ 金 → 辛味、白/透明
-  - 肾（恐）→ 水 → 咸味、黑/深色
-- 对应饮品画像维度：味觉、颜色
-
-### 2. 躯体维度 (somatic)
-- 物理层面：识别用户提到的生理感受（如发热、发冷、胸闷、肌肉紧绷、乏力）
-- 东方哲学：分析"气机"运行状态（升、降、浮、沉）以及整体阴阳偏性
-- 对应饮品画像维度：温度、触觉、比例
-
-### 3. 时间维度 (time)
-- 重要：如果用户明确输入具体时间（如"今晚"、"明天早上"），按用户输入时间为准；否则使用当前现实时间
-- 物理层面：获取用户所处的现实物理时间及季节/天气
-- 东方哲学：对应"天人相应"理论中的二十四节气与十二时辰律动
-- 对应饮品画像维度：时序
-
-### 4. 认知维度 (cognitive)
-- 物理层面：识别用户当前的思维模式，如复盘工作、钻牛角尖、回忆往事或大脑空白
-- 东方哲学：判断神志的清晰度与"神"的归位状态（如思虑过度伤脾、惊恐伤神）
-- 对应饮品画像维度：嗅觉（经络走窜）
-
-### 5. 诉求维度 (demand)
-- 物理层面：提取用户明确表达的欲望或改变行为（如：想发泄、想静静、想找回动力）
-- 东方哲学：寻找"道在日用"中的仪轨道场，将行为转化为心理能量转化契机
-  - 止：安住不动
-  - 动：主动宣发
-  - 破：打破困境
-- 对应饮品画像维度：动作
-
-### 6. 社交/环境维度 (socialContext)
-- 物理层面：识别用户当前所处的物理空间（办公室、深夜卧室、嘈杂派对）及人际状态（独处或群居）
-- 东方哲学：判断"内外边界"的和谐度——是需要"纳气归根（内向）"还是"顺势宣发（外向）"
-- 对应饮品画像维度：动作、比例
-
-## 输出 JSON Schema
+## 输出 JSON（严格遵循此结构）
 
 {
   "emotion": {
-    "physical": {
-      "state": "string — 具体情感状态描述",
-      "intensity": "number 0.0-1.0 — 信号强度(I)，指示用户表达该维度的强烈程度"
-    },
-    "philosophy": {
-      "wuxing": "string — 五行归属: 木/火/土/金/水",
-      "organ": "string — 脏腑: 肝/心/脾/肺/肾",
-      "志": "string — 五志: 怒/喜/思/悲/恐"
-    },
-    "drinkMapping": {
-      "taste": "string — 推荐味道: 酸/苦/甘/辛/咸",
-      "tasteScore": "number 0-10 — 味觉强度建议",
-      "color": "string — 推荐颜色描述",
-      "colorCode": "number 1-5 — 五行色彩编码(1=青绿/木,2=红/火,3=黄/土,4=白/金,5=黑/水)"
-    }
+    "physical": { "state": "string", "intensity": 0.0-1.0 },
+    "philosophy": { "wuxing": "木/火/土/金/水", "organ": "肝/心/脾/肺/肾" },
+    "drinkMapping": { "tasteScore": 0-10, "colorCode": 1-5 }
   },
   "somatic": {
-    "physical": {
-      "sensation": "string — 躯体感受描述，若用户未提及则推断",
-      "type": "string — 类型: heat/cold/tension/fatigue/numbness/none",
-      "intensity": "number 0.0-1.0 — 信号强度(I)"
-    },
-    "philosophy": {
-      "qiState": "string — 气机状态描述",
-      "direction": "string — 气机方向: 升/降/浮/沉/郁结/通畅",
-      "yinyang": "string — 阴阳偏性: 偏阴/偏阳/阴阳平和/阳郁/阴虚"
-    },
-    "drinkMapping": {
-      "temperature": "number -5~5 — 温度倾向(-5极冰~5极热)",
-      "texture": "string — 触觉描述: 气泡/丝滑/浓稠/清冽/温润",
-      "textureScore": "number -3~3 — 气机方向值(正=升发,负=沉降)"
-    }
+    "physical": { "sensation": "string", "intensity": 0.0-1.0 },
+    "philosophy": { "direction": "升/降/浮/沉/郁结/通畅", "yinyang": "偏阴/偏阳/阴阳平和" },
+    "drinkMapping": { "temperature": -5到5, "textureScore": -3到3 }
   },
   "time": {
-    "physical": {
-      "hour": "number 0-23 — 时间(小时)",
-      "period": "string — 时段: 清晨/上午/中午/下午/傍晚/晚上/深夜",
-      "season": "string — 当前季节或节气",
-      "intensity": "number 0.0-1.0 — 信号强度(I)"
-    },
-    "philosophy": {
-      "shichen": "string — 十二时辰名称",
-      "meridian": "string — 对应经络",
-      "solarTerm": "string — 最近的节气"
-    },
-    "drinkMapping": {
-      "temporality": "number 0-23 — 建议饮用时间"
-    }
+    "physical": { "hour": 0-23, "period": "string", "intensity": 0.0-1.0 },
+    "drinkMapping": { "temporality": 0-23 }
   },
   "cognitive": {
-    "physical": {
-      "mode": "string — 思维模式描述",
-      "clarity": "number 1-10 — 思维清晰度",
-      "intensity": "number 0.0-1.0 — 信号强度(I)"
-    },
-    "philosophy": {
-      "shenState": "string — 神志状态描述",
-      "归位": "boolean — 神是否归位"
-    },
-    "drinkMapping": {
-      "aroma": "string — 推荐香气类型",
-      "aromaScore": "number 0-10 — 香气强度建议"
-    }
+    "physical": { "state": "string", "intensity": 0.0-1.0 },
+    "drinkMapping": { "aromaScore": 0-10 }
   },
   "demand": {
-    "physical": {
-      "desire": "string — 核心诉求描述",
-      "direction": "string — 行为方向: 内向收敛/外向释放/寻求平衡",
-      "intensity": "number 0.0-1.0 — 信号强度(I)"
-    },
-    "philosophy": {
-      "ritual": "string — 仪轨类型描述",
-      "type": "string — 止/动/破"
-    },
-    "drinkMapping": {
-      "action": "string — 推荐调饮动作",
-      "actionScore": "number 1-5 — 动作强度(1=静观/啜饮,2=搅拌,3=摇晃,4=捣碎,5=猛烈混合)"
-    }
+    "physical": { "state": "string", "intensity": 0.0-1.0 },
+    "philosophy": { "type": "止/动/破" },
+    "drinkMapping": { "actionScore": 1-5 }
   },
   "socialContext": {
-    "physical": {
-      "space": "string — 物理空间描述",
-      "people": "string — 人际状态: 独处/二人/小聚/派对/不明",
-      "intensity": "number 0.0-1.0 — 信号强度(I)"
-    },
-    "philosophy": {
-      "boundary": "string — 内外边界状态",
-      "needDirection": "string — 纳气归根/顺势宣发/内外调和"
-    },
-    "drinkMapping": {
-      "action": "string — 社交场景动作建议",
-      "actionScore": "number 1-5",
-      "ratio": "string — 比例倾向描述",
-      "ratioScore": "number 0-95 — 建议ABV浓度"
-    }
+    "physical": { "state": "string", "intensity": 0.0-1.0 },
+    "drinkMapping": { "ratioScore": 0-95 }
   },
-  "isNegative": "boolean — 是否为负面/需要关怀的情绪",
-  "negativeIntent": "string — 当 isNegative=true 时，判断用户的隐含意图：'vent'(发泄释放：想砸东西/大哭/爆发/破坏) 或 'soothe'(温柔安抚：想被抱抱/安静/治愈/休息) 或 'unclear'(无法明确判断)",
-  "summary": "string — 一句话总结用户当前身心状态（中文，不超过50字）"
+  "isNegative": false,
+  "negativeIntent": "vent/soothe/unclear",
+  "summary": "一句话总结(中文≤30字)"
 }`;
 }
 
@@ -593,13 +619,13 @@ app.post('/api/drink-assistant', async (req, res) => {
     const fetch = (await import('node-fetch')).default;
 
     // 构建配方信息
-    const ingredientList = drink.ingredients?.map(ing => 
+    const ingredientList = drink.ingredients?.map(ing =>
       `${ing.name || ing.ingredient}: ${ing.measure || ''}`
     ).join('\n') || '未知配方';
 
     // 构建用户库存信息
-    const inventoryText = userInventory?.length > 0 
-      ? userInventory.join('、') 
+    const inventoryText = userInventory?.length > 0
+      ? userInventory.join('、')
       : '未提供库存信息';
 
     const systemPrompt = `你是一位专业调酒师助手，擅长解决制作饮品时遇到的各种问题。

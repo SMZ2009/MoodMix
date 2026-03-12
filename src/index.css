@@ -1393,11 +1393,13 @@ body {
   font-family: "Songti SC", "STKaiti", "KaiTi", serif;
   font-size: 0.75rem;
   font-weight: 500;
-  color: #000000;
-  letter-spacing: 0.06em;
-  background: rgba(255, 255, 255, 0.5);
-  border: 1px solid rgba(180, 160, 200, 0.25);
+  color: rgba(60, 59, 54, 0.80);
+  letter-spacing: 0.05em;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(60, 59, 54, 0.15);
   border-radius: 42% 58% 51% 49% / 58% 42% 56% 44%;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   cursor: pointer;
   transition: all 0.25s ease;
   isolation: isolate;
@@ -1408,9 +1410,6 @@ body {
   position: absolute;
   inset: -1px;
   border-radius: inherit;
-  background:
-    radial-gradient(ellipse 60% 80% at 30% 50%, rgba(194, 180, 155, 0.08) 0%, transparent 70%),
-    radial-gradient(ellipse 50% 70% at 70% 50%, rgba(172, 156, 128, 0.06) 0%, transparent 70%);
   pointer-events: none;
   z-index: -1;
 }
@@ -1425,6 +1424,14 @@ body {
 .ingredient-ink-tag:active {
   transform: scale(0.96);
 }
+
+.ingredient-ink-tag.is-owned {
+  background: linear-gradient(135deg, rgba(60, 59, 54, 0.90) 0%, rgba(40, 39, 34, 0.95) 100%);
+  border: none;
+  color: #f7f0e4;
+  box-shadow: 0 4px 14px rgba(60, 54, 40, 0.18);
+}
+
 
 .ingredient-ink-tag-x {
   color: rgba(148, 130, 100, 0.35);

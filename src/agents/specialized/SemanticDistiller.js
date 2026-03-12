@@ -200,6 +200,7 @@ export class SemanticDistiller extends BaseAgent {
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         let accumulated = '';
+        let lineBuffer = '';
         let result = null;
         let tokenCount = 0;
 
@@ -207,10 +208,15 @@ export class SemanticDistiller extends BaseAgent {
           const { done, value } = await reader.read();
           if (done) break;
 
-          const text = decoder.decode(value, { stream: true });
-          const lines = text.split('\n').filter(line => line.startsWith('data: '));
+          lineBuffer += decoder.decode(value, { stream: true });
 
-          for (const line of lines) {
+          let newlineIndex;
+          while ((newlineIndex = lineBuffer.indexOf('\n')) >= 0) {
+            const line = lineBuffer.slice(0, newlineIndex).trim();
+            lineBuffer = lineBuffer.slice(newlineIndex + 1);
+
+            if (!line.startsWith('data: ')) continue;
+
             try {
               const data = JSON.parse(line.slice(6));
 
@@ -226,11 +232,20 @@ export class SemanticDistiller extends BaseAgent {
                 tokenCount++;
               }
             } catch (e) {
-              if (e.message && !e.message.includes('JSON')) throw e;
+              // 忽略解析失败的中间片段，但记录日志方便排查
+              console.debug('[SemanticDistiller] Chunk parse skipped:', line);
             }
           }
 
           if (result) break;
+        }
+
+        // 处理最后剩余的 lineBuffer (如果没有以 \n 结尾)
+        if (!result && lineBuffer.trim().startsWith('data: ')) {
+          try {
+            const data = JSON.parse(lineBuffer.trim().slice(6));
+            if (data.done) result = data.data;
+          } catch (e) { }
         }
 
         // 如果流式没有返回解析好的 data，尝试从累积的文本自行解析

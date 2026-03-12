@@ -184,16 +184,6 @@ app.post('/api/analyze_mood', async (req, res) => {
 // 端点：流式情绪分析 (SSE Streaming)
 // ═══════════════════════════════════════════
 app.post('/api/analyze_mood_stream', async (req, res) => {
-  const apiKey = process.env.SILICONFLOW_API_KEY;
-  if (!apiKey || apiKey === 'your_key_here') {
-    return res.status(500).json({ success: false, error: 'API Key 未配置' });
-  }
-
-  const { user_input, current_time } = req.body;
-  if (!user_input || typeof user_input !== 'string' || !user_input.trim()) {
-    return res.status(400).json({ success: false, error: '缺少 user_input' });
-  }
-
   // 设置 SSE 头
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
@@ -203,17 +193,42 @@ app.post('/api/analyze_mood_stream', async (req, res) => {
   });
 
   try {
-    const fetch = (await import('node-fetch')).default;
+    const { user_input, current_time } = req.body;
+    if (!user_input || typeof user_input !== 'string' || !user_input.trim()) {
+      res.write(`data: ${JSON.stringify({ error: '缺少 user_input', done: true })}\n\n`);
+      res.end();
+      return;
+    }
+
+    const apiKey = process.env.SILICONFLOW_API_KEY?.trim();
+    if (!apiKey || apiKey === 'your_key_here') {
+      res.write(`data: ${JSON.stringify({ error: 'API Key 未配置', done: true })}\n\n`);
+      res.end();
+      return;
+    }
+
+    // 优先使用原生 fetch (Node 18+)，否则回退到 node-fetch
+    const getFetch = async () => {
+      if (typeof global !== 'undefined' && global.fetch) return global.fetch;
+      return (await import('node-fetch')).default;
+    };
+    const currentFetch = await getFetch();
+
     const timeInfo = current_time || new Date().toISOString();
     const systemPrompt = buildSystemPrompt();
     const userMessage = buildUserMessage(user_input.trim(), timeInfo);
 
+    console.log(`[Stream] 开始请求 SiliconFlow (${SILICONFLOW_MODEL})...`);
+
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    const timeoutId = setTimeout(() => {
+      console.warn('[Stream] 请求超时 (30s)');
+      controller.abort();
+    }, 30000);
 
     let response;
     try {
-      response = await fetch(SILICONFLOW_API_URL, {
+      response = await currentFetch(SILICONFLOW_API_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -231,37 +246,42 @@ app.post('/api/analyze_mood_stream', async (req, res) => {
         }),
         signal: controller.signal
       });
+    } catch (err) {
+      console.error('[Stream] Fetch 网络错误:', err.message);
+      res.write(`data: ${JSON.stringify({ error: `网络连接失败: ${err.message}`, done: true })}\n\n`);
+      res.end();
+      return;
     } finally {
       clearTimeout(timeoutId);
     }
 
     if (!response.ok) {
       const errorText = await response.text();
+      console.error(`[Stream] API 响应错误 [${response.status}]:`, errorText);
       res.write(`data: ${JSON.stringify({ error: `API error: ${response.status}`, done: true })}\n\n`);
       res.end();
       return;
     }
 
+    console.log('[Stream] 收到响应头，正在读取流...');
+
     let accumulated = '';
-    const reader = response.body;
+    let lineBuffer = '';
 
-    reader.on('data', (chunk) => {
-      const text = chunk.toString();
-      const lines = text.split('\n').filter(line => line.trim().startsWith('data:'));
+    // 统一处理流的辅助函数
+    const processChunk = (chunkText) => {
+      lineBuffer += chunkText;
+      let newlineIndex;
+      while ((newlineIndex = lineBuffer.indexOf('\n')) >= 0) {
+        const line = lineBuffer.slice(0, newlineIndex).trim();
+        lineBuffer = lineBuffer.slice(newlineIndex + 1);
 
-      for (const line of lines) {
+        if (!line.startsWith('data:')) continue;
         const data = line.replace(/^data:\s*/, '').trim();
+
         if (data === '[DONE]') {
-          // 流结束，发送最终结果
-          try {
-            const jsonMatch = accumulated.match(/\{[\s\S]*\}/);
-            const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : accumulated);
-            res.write(`data: ${JSON.stringify({ done: true, data: parsed })}\n\n`);
-          } catch (e) {
-            res.write(`data: ${JSON.stringify({ done: true, error: '解析失败', raw: accumulated })}\n\n`);
-          }
-          res.end();
-          return;
+          finishStream();
+          return true;
         }
 
         try {
@@ -269,39 +289,67 @@ app.post('/api/analyze_mood_stream', async (req, res) => {
           const delta = parsed.choices?.[0]?.delta?.content || '';
           if (delta) {
             accumulated += delta;
-            // 每次有新 token 就推送进度
             res.write(`data: ${JSON.stringify({ delta, done: false })}\n\n`);
           }
         } catch (e) {
-          // 忽略非 JSON 行
+          // ignore incomplete json from delta
         }
       }
-    });
+      return false;
+    };
 
-    reader.on('end', () => {
-      if (!res.writableEnded) {
-        // 如果没收到 [DONE] 但流结束了
-        try {
-          const jsonMatch = accumulated.match(/\{[\s\S]*\}/);
-          const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : accumulated);
-          res.write(`data: ${JSON.stringify({ done: true, data: parsed })}\n\n`);
-        } catch (e) {
-          res.write(`data: ${JSON.stringify({ done: true, error: '解析失败' })}\n\n`);
+    const finishStream = () => {
+      if (res.writableEnded) return;
+      try {
+        const jsonMatch = accumulated.match(/\{[\s\S]*\}/);
+        const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : accumulated);
+        res.write(`data: ${JSON.stringify({ done: true, data: parsed })}\n\n`);
+      } catch (e) {
+        console.error('[Stream] Final parse error:', e.message);
+        res.write(`data: ${JSON.stringify({ done: true, error: '解析失败', raw: accumulated })}\n\n`);
+      }
+      res.end();
+    };
+
+    const reader = response.body;
+
+    if (typeof reader.getReader === 'function') {
+      // 这里的 response.body 是 Web ReadableStream (原生 fetch)
+      const webReader = reader.getReader();
+      const decoder = new TextDecoder();
+
+      try {
+        while (true) {
+          const { done, value } = await webReader.read();
+          if (done) break;
+          const text = decoder.decode(value, { stream: true });
+          if (processChunk(text)) break;
         }
-        res.end();
+      } finally {
+        webReader.releaseLock();
+        finishStream();
       }
-    });
-
-    reader.on('error', (err) => {
-      console.error('[Stream] Error:', err.message);
-      if (!res.writableEnded) {
-        res.write(`data: ${JSON.stringify({ done: true, error: err.message })}\n\n`);
-        res.end();
-      }
-    });
+    } else {
+      // 这里的 response.body 是 Node.js Readable Stream (node-fetch)
+      reader.on('data', (chunk) => {
+        if (processChunk(chunk.toString())) {
+          // done
+        }
+      });
+      reader.on('end', () => {
+        finishStream();
+      });
+      reader.on('error', (err) => {
+        console.error('[Stream] Node stream error:', err.message);
+        if (!res.writableEnded) {
+          res.write(`data: ${JSON.stringify({ done: true, error: err.message })}\n\n`);
+          res.end();
+        }
+      });
+    }
 
   } catch (error) {
-    console.error('[Stream] 请求失败:', error.message);
+    console.error('[Stream] 顶层捕获请求失败:', error.message);
     if (!res.writableEnded) {
       res.write(`data: ${JSON.stringify({ done: true, error: error.message })}\n\n`);
       res.end();

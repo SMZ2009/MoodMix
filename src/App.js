@@ -317,53 +317,106 @@ const InterventionModal = ({ isOpen, onClose, onSelectType }) => {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center" style={{ background: 'rgba(0,0,0,0.08)', backdropFilter: 'blur(12px)' }}
+      className="fixed inset-0 z-50 flex items-center justify-center px-4"
+      style={{
+        background: 'rgba(15, 18, 22, 0.45)',
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)'
+      }}
       onClick={onClose}
     >
       <div
-        className="w-full max-w-4xl rounded-t-[2rem] p-8 pb-12 mb-20 animate-in slide-in-from-bottom duration-300"
-        style={{ background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(40px) saturate(1.3)', WebkitBackdropFilter: 'blur(40px) saturate(1.3)', border: '1px solid rgba(255,255,255,0.5)', boxShadow: '0 8px 32px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.5)' }}
+        className="w-full max-w-[22rem] sm:max-w-[24rem] rounded-[2.5rem] p-8 sm:p-10 animate-in fade-in zoom-in duration-500"
+        style={{
+          background: 'linear-gradient(165deg, rgba(255, 255, 255, 0.88), rgba(246, 248, 250, 0.82))',
+          backdropFilter: 'blur(45px) saturate(1.4)',
+          WebkitBackdropFilter: 'blur(45px) saturate(1.3)',
+          border: '1px solid rgba(255, 255, 255, 0.6)',
+          boxShadow: '0 24px 64px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.8)',
+          position: 'relative',
+          overflow: 'hidden'
+        }}
         onClick={(e) => e.stopPropagation()}
       >
+        {/* 背景装饰性烟云 */}
+        <div
+          className="absolute -top-12 -right-12 w-48 h-48 rounded-full blur-[64px] pointer-events-none"
+          style={{ background: 'radial-gradient(circle, rgba(165, 212, 230, 0.22) 0%, transparent 70%)' }}
+        />
+        <div
+          className="absolute -bottom-12 -left-12 w-48 h-48 rounded-full blur-[64px] pointer-events-none"
+          style={{ background: 'radial-gradient(circle, rgba(235, 224, 206, 0.28) 0%, transparent 70%)' }}
+        />
         <div className="flex flex-col items-center">
-          <Heart className="w-12 h-12 text-red-500 mb-6 fill-current animate-pulse" />
-          <h2 style={{ fontSize: '1.5rem', fontFamily: '"Songti SC",serif', fontWeight: 500, marginBottom: '2rem', textAlign: 'center', lineHeight: 1.6, color: '#000000', letterSpacing: '0.08em' }}>
-            抱抱你。<br />此刻你是想...
-          </h2>
-          <div className="flex flex-col w-full gap-3">
-            <InteractiveButton
-              variant="secondary"
-              fullWidth
-              size="large"
-              onClick={() => onSelectType('soothe')}
+          {/* 东方美学图标: 抽象水滴/禅意符号 */}
+          <div className="mb-8 relative">
+            <div
+              className="w-16 h-16 rounded-full flex items-center justify-center"
               style={{
-                background: '#3c3b36',
-                border: '1px solid #2a2924',
-                color: '#ebdfc8',
-                height: '56px',
-                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
-                fontWeight: 600
+                background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0.2))',
+                boxShadow: '0 8px 24px rgba(0, 0, 0, 0.04)',
+                border: '1px solid rgba(255, 255, 255, 0.8)'
               }}
             >
-              🥰 温柔治愈片刻
-            </InteractiveButton>
-            <InteractiveButton
-              variant="secondary"
-              fullWidth
-              size="large"
-              onClick={() => onSelectType('vent')}
-              style={{
-                background: '#3c3b36',
-                border: '1px solid #2a2924',
-                color: '#ebdfc8',
-                height: '56px',
-                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
-                fontWeight: 600
-              }}
-            >
-              💥 肆意释放压力
-            </InteractiveButton>
+              <Droplets className="w-8 h-8 text-indigo-400/80" style={{ filter: 'drop-shadow(0 0 12px rgba(129, 140, 248, 0.4))' }} />
+            </div>
+            <div
+              className="absolute -inset-2 rounded-full border border-indigo-200/30 animate-ping opacity-20"
+              style={{ animationDuration: '3s' }}
+            />
           </div>
+          <h2
+            className="text-center mb-8 px-2"
+            style={{
+              fontSize: '1.25rem',
+              fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif',
+              fontWeight: 700,
+              lineHeight: 1.8,
+              color: '#1f2937',
+              letterSpacing: '0.08em'
+            }}
+          >
+            万般心绪，皆是过客。<br />此刻，愿以何种心境入杯？
+          </h2>
+          <div className="flex flex-col w-full gap-4">
+            <button
+              onClick={() => onSelectType('soothe')}
+              className="group relative h-[58px] w-full rounded-2xl overflow-hidden transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
+              style={{
+                background: 'linear-gradient(135deg, #4b5563 0%, #1f2937 100%)',
+                boxShadow: '0 12px 24px rgba(31, 41, 55, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.15)'
+              }}
+            >
+              <span className="relative z-10 font-bold tracking-[0.15em] text-[#f7f0e4]" style={{ fontFamily: '"STKaiti", "KaiTi", serif' }}>
+                寻一抹宁静 (Soothe)
+              </span>
+              <div
+                className="absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-500"
+                style={{ background: 'radial-gradient(circle at center, white, transparent 70%)' }}
+              />
+            </button>
+
+            <button
+              onClick={() => onSelectType('vent')}
+              className="group relative h-[58px] w-full rounded-2xl overflow-hidden transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
+              style={{
+                background: 'transparent',
+                border: '1.5px solid #4b5563',
+              }}
+            >
+              <span className="relative z-10 font-bold tracking-[0.15em] text-[#4b5563]" style={{ fontFamily: '"STKaiti", "KaiTi", serif' }}>
+                觅一处疏解 (Vent)
+              </span>
+              <div
+                className="absolute inset-0 opacity-0 group-hover:opacity-5 transition-opacity duration-300"
+                style={{ background: '#4b5563' }}
+              />
+            </button>
+          </div>
+
+          <p className="mt-8 text-[11px] text-gray-400 font-light tracking-widest italic" style={{ fontFamily: '"Songti SC", serif' }}>
+            MOOD MIX · 烟云供养
+          </p>
         </div>
       </div>
     </div>

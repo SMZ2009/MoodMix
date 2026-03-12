@@ -1041,7 +1041,7 @@ const DrinkDetailSection = ({ drink, checkedIngredients, onToggleIngredient, onB
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#F7F6F2] h-screen overflow-y-auto pb-48 pb-[env(safe-area-inset-bottom,20px)+120px]">
+    <div className="fixed inset-0 z-50 bg-[#F7F6F2] h-screen overflow-y-auto pb-32">
       {/* 顶部浸入式图片区域 */}
       <div className="relative h-[42vh] w-full overflow-hidden ink-wash-mask">
         <img
@@ -1062,6 +1062,7 @@ const DrinkDetailSection = ({ drink, checkedIngredients, onToggleIngredient, onB
               background: 'rgba(255,255,255,0.15)',
               backdropFilter: 'blur(12px)',
               border: '1px solid rgba(255,255,255,0.2)',
+              color: 'white',
               width: '42px',
               height: '42px'
             }}
@@ -1075,6 +1076,7 @@ const DrinkDetailSection = ({ drink, checkedIngredients, onToggleIngredient, onB
               background: 'rgba(255,255,255,0.15)',
               backdropFilter: 'blur(12px)',
               border: '1px solid rgba(255,255,255,0.2)',
+              color: 'white',
               width: '42px',
               height: '42px'
             }}
@@ -1085,7 +1087,7 @@ const DrinkDetailSection = ({ drink, checkedIngredients, onToggleIngredient, onB
       </div>
 
       {/* 极简详情内容容器 */}
-      <div className="relative -mt-16 detail-glass-container px-7 pt-9 max-w-2xl mx-auto">
+      <div className="relative -mt-16 detail-glass-container px-7 pt-9 pb-12 max-w-2xl mx-auto">
         {/* 标题标题区域 */}
         <div className="mb-9">
           <div className="flex flex-wrap items-baseline gap-3 mb-4">
@@ -1205,6 +1207,9 @@ const DrinkDetailSection = ({ drink, checkedIngredients, onToggleIngredient, onB
             ))}
           </div>
         </div>
+
+        {/* 底部占位空白，确保滚动到底时内容高于悬浮操作栏 */}
+        <div className="h-4" />
       </div>
 
       {/* 底部悬浮操作栏 */}

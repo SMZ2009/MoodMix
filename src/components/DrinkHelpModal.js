@@ -174,7 +174,9 @@ const DrinkHelpModal = ({ drink, onClose }) => {
               color: isLoading || !question.trim() ? 'rgba(0, 0, 0, 0.4)' : '#ebdfc8',
               border: isLoading || !question.trim() ? '1px solid rgba(0,0,0,0.1)' : '1px solid #2a2924',
               boxShadow: isLoading || !question.trim() ? 'none' : '0 4px 12px rgba(0,0,0,0.3)',
-              fontWeight: 600
+              fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif',
+              letterSpacing: '0.15em',
+              fontWeight: 700
             }}
           >
             <Send size={18} className="mr-2" />

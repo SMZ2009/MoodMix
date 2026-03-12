@@ -348,22 +348,26 @@ const InterventionModal = ({ isOpen, onClose, onSelectType }) => {
           style={{ background: 'radial-gradient(circle, rgba(235, 224, 206, 0.28) 0%, transparent 70%)' }}
         />
         <div className="flex flex-col items-center">
-          {/* 东方美学图标: 抽象水滴/禅意符号 */}
-          <div className="mb-8 relative">
-            <div
-              className="w-16 h-16 rounded-full flex items-center justify-center"
+          {/* 精致胶囊型标签 */}
+          <div
+            className="inline-flex items-center justify-center px-3 py-1 rounded-full mb-6"
+            style={{
+              background: 'rgba(255,255,255,0.54)',
+              border: '1px solid rgba(255,255,255,0.44)',
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.5)'
+            }}
+          >
+            <span
               style={{
-                background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0.2))',
-                boxShadow: '0 8px 24px rgba(0, 0, 0, 0.04)',
-                border: '1px solid rgba(255, 255, 255, 0.8)'
+                fontSize: '0.72rem',
+                letterSpacing: '0.16em',
+                fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif',
+                color: 'rgba(118, 98, 126, 0.92)',
+                fontWeight: 700
               }}
             >
-              <Droplets className="w-8 h-8 text-indigo-400/80" style={{ filter: 'drop-shadow(0 0 12px rgba(129, 140, 248, 0.4))' }} />
-            </div>
-            <div
-              className="absolute -inset-2 rounded-full border border-indigo-200/30 animate-ping opacity-20"
-              style={{ animationDuration: '3s' }}
-            />
+              仪轨指引
+            </span>
           </div>
           <h2
             className="text-center mb-8 px-2"
@@ -414,9 +418,6 @@ const InterventionModal = ({ isOpen, onClose, onSelectType }) => {
             </button>
           </div>
 
-          <p className="mt-8 text-[11px] text-gray-400 font-light tracking-widest italic" style={{ fontFamily: '"Songti SC", serif' }}>
-            MOOD MIX · 烟云供养
-          </p>
         </div>
       </div>
     </div>

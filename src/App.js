@@ -18,6 +18,7 @@ import { evaluateAndSortDrinks } from './engine/vectorEngine';
 import { executeRecommendationPipeline, extractRecommendationResult } from './agents';
 import { generatePhilosophyTags } from './engine/philosophyTags';
 import { fetchLiveQuotes } from './api/quoteGenerator';
+import { translateDrinkName, translateIngredient } from './data/translations';
 import MineSection from './components/MineSection';
 import { useTouchFeedback, useKeyboardNavigation, useCocktailApi } from './hooks';
 import { InteractiveButton, SwipeableCard, PageTransition, Modal } from './components/ui';
@@ -673,31 +674,48 @@ const DrinkResultCard = ({ drink, isActive, moodResult, customQuote }) => {
         <div className="absolute inset-0 bg-gradient-to-b from-black/5 via-transparent to-black/85" />
 
         <div className="absolute top-4 sm:top-6 left-4 sm:left-6">
-          <div className="bg-white/10 backdrop-blur-md border border-white/20 px-3 sm:px-4 py-1 sm:py-1.5 rounded-full flex items-center gap-1.5 sm:gap-2 text-white/90 text-[10px] sm:text-[11px] font-bold tracking-wide">
+          <div
+            className="bg-white/10 backdrop-blur-md border border-white/20 px-3 sm:px-4 py-1 sm:py-1.5 rounded-full flex items-center gap-1.5 sm:gap-2 text-white/90 text-[10px] sm:text-[11px] font-bold tracking-wide"
+            style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif' }}
+          >
             <BriefIcon size={14} className="opacity-80 text-blue-300" />
             {drink.abv > 0 ? `微醺 | ABV ${drink.abv}%` : '无酒精'}
           </div>
         </div>
 
         <div className="absolute inset-0 flex flex-col items-center justify-end pb-6 sm:pb-10 px-4 sm:px-6 text-center">
-          <h2 className="text-2xl sm:text-3xl font-bold text-white mb-3 sm:mb-4 tracking-tight leading-none drop-shadow-md">{drink.name}</h2>
+          <h2
+            className="text-2xl sm:text-3xl font-bold text-white mb-3 sm:mb-4 tracking-tight leading-none drop-shadow-md"
+            style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif', letterSpacing: '0.05em' }}
+          >
+            {drink.name_cn || translateDrinkName(drink.name) || drink.name}
+          </h2>
 
           {/* Philosophy Tags & Quote */}
           <div className="mb-4 sm:mb-6 flex flex-col items-center w-full px-1 sm:px-2">
             <div className="flex flex-wrap justify-center gap-1.5 sm:gap-2 mb-1.5 sm:mb-2">
               {philosophy.tags.map(tag => (
-                <span key={tag} className="px-2 sm:px-2.5 py-[2px] sm:py-[3px] rounded bg-white/10 text-white/90 border border-white/20 text-[9px] sm:text-[10px] tracking-widest font-light mix-blend-screen">
+                <span
+                  key={tag}
+                  className="px-2 sm:px-2.5 py-[2px] sm:py-[3px] rounded bg-white/10 text-white/90 border border-white/20 text-[9px] sm:text-[10px] tracking-widest mix-blend-screen"
+                  style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif', fontWeight: 500 }}
+                >
                   {tag}
                 </span>
               ))}
             </div>
             {/* 渐变替换容器: 本地原始语录居中打底，一旦有大模型定制语录，通过 CSS opacity 平滑交叉过渡 */}
             <div className="relative w-full flex justify-center min-h-[36px] sm:min-h-[40px]">
-              <p className={`absolute text-[11px] sm:text-[12px] text-white/70 font-light italic opacity-90 leading-relaxed max-w-[180px] sm:max-w-[220px] transition-opacity duration-1000 ${customQuote ? 'opacity-0' : 'opacity-100'}`}>
+              <p
+                className={`absolute text-[11px] sm:text-[12px] text-white/70 font-light italic opacity-90 leading-relaxed max-w-[180px] sm:max-w-[220px] transition-opacity duration-1000 ${customQuote ? 'opacity-0' : 'opacity-100'}`}
+                style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif' }}
+              >
                 {philosophy.quote}
               </p>
-              <p className={`absolute text-[11px] sm:text-[12px] font-medium italic leading-relaxed max-w-[180px] sm:max-w-[220px] transition-opacity duration-1000 ${customQuote ? 'opacity-100' : 'opacity-0'}`}
+              <p
+                className={`absolute text-[11px] sm:text-[12px] font-medium italic leading-relaxed max-w-[180px] sm:max-w-[220px] transition-opacity duration-1000 ${customQuote ? 'opacity-100' : 'opacity-0'}`}
                 style={{
+                  fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif',
                   color: '#E0E7FF',
                   textShadow: '0 0 10px rgba(167, 139, 250, 0.4)'
                 }}>
@@ -714,7 +732,12 @@ const DrinkResultCard = ({ drink, isActive, moodResult, customQuote }) => {
                   <div className="text-white/90">
                     <IconComponent size={20} strokeWidth={2.5} />
                   </div>
-                  <span className="text-[8px] sm:text-[9px] font-black text-white/30 tracking-[0.2em] uppercase leading-none">{ing.label}</span>
+                  <span
+                    className="text-[10px] sm:text-[11px] font-medium text-white/60 tracking-[0.1em] leading-none"
+                    style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif' }}
+                  >
+                    {translateIngredient(ing.label)}
+                  </span>
                 </div>
               );
             })}

@@ -2,6 +2,7 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Edit3, ChevronRight, ArrowLeft, Camera, Trash2, Heart } from 'lucide-react';
 import { SwipeableCard } from './ui';
 import IngredientManager from './IngredientManager';
+import { translateDrinkName } from '../data/translations';
 
 const STORAGE_KEY_PROFILE = 'moodmix_profile';
 
@@ -182,7 +183,7 @@ const MineSection = ({ userInventory, onUpdateInventory, favorites, onSelectDrin
                     </button>
                 </div>
                 <div className="w-full">
-                    <div className="flex flex-row overflow-x-auto overflow-y-hidden no-scrollbar gap-2 py-2 w-full">
+                    <div className="flex flex-row flex-nowrap overflow-x-auto overflow-y-hidden no-scrollbar gap-2 py-2 w-full">
                         {allInventoryItems.length === 0 ? (
                             <div className="text-xs text-gray-400 italic">暂无原料，点击管理添加</div>
                         ) : (
@@ -330,8 +331,16 @@ const MineSection = ({ userInventory, onUpdateInventory, favorites, onSelectDrin
                                     </div>
                                 </div>
                                 <div className="px-3 sm:px-4 py-2 sm:py-3">
-                                    <h3 className="font-bold text-sm sm:text-[15px] text-gray-800 leading-tight mb-0.5 sm:mb-1">{drink.name}</h3>
-                                    <p className="text-[11px] sm:text-[12px] text-gray-400 leading-tight line-clamp-1 font-medium italic">
+                                    <h3
+                                        className="font-bold text-sm sm:text-[15px] text-gray-800 leading-tight mb-0.5 sm:mb-1"
+                                        style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif' }}
+                                    >
+                                        {drink.name_cn || translateDrinkName(drink.name) || drink.name}
+                                    </h3>
+                                    <p
+                                        className="text-[11px] sm:text-[12px] text-gray-400 leading-tight line-clamp-1 font-medium italic"
+                                        style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif' }}
+                                    >
                                         {drink.subName || drink.sub}
                                     </p>
                                 </div>

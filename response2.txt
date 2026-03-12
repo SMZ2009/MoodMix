@@ -1,0 +1,746 @@
+data: {"delta":"{\n","done":false}
+
+data: {"delta":" ","done":false}
+
+data: {"delta":" \"","done":false}
+
+data: {"delta":"emotion","done":false}
+
+data: {"delta":"\":","done":false}
+
+data: {"delta":" {\n","done":false}
+
+data: {"delta":"   ","done":false}
+
+data: {"delta":" \"","done":false}
+
+data: {"delta":"physical","done":false}
+
+data: {"delta":"\":","done":false}
+
+data: {"delta":" {","done":false}
+
+data: {"delta":" \"","done":false}
+
+data: {"delta":"state","done":false}
+
+data: {"delta":"\":","done":false}
+
+data: {"delta":" \"","done":false}
+
+data: {"delta":"平静","done":false}
+
+data: {"delta":"\",","done":false}
+
+data: {"delta":" \"","done":false}
+
+data: {"delta":"int","done":false}
+
+data: {"delta":"ensity","done":false}
+
+data: {"delta":"\":","done":false}
+
+data: {"delta":" ","done":false}
+
+data: {"delta":"0","done":false}
+
+data: {"delta":".","done":false}
+
+data: {"delta":"5","done":false}
+
+data: {"delta":" },\n","done":false}
+
+data: {"delta":"   ","done":false}
+
+data: {"delta":" \"","done":false}
+
+data: {"delta":"phil","done":false}
+
+data: {"delta":"osoph","done":false}
+
+data: {"delta":"y","done":false}
+
+data: {"delta":"\":","done":false}
+
+data: {"delta":" {","done":false}
+
+data: {"delta":" \"","done":false}
+
+data: {"delta":"w","done":false}
+
+data: {"delta":"ux","done":false}
+
+data: {"delta":"ing","done":false}
+
+data: {"delta":"\":","done":false}
+
+data: {"delta":" \"","done":false}
+
+data: {"delta":"土","done":false}
+
+data: {"delta":"\",","done":false}
+
+data: {"delta":" \"","done":false}
+
+data: {"delta":"organ","done":false}
+
+data: {"delta":"\":","done":false}
+
+data: {"delta":" \"","done":false}
+
+data: {"delta":"脾","done":false}
+
+data: {"delta":"\"","done":false}
+
+data: {"delta":" },\n","done":false}
+
+data: {"delta":"   ","done":false}
+
+data: {"delta":" \"","done":false}
+
+data: {"delta":"drink","done":false}
+
+data: {"delta":"Mapping","done":false}
+
+data: {"delta":"\":","done":false}
+
+data: {"delta":" {","done":false}
+
+data: {"delta":" \"","done":false}
+
+data: {"delta":"t","done":false}
+
+data: {"delta":"aste","done":false}
+
+data: {"delta":"Score","done":false}
+
+data: {"delta":"\":","done":false}
+
+data: {"delta":" ","done":false}
+
+data: {"delta":"6","done":false}
+
+data: {"delta":",","done":false}
+
+data: {"delta":" \"","done":false}
+
+data: {"delta":"color","done":false}
+
+data: {"delta":"Code","done":false}
+
+data: {"delta":"\":","done":false}
+
+data: {"delta":" ","done":false}
+
+data: {"delta":"3","done":false}
+
+data: {"delta":" }\n","done":false}
+
+data: {"delta":" ","done":false}
+
+data: {"delta":" },\n","done":false}
+
+data: {"delta":" ","done":false}
+
+data: {"delta":" \"","done":false}
+
+data: {"delta":"s","done":false}
+
+data: {"delta":"omatic","done":false}
+
+data: {"delta":"\":","done":false}
+
+data: {"delta":" {\n","done":false}
+
+data: {"delta":"   ","done":false}
+
+data: {"delta":" \"","done":false}
+
+data: {"delta":"physical","done":false}
+
+data: {"delta":"\":","done":false}
+
+data: {"delta":" {","done":false}
+
+data: {"delta":" \"","done":false}
+
+data: {"delta":"s","done":false}
+
+data: {"delta":"ensation","done":false}
+
+data: {"delta":"\":","done":false}
+
+data: {"delta":" \"","done":false}
+
+data: {"delta":"舒适","done":false}
+
+data: {"delta":"\",","done":false}
+
+data: {"delta":" \"","done":false}
+
+data: {"delta":"int","done":false}
+
+data: {"delta":"ensity","done":false}
+
+data: {"delta":"\":","done":false}
+
+data: {"delta":" ","done":false}
+
+data: {"delta":"0","done":false}
+
+data: {"delta":".","done":false}
+
+data: {"delta":"6","done":false}
+
+data: {"delta":" },\n","done":false}
+
+data: {"delta":"   ","done":false}
+
+data: {"delta":" \"","done":false}
+
+data: {"delta":"phil","done":false}
+
+data: {"delta":"osoph","done":false}
+
+data: {"delta":"y","done":false}
+
+data: {"delta":"\":","done":false}
+
+data: {"delta":" {","done":false}
+
+data: {"delta":" \"","done":false}
+
+data: {"delta":"direction","done":false}
+
+data: {"delta":"\":","done":false}
+
+data: {"delta":" \"","done":false}
+
+data: {"delta":"沉","done":false}
+
+data: {"delta":"\",","done":false}
+
+data: {"delta":" \"","done":false}
+
+data: {"delta":"y","done":false}
+
+data: {"delta":"iny","done":false}
+
+data: {"delta":"ang","done":false}
+
+data: {"delta":"\":","done":false}
+
+data: {"delta":" \"","done":false}
+
+data: {"delta":"偏","done":false}
+
+data: {"delta":"阳","done":false}
+
+data: {"delta":"\"","done":false}
+
+data: {"delta":" },\n","done":false}
+
+data: {"delta":"   ","done":false}
+
+data: {"delta":" \"","done":false}
+
+data: {"delta":"drink","done":false}
+
+data: {"delta":"Mapping","done":false}
+
+data: {"delta":"\":","done":false}
+
+data: {"delta":" {","done":false}
+
+data: {"delta":" \"","done":false}
+
+data: {"delta":"temperature","done":false}
+
+data: {"delta":"\":","done":false}
+
+data: {"delta":" ","done":false}
+
+data: {"delta":"1","done":false}
+
+data: {"delta":",","done":false}
+
+data: {"delta":" \"","done":false}
+
+data: {"delta":"texture","done":false}
+
+data: {"delta":"Score","done":false}
+
+data: {"delta":"\":","done":false}
+
+data: {"delta":" ","done":false}
+
+data: {"delta":"0","done":false}
+
+data: {"delta":" }\n","done":false}
+
+data: {"delta":" ","done":false}
+
+data: {"delta":" },\n","done":false}
+
+data: {"delta":" ","done":false}
+
+data: {"delta":" \"","done":false}
+
+data: {"delta":"time","done":false}
+
+data: {"delta":"\":","done":false}
+
+data: {"delta":" {\n","done":false}
+
+data: {"delta":"   ","done":false}
+
+data: {"delta":" \"","done":false}
+
+data: {"delta":"physical","done":false}
+
+data: {"delta":"\":","done":false}
+
+data: {"delta":" {","done":false}
+
+data: {"delta":" \"","done":false}
+
+data: {"delta":"hour","done":false}
+
+data: {"delta":"\":","done":false}
+
+data: {"delta":" ","done":false}
+
+data: {"delta":"1","done":false}
+
+data: {"delta":"0","done":false}
+
+data: {"delta":",","done":false}
+
+data: {"delta":" \"","done":false}
+
+data: {"delta":"period","done":false}
+
+data: {"delta":"\":","done":false}
+
+data: {"delta":" \"","done":false}
+
+data: {"delta":"上午","done":false}
+
+data: {"delta":"\",","done":false}
+
+data: {"delta":" \"","done":false}
+
+data: {"delta":"int","done":false}
+
+data: {"delta":"ensity","done":false}
+
+data: {"delta":"\":","done":false}
+
+data: {"delta":" ","done":false}
+
+data: {"delta":"0","done":false}
+
+data: {"delta":".","done":false}
+
+data: {"delta":"8","done":false}
+
+data: {"delta":" },\n","done":false}
+
+data: {"delta":"   ","done":false}
+
+data: {"delta":" \"","done":false}
+
+data: {"delta":"drink","done":false}
+
+data: {"delta":"Mapping","done":false}
+
+data: {"delta":"\":","done":false}
+
+data: {"delta":" {","done":false}
+
+data: {"delta":" \"","done":false}
+
+data: {"delta":"temp","done":false}
+
+data: {"delta":"or","done":false}
+
+data: {"delta":"ality","done":false}
+
+data: {"delta":"\":","done":false}
+
+data: {"delta":" ","done":false}
+
+data: {"delta":"1","done":false}
+
+data: {"delta":"0","done":false}
+
+data: {"delta":" }\n","done":false}
+
+data: {"delta":" ","done":false}
+
+data: {"delta":" },\n","done":false}
+
+data: {"delta":" ","done":false}
+
+data: {"delta":" \"","done":false}
+
+data: {"delta":"c","done":false}
+
+data: {"delta":"ognitive","done":false}
+
+data: {"delta":"\":","done":false}
+
+data: {"delta":" {\n","done":false}
+
+data: {"delta":"   ","done":false}
+
+data: {"delta":" \"","done":false}
+
+data: {"delta":"physical","done":false}
+
+data: {"delta":"\":","done":false}
+
+data: {"delta":" {","done":false}
+
+data: {"delta":" \"","done":false}
+
+data: {"delta":"state","done":false}
+
+data: {"delta":"\":","done":false}
+
+data: {"delta":" \"","done":false}
+
+data: {"delta":"专注","done":false}
+
+data: {"delta":"\",","done":false}
+
+data: {"delta":" \"","done":false}
+
+data: {"delta":"int","done":false}
+
+data: {"delta":"ensity","done":false}
+
+data: {"delta":"\":","done":false}
+
+data: {"delta":" ","done":false}
+
+data: {"delta":"0","done":false}
+
+data: {"delta":".","done":false}
+
+data: {"delta":"7","done":false}
+
+data: {"delta":" },\n","done":false}
+
+data: {"delta":"   ","done":false}
+
+data: {"delta":" \"","done":false}
+
+data: {"delta":"drink","done":false}
+
+data: {"delta":"Mapping","done":false}
+
+data: {"delta":"\":","done":false}
+
+data: {"delta":" {","done":false}
+
+data: {"delta":" \"","done":false}
+
+data: {"delta":"ar","done":false}
+
+data: {"delta":"oma","done":false}
+
+data: {"delta":"Score","done":false}
+
+data: {"delta":"\":","done":false}
+
+data: {"delta":" ","done":false}
+
+data: {"delta":"7","done":false}
+
+data: {"delta":" }\n","done":false}
+
+data: {"delta":" ","done":false}
+
+data: {"delta":" },\n","done":false}
+
+data: {"delta":" ","done":false}
+
+data: {"delta":" \"","done":false}
+
+data: {"delta":"demand","done":false}
+
+data: {"delta":"\":","done":false}
+
+data: {"delta":" {\n","done":false}
+
+data: {"delta":"   ","done":false}
+
+data: {"delta":" \"","done":false}
+
+data: {"delta":"physical","done":false}
+
+data: {"delta":"\":","done":false}
+
+data: {"delta":" {","done":false}
+
+data: {"delta":" \"","done":false}
+
+data: {"delta":"state","done":false}
+
+data: {"delta":"\":","done":false}
+
+data: {"delta":" \"","done":false}
+
+data: {"delta":"需要","done":false}
+
+data: {"delta":"\",","done":false}
+
+data: {"delta":" \"","done":false}
+
+data: {"delta":"int","done":false}
+
+data: {"delta":"ensity","done":false}
+
+data: {"delta":"\":","done":false}
+
+data: {"delta":" ","done":false}
+
+data: {"delta":"0","done":false}
+
+data: {"delta":".","done":false}
+
+data: {"delta":"4","done":false}
+
+data: {"delta":" },\n","done":false}
+
+data: {"delta":"   ","done":false}
+
+data: {"delta":" \"","done":false}
+
+data: {"delta":"phil","done":false}
+
+data: {"delta":"osoph","done":false}
+
+data: {"delta":"y","done":false}
+
+data: {"delta":"\":","done":false}
+
+data: {"delta":" {","done":false}
+
+data: {"delta":" \"","done":false}
+
+data: {"delta":"type","done":false}
+
+data: {"delta":"\":","done":false}
+
+data: {"delta":" \"","done":false}
+
+data: {"delta":"动","done":false}
+
+data: {"delta":"\"","done":false}
+
+data: {"delta":" },\n","done":false}
+
+data: {"delta":"   ","done":false}
+
+data: {"delta":" \"","done":false}
+
+data: {"delta":"drink","done":false}
+
+data: {"delta":"Mapping","done":false}
+
+data: {"delta":"\":","done":false}
+
+data: {"delta":" {","done":false}
+
+data: {"delta":" \"","done":false}
+
+data: {"delta":"action","done":false}
+
+data: {"delta":"Score","done":false}
+
+data: {"delta":"\":","done":false}
+
+data: {"delta":" ","done":false}
+
+data: {"delta":"3","done":false}
+
+data: {"delta":" }\n","done":false}
+
+data: {"delta":" ","done":false}
+
+data: {"delta":" },\n","done":false}
+
+data: {"delta":" ","done":false}
+
+data: {"delta":" \"","done":false}
+
+data: {"delta":"social","done":false}
+
+data: {"delta":"Context","done":false}
+
+data: {"delta":"\":","done":false}
+
+data: {"delta":" {\n","done":false}
+
+data: {"delta":"   ","done":false}
+
+data: {"delta":" \"","done":false}
+
+data: {"delta":"physical","done":false}
+
+data: {"delta":"\":","done":false}
+
+data: {"delta":" {","done":false}
+
+data: {"delta":" \"","done":false}
+
+data: {"delta":"state","done":false}
+
+data: {"delta":"\":","done":false}
+
+data: {"delta":" \"","done":false}
+
+data: {"delta":"独","done":false}
+
+data: {"delta":"处","done":false}
+
+data: {"delta":"\",","done":false}
+
+data: {"delta":" \"","done":false}
+
+data: {"delta":"int","done":false}
+
+data: {"delta":"ensity","done":false}
+
+data: {"delta":"\":","done":false}
+
+data: {"delta":" ","done":false}
+
+data: {"delta":"0","done":false}
+
+data: {"delta":".","done":false}
+
+data: {"delta":"9","done":false}
+
+data: {"delta":" },\n","done":false}
+
+data: {"delta":"   ","done":false}
+
+data: {"delta":" \"","done":false}
+
+data: {"delta":"drink","done":false}
+
+data: {"delta":"Mapping","done":false}
+
+data: {"delta":"\":","done":false}
+
+data: {"delta":" {","done":false}
+
+data: {"delta":" \"","done":false}
+
+data: {"delta":"ratio","done":false}
+
+data: {"delta":"Score","done":false}
+
+data: {"delta":"\":","done":false}
+
+data: {"delta":" ","done":false}
+
+data: {"delta":"8","done":false}
+
+data: {"delta":"5","done":false}
+
+data: {"delta":" }\n","done":false}
+
+data: {"delta":" ","done":false}
+
+data: {"delta":" },\n","done":false}
+
+data: {"delta":" ","done":false}
+
+data: {"delta":" \"","done":false}
+
+data: {"delta":"is","done":false}
+
+data: {"delta":"Negative","done":false}
+
+data: {"delta":"\":","done":false}
+
+data: {"delta":" false","done":false}
+
+data: {"delta":",\n","done":false}
+
+data: {"delta":" ","done":false}
+
+data: {"delta":" \"","done":false}
+
+data: {"delta":"negative","done":false}
+
+data: {"delta":"Intent","done":false}
+
+data: {"delta":"\":","done":false}
+
+data: {"delta":" \"","done":false}
+
+data: {"delta":"vent","done":false}
+
+data: {"delta":"/","done":false}
+
+data: {"delta":"so","done":false}
+
+data: {"delta":"o","done":false}
+
+data: {"delta":"the","done":false}
+
+data: {"delta":"/","done":false}
+
+data: {"delta":"unc","done":false}
+
+data: {"delta":"lear","done":false}
+
+data: {"delta":"\",\n","done":false}
+
+data: {"delta":" ","done":false}
+
+data: {"delta":" \"","done":false}
+
+data: {"delta":"summary","done":false}
+
+data: {"delta":"\":","done":false}
+
+data: {"delta":" \"","done":false}
+
+data: {"delta":"上午","done":false}
+
+data: {"delta":"十","done":false}
+
+data: {"delta":"点","done":false}
+
+data: {"delta":"，","done":false}
+
+data: {"delta":"感觉","done":false}
+
+data: {"delta":"平静","done":false}
+
+data: {"delta":"专注","done":false}
+
+data: {"delta":"，","done":false}
+
+data: {"delta":"需要","done":false}
+
+data: {"delta":"点","done":false}
+
+data: {"delta":"东西","done":false}
+
+data: {"delta":"提","done":false}
+
+data: {"delta":"神","done":false}
+
+data: {"delta":"\"\n","done":false}
+
+data: {"delta":"}","done":false}
+
+data: {"done":true,"data":{"emotion":{"physical":{"state":"平静","intensity":0.5},"philosophy":{"wuxing":"土","organ":"脾"},"drinkMapping":{"tasteScore":6,"colorCode":3}},"somatic":{"physical":{"sensation":"舒适","intensity":0.6},"philosophy":{"direction":"沉","yinyang":"偏阳"},"drinkMapping":{"temperature":1,"textureScore":0}},"time":{"physical":{"hour":10,"period":"上午","intensity":0.8},"drinkMapping":{"temporality":10}},"cognitive":{"physical":{"state":"专注","intensity":0.7},"drinkMapping":{"aromaScore":7}},"demand":{"physical":{"state":"需要","intensity":0.4},"philosophy":{"type":"动"},"drinkMapping":{"actionScore":3}},"socialContext":{"physical":{"state":"独处","intensity":0.9},"drinkMapping":{"ratioScore":85}},"isNegative":false,"negativeIntent":"vent/soothe/unclear","summary":"上午十点，感觉平静专注，需要点东西提神"}}
+

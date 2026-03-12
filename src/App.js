@@ -12,7 +12,6 @@ import HelperModal from './components/HelperModal';
 import DrinkHelpModal from './components/DrinkHelpModal';
 import FocusModeView from './components/FocusModeView';
 import RecommendationGallery from './components/RecommendationGallery';
-import DeveloperAnalysisModal from './components/DeveloperAnalysisModal';
 
 import { analyzeMood } from './api/moodAnalyzer';
 import { evaluateAndSortDrinks } from './engine/vectorEngine';
@@ -1228,8 +1227,6 @@ const App = () => {
     message: '',
     tone: 'default'
   });
-  const [showAnalysisModal, setShowAnalysisModal] = useState(false);
-  const [lastExecutionSummary, setLastExecutionSummary] = useState(null);
 
   // Track if session ingredients have been initialized from inventory
   const isSessionInitialized = useRef(false);
@@ -1531,6 +1528,8 @@ const App = () => {
   const [buttonLoadingText, setButtonLoadingText] = useState('静心感受中…');
 
   const handleStartGeneration = useCallback(async (type = null) => {
+    const startTime = performance.now();
+    console.log(`[Timer] 0ms: 用户点击按钮，开始开启仪轨流程`);
     setMixMode('generating');
     setButtonLoadingText('正在寻杯…');
 
@@ -1584,10 +1583,6 @@ const App = () => {
       const agentResult = await agentPromise;
 
       console.log('多Agent系统执行结果:', agentResult);
-      // 记录执行摘要用于开发者分析
-      if (agentResult?.context?.getExecutionSummary) {
-        setLastExecutionSummary(agentResult.context.getExecutionSummary());
-      }
       clearTimeout(longWaitTimer);
 
       // 获取匹配结果
@@ -1620,12 +1615,15 @@ const App = () => {
       setCurrentCardIndex(0);
       setMixMode('home');
       setShowRecommendationGallery(true);
+      console.log(`[Timer] ${Math.round(performance.now() - startTime)}ms: 结果渲染准备就绪，展示画廊`);
 
       // ✅ 非阻塞流式异步大模型文案润色
       if (pool.length > 0) {
+        console.log(`[Timer] ${Math.round(performance.now() - startTime)}ms: 启动异步文案润色 (非阻塞)`);
         fetchLiveQuotes(pool, contextData, 15).then((quotesMap) => {
           if (Object.keys(quotesMap).length > 0) {
             setCustomQuotes(prev => ({ ...prev, ...quotesMap }));
+            console.log(`[Timer] ${Math.round(performance.now() - startTime)}ms: 异步文案润色完成`);
           }
         }).catch(err => {
           console.warn('Live quote generation failed non-fatally', err);
@@ -1634,6 +1632,7 @@ const App = () => {
 
     } catch (error) {
       console.error('分析/推荐出错:', error);
+      console.log(`[Timer] ${Math.round(performance.now() - startTime)}ms: 流程出错中断`);
       clearTimeout(longWaitTimer);
       setMixMode('home');
       showFriendlyNotice('灵感有些迟疑', '分析网络可能存在波动，请稍后再试。', 'error');
@@ -1681,6 +1680,8 @@ const App = () => {
     setEmotionType('positive');
 
     // 播放动画并设定文案
+    const startTime = performance.now();
+    console.log(`[Timer] 0ms: 用户提交情绪，开始处理流程`);
     setMixMode('generating');
     setButtonLoadingText('心与味，正在相遇…');
 
@@ -1712,10 +1713,6 @@ const App = () => {
       const agentResult = await agentPromise;
 
       console.log('多Agent系统执行结果:', agentResult);
-      // 记录执行摘要用于开发者分析
-      if (agentResult?.context?.getExecutionSummary) {
-        setLastExecutionSummary(agentResult.context.getExecutionSummary());
-      }
       clearTimeout(longWaitTimer);
 
       // 检查Agent 1的验证错误（需要用户重新输入）
@@ -1785,12 +1782,15 @@ const App = () => {
       setCurrentCardIndex(0);
       setMixMode('home');
       setShowRecommendationGallery(true);
+      console.log(`[Timer] ${Math.round(performance.now() - startTime)}ms: 结果渲染准备就绪，展示画廊`);
 
       // ✅ 非阻塞流式异步大模型文案润色
       if (pool.length > 0) {
+        console.log(`[Timer] ${Math.round(performance.now() - startTime)}ms: 启动异步文案润色 (非阻塞)`);
         fetchLiveQuotes(pool, contextData, 15).then((quotesMap) => {
           if (Object.keys(quotesMap).length > 0) {
             setCustomQuotes(prev => ({ ...prev, ...quotesMap }));
+            console.log(`[Timer] ${Math.round(performance.now() - startTime)}ms: 异步文案润色完成`);
           }
         }).catch(err => {
           console.warn('Live quote generation failed non-fatally', err);
@@ -1799,6 +1799,7 @@ const App = () => {
 
     } catch (error) {
       console.error('分析/推荐出错:', error);
+      console.log(`[Timer] ${Math.round(performance.now() - startTime)}ms: 流程出错中断`);
       clearTimeout(longWaitTimer);
       setMixMode('home');
       showFriendlyNotice('灵感有些迟疑', '分析网络可能存在波动，请稍后再试。', 'error');
@@ -1854,7 +1855,6 @@ const App = () => {
             moodResult={moodResult}
             customQuotes={customQuotes}
             validation={validationResult}
-            onShowAnalysis={() => setShowAnalysisModal(true)}
           />
         )}
 
@@ -2054,12 +2054,6 @@ const App = () => {
         message={friendlyNotice.message}
         tone={friendlyNotice.tone}
         onClose={closeFriendlyNotice}
-      />
-      {/* 开发者分析面板 */}
-      <DeveloperAnalysisModal
-        isOpen={showAnalysisModal}
-        onClose={() => setShowAnalysisModal(false)}
-        summary={lastExecutionSummary}
       />
     </div>
   );

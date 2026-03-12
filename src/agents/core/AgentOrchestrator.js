@@ -249,6 +249,10 @@ AgentOrchestrator.prototype.executeWithCallback = async function (context, onSte
  * 快速执行推荐流程的辅助函数
  */
 export async function executeRecommendationPipeline(userInput, options = {}) {
+  const pipelineStartTime = performance.now();
+  console.group('🚀 [仪轨启动] 推荐流水线执行中...');
+  console.log(`[Timer] 0ms: 流水线开始执行`);
+
   const {
     SemanticDistiller
   } = await import('../specialized/SemanticDistiller');
@@ -275,17 +279,10 @@ export async function executeRecommendationPipeline(userInput, options = {}) {
     console.warn('⚠️ [Pipeline] allDrinks is empty - recommendations may fail');
   }
 
-  // 1. 立即创建上下文 (为了能够在第一步就记录 Trace)
-  const context = new AgentContext({
-    userInput: userInput,
-    originalInput: userInput,
-    inventory: options.inventory || [],
-    allDrinks: allDrinksOriginal,
-    currentTime: options.currentTime || new Date().toISOString()
-  });
-
   // ========== 前置过滤：实体提取 + 候选池筛选 ==========
-  context.recordTrace('PIPELINE_STEP', 'EntityExtraction', { status: 'start', description: '正在提取输入语境中的饮品名、品类与风味实体' });
+  const step1Start = performance.now();
+  console.log(`[Timer] ${Math.round(step1Start - pipelineStartTime)}ms: 开始实体提取与初筛`);
+
   console.log('\n┌─ Entity Extraction ─────────────────────────────────────────┐');
 
   // 分离用户输入和原料信息（原料信息在换行符后）
@@ -294,7 +291,6 @@ export async function executeRecommendationPipeline(userInput, options = {}) {
 
   // 1. 实体提取（仅对纯用户输入）
   const entities = extractEntities(cleanUserInput);
-  context.recordTrace('PIPELINE_STEP', 'EntityExtraction', { status: 'end', result: entities });
   console.log('│ 📝 实体提取结果:');
   if (entities.drinkNames.length > 0) {
     console.log(`│    - 饮品名: ${entities.drinkNames.map(e => e.matched).join(', ')}`);
@@ -314,9 +310,7 @@ export async function executeRecommendationPipeline(userInput, options = {}) {
   console.log(`│    - 置信度: ${Math.round(entities.confidence * 100)}%`);
 
   // 2. 候选池过滤
-  context.recordTrace('PIPELINE_STEP', 'PoolFiltering', { status: 'start', description: '基于提取的实体，从酒柜中筛选相关的候选饮品' });
   const filterResult = filterDrinkPool(allDrinksOriginal, entities);
-  context.recordTrace('PIPELINE_STEP', 'PoolFiltering', { status: 'end', poolSize: filterResult.filtered.length });
 
   console.log('│');
   console.log(`│ 🔍 过滤结果: ${filterResult.stats?.total || allDrinksOriginal.length} → ${filterResult.filtered.length} 款`);
@@ -333,16 +327,26 @@ export async function executeRecommendationPipeline(userInput, options = {}) {
   }
 
   console.log(`└${'─'.repeat(56)}┘`);
+  const step1End = performance.now();
+  console.log(`[Timer] ${Math.round(step1End - pipelineStartTime)}ms: 实体/粗筛完成 (耗时: ${Math.round(step1End - step1Start)}ms)`);
 
-  // 3. 更新上下文数据
-  // 如果分析到了更精准的意图，更新 userInput 使其更聚焦
-  context.userInput = entities.remainingInput || cleanUserInput;
+  // 3. 决定传递给情绪分析的输入
+  // 如果有剩余情绪描述，用它；否则用纯用户输入
+  let inputForMoodAnalysis = entities.remainingInput || cleanUserInput;
+
+  // 重新附加原料信息（如果有）
   if (inventoryInfo) {
-    context.userInput += '\n' + inventoryInfo;
+    inputForMoodAnalysis += '\n' + inventoryInfo;
   }
 
-  // 更新候选池为过滤后的结果
-  context.allDrinks = filterResult.filtered;
+  // 创建上下文
+  const context = new AgentContext({
+    userInput: inputForMoodAnalysis,           // 传递剩余情绪部分给情绪分析
+    originalInput: userInput,                   // 保留原始输入
+    inventory: options.inventory || [],
+    allDrinks: filterResult.filtered,           // 使用过滤后的候选池
+    currentTime: options.currentTime || new Date().toISOString()
+  });
 
   // 存储实体提取结果到上下文，供后续Agent使用
   context.setIntermediate('extractedEntities', entities);
@@ -369,13 +373,16 @@ export async function executeRecommendationPipeline(userInput, options = {}) {
   ]);
 
   // 执行工作流前3个Agent
-  context.recordTrace('WORKFLOW_START', 'AgentPipeline_Part1', { description: '启动核心理解代理：情绪解析、博弈策略与向量映射' });
+  const step2Start = performance.now();
+  console.log(`[Timer] ${Math.round(step2Start - pipelineStartTime)}ms: 开始核心级联 Agent 链执行 (语义/辨证/向量)`);
   const result = await orchestrator.execute(context);
-  context.recordTrace('WORKFLOW_END', 'AgentPipeline_Part1', { success: result.success });
+  const step2End = performance.now();
+  console.log(`[Timer] ${Math.round(step2End - pipelineStartTime)}ms: 核心级联 Agent 链完成 (耗时: ${Math.round(step2End - step2Start)}ms)`);
 
   // 如果前3个Agent成功，执行向量搜索（纯数学计算，非Agent）
   if (result.success) {
-    context.recordTrace('PIPELINE_STEP', 'VectorSearch', { status: 'start', description: '正在执行多维向量空间检索，计算心境与饮品的余弦相似度' });
+    const step3Start = performance.now();
+    console.log(`[Timer] ${Math.round(step3Start - pipelineStartTime)}ms: 开始向量语义相似度搜索`);
     console.log('\n┌─ Vector Search ──────────────────────────────────────────────┐');
     console.log('│ 🔍 执行加权余弦相似度计算...');
 
@@ -400,7 +407,6 @@ export async function executeRecommendationPipeline(userInput, options = {}) {
         }));
 
         context.setIntermediate('matches', matches);
-        context.recordTrace('PIPELINE_STEP', 'VectorSearch', { status: 'end', matchCount: matches.length });
         console.log(`│ ✅ 找到 ${matches.length} 个匹配饮品`);
         if (matches.length > 0) {
           console.log(`│    - 最佳匹配: ${matches[0].drink.name} (${Math.round(matches[0].similarity * 100)}%)`);
@@ -411,32 +417,31 @@ export async function executeRecommendationPipeline(userInput, options = {}) {
       }
     } catch (error) {
       console.error('│ ❌ 向量搜索失败:', error.message);
-      context.recordTrace('PIPELINE_STEP', 'VectorSearch', { status: 'error', error: error.message });
       context.setIntermediate('matches', []);
     }
 
     console.log(`└${'─'.repeat(56)}┘`);
+    const step3End = performance.now();
+    console.log(`[Timer] ${Math.round(step3End - pipelineStartTime)}ms: 向量搜索完成 (耗时: ${Math.round(step3End - step3Start)}ms)`);
 
     // 继续执行剩余Agent（仅当有匹配结果时）
     const matches = context.getIntermediate('matches');
     if (matches && matches.length > 0) {
+      const step4Start = performance.now();
+      console.log(`[Timer] ${Math.round(step4Start - pipelineStartTime)}ms: 开始后置 Agent 链 (文案/验证)`);
       // 执行文案生成
       const copywriter = orchestrator.agents.get('CreativeCopywriter');
       if (copywriter) {
-        context.recordTrace('AGENT_START', 'CreativeCopywriter', { description: '正在结合心境特征与饮品风格，进行诗意的文案润色' });
         const copyResult = await copywriter.execute(context);
         context.setOutput('CreativeCopywriter', copyResult);
-        context.recordTrace('AGENT_END', 'CreativeCopywriter', { success: copyResult.success });
         orchestrator.printStageResult('CreativeCopywriter', copyResult, context);
       }
 
       // 执行验证优化
       const validator = orchestrator.agents.get('ValidatorOptimizer');
       if (validator) {
-        context.recordTrace('AGENT_START', 'ValidatorOptimizer', { description: '正在验证饮品组合的五行生克、酒精度安全性与时段匹配' });
         let validationResult = await validator.execute(context);
         context.setOutput('ValidatorOptimizer', validationResult);
-        context.recordTrace('AGENT_END', 'ValidatorOptimizer', { success: validationResult.success, score: validationResult.data?.score });
         orchestrator.printStageResult('ValidatorOptimizer', validationResult, context);
 
         // 处理验证结果 - 重试逻辑
@@ -478,10 +483,8 @@ export async function executeRecommendationPipeline(userInput, options = {}) {
             console.log(`│ ✅ 重试后找到 ${newMatches.length} 个匹配饮品`);
 
             // 重新验证
-            context.recordTrace('RETRY_AGENT_START', 'ValidatorOptimizer', { description: '正在重新验证调整后的推荐方案' });
             validationResult = await validator.execute(context);
             context.setOutput('ValidatorOptimizer', validationResult);
-            context.recordTrace('RETRY_AGENT_END', 'ValidatorOptimizer', { success: validationResult.success, score: validationResult.data?.score });
             orchestrator.printStageResult('ValidatorOptimizer', validationResult, context);
           } catch (retryError) {
             console.error('│ ❌ 重试失败:', retryError.message);
@@ -499,10 +502,16 @@ export async function executeRecommendationPipeline(userInput, options = {}) {
           context.setIntermediate('validationReport', finalValidation);
         }
       }
+      const step4End = performance.now();
+      console.log(`[Timer] ${Math.round(step4End - pipelineStartTime)}ms: 后置 Agent 链完成 (耗时: ${Math.round(step4End - step4Start)}ms)`);
     } else {
       console.log('│ ⚠️ 跳过文案生成Agent，因为没有匹配结果');
     }
   }
+
+  const pipelineEndTime = performance.now();
+  console.log(`\n✨ [Pipeline Success] 总耗时: ${Math.round(pipelineEndTime - pipelineStartTime)}ms`);
+  console.groupEnd();
 
   return result;
 }

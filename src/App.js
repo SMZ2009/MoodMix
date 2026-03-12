@@ -12,6 +12,7 @@ import HelperModal from './components/HelperModal';
 import DrinkHelpModal from './components/DrinkHelpModal';
 import FocusModeView from './components/FocusModeView';
 import RecommendationGallery from './components/RecommendationGallery';
+import DeveloperAnalysisModal from './components/DeveloperAnalysisModal';
 
 import { analyzeMood } from './api/moodAnalyzer';
 import { evaluateAndSortDrinks } from './engine/vectorEngine';
@@ -1227,6 +1228,8 @@ const App = () => {
     message: '',
     tone: 'default'
   });
+  const [showAnalysisModal, setShowAnalysisModal] = useState(false);
+  const [lastExecutionSummary, setLastExecutionSummary] = useState(null);
 
   // Track if session ingredients have been initialized from inventory
   const isSessionInitialized = useRef(false);
@@ -1581,6 +1584,10 @@ const App = () => {
       const agentResult = await agentPromise;
 
       console.log('多Agent系统执行结果:', agentResult);
+      // 记录执行摘要用于开发者分析
+      if (agentResult?.context?.getExecutionSummary) {
+        setLastExecutionSummary(agentResult.context.getExecutionSummary());
+      }
       clearTimeout(longWaitTimer);
 
       // 获取匹配结果
@@ -1705,6 +1712,10 @@ const App = () => {
       const agentResult = await agentPromise;
 
       console.log('多Agent系统执行结果:', agentResult);
+      // 记录执行摘要用于开发者分析
+      if (agentResult?.context?.getExecutionSummary) {
+        setLastExecutionSummary(agentResult.context.getExecutionSummary());
+      }
       clearTimeout(longWaitTimer);
 
       // 检查Agent 1的验证错误（需要用户重新输入）
@@ -1843,6 +1854,7 @@ const App = () => {
             moodResult={moodResult}
             customQuotes={customQuotes}
             validation={validationResult}
+            onShowAnalysis={() => setShowAnalysisModal(true)}
           />
         )}
 
@@ -2406,6 +2418,12 @@ const CustomDrinkModal = ({ isOpen, onClose, onSave }) => {
           AI 将根据您的描述自动分析饮品风味特征
         </p>
       </div>
+      {/* 开发者分析面板 */}
+      <DeveloperAnalysisModal
+        isOpen={showAnalysisModal}
+        onClose={() => setShowAnalysisModal(false)}
+        summary={lastExecutionSummary}
+      />
     </Modal>
   );
 };

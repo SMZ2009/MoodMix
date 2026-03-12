@@ -13,6 +13,15 @@
 ### 3. 数据一致性规范 (Data Consistency)
 - **多处计数统一**: 涉及原料总数统计时，**必须**统一采用 `new Set()` 结合 `name_cn || name` 进行去重。严禁在不同组件中使用不一致的过滤/统计逻辑（如某一处去重而另一处不去重）。
 
+### 3. 性能优化与故障排查 (Performance & Debugging)
+
+- **性能追踪 (Execution Tracing)**:
+  - 核心 Pipeline 必须支持 `AgentContext` 的 `recordTrace` 机制。
+  - 每个关键 Agent 节点需要记录 `Action`, `Key` 及步骤描述。
+  - 前端分析面板 (`DeveloperAnalysisModal`) 自动标记超过 2000ms 的步骤为 **Bottleneck**，需重点优化。
+- **隐藏工具触发 (Secret Trigger)**:
+  - 开发者辅助工具应通过非侵入式的 UI 手势触发（如标题点击），避免干扰普通用户，确保界面纯净。
+
 ### 4. 东方美学视觉规范 (Oriental Aesthetics)
 - **字体应用**: 核心文本（标题、饮品名、副标题、标签、语录）应全量覆盖宋体/楷体 (`"Songti SC", "STKaiti", "KaiTi", serif`)。
 - **强制翻译策略**: 针对外部 API 数据，必须在前端展示层强制通过 `translateDrinkName` 或 `translateIngredient` 字典进行中文化。即使 API 返回英文，也需优先匹配本地字典或 `name_cn` 字段。

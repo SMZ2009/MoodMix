@@ -47,12 +47,19 @@ const MineSection = ({ userInventory, onUpdateInventory, favorites, onSelectDrin
         }
     };
 
-    // Combine standard and custom for display (only in_stock items)
-    // 新增的 custom 排在最前面
+    // Combine standard and custom for display (only in_stock items, de-duplicated by name)
     const allInventoryItems = useMemo(() => {
         const customItems = (userInventory.custom || []).filter(i => i.in_stock).map(i => ({ ...i, id: `custom-${i.id}`, name: i.name_cn }));
         const standardItems = (userInventory.standard || []).filter(i => i.in_stock).map(i => ({ ...i, id: i.ing_id, name: i.name_cn }));
-        return [...customItems, ...standardItems];
+
+        const combined = [...customItems, ...standardItems];
+        // 按名称去重
+        const seen = new Set();
+        return combined.filter(item => {
+            if (!item.name || seen.has(item.name)) return false;
+            seen.add(item.name);
+            return true;
+        });
     }, [userInventory]);
 
     if (showFullInventory) {
@@ -279,50 +286,50 @@ const MineSection = ({ userInventory, onUpdateInventory, favorites, onSelectDrin
             </div>
 
             <div className="px-6 py-4 pb-32 w-full">
-                        {mineTab === 'favorites' && (
+                {mineTab === 'favorites' && (
                     <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                            {favorites.map((drink) => (
-                                <SwipeableCard
-                                    key={drink.id}
-                                    onTap={() => onSelectDrink(drink)}
-                                    style={{
-                                        ...cardFeedback,
-                                        borderRadius: '20px',
-                                        overflow: 'hidden',
-                                        background: 'rgba(255, 255, 255, 0.45)',
-                                        backdropFilter: 'blur(12px)',
-                                        border: '1px solid rgba(255, 255, 255, 0.6)',
-                                        boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.07)',
-                                        minWidth: 0
-                                    }}
-                                >
-                                    <div className="p-2 sm:p-3 pb-0">
-                                        <div
-                                            className="relative aspect-[4/5] bg-cover bg-center rounded-xl overflow-hidden shadow-inner"
-                                            style={{ backgroundImage: `url(${drink.image})` }}
+                        {favorites.map((drink) => (
+                            <SwipeableCard
+                                key={drink.id}
+                                onTap={() => onSelectDrink(drink)}
+                                style={{
+                                    ...cardFeedback,
+                                    borderRadius: '20px',
+                                    overflow: 'hidden',
+                                    background: 'rgba(255, 255, 255, 0.45)',
+                                    backdropFilter: 'blur(12px)',
+                                    border: '1px solid rgba(255, 255, 255, 0.6)',
+                                    boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.07)',
+                                    minWidth: 0
+                                }}
+                            >
+                                <div className="p-2 sm:p-3 pb-0">
+                                    <div
+                                        className="relative aspect-[4/5] bg-cover bg-center rounded-xl overflow-hidden shadow-inner"
+                                        style={{ backgroundImage: `url(${drink.image})` }}
+                                    >
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                // 这里可以添加取消收藏的逻辑
+                                            }}
+                                            className="absolute top-2 right-2 w-7 sm:w-8 h-7 sm:h-8 bg-black/10 backdrop-blur-md rounded-full flex items-center justify-center border border-white/10 transition-transform hover:scale-110 active:scale-95"
                                         >
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    // 这里可以添加取消收藏的逻辑
-                                                }}
-                                                className="absolute top-2 right-2 w-7 sm:w-8 h-7 sm:h-8 bg-black/10 backdrop-blur-md rounded-full flex items-center justify-center border border-white/10 transition-transform hover:scale-110 active:scale-95"
-                                            >
-                                                <Heart
-                                                    size={14}
-                                                    className="text-[#FF7675] fill-current"
-                                                />
-                                            </button>
-                                        </div>
+                                            <Heart
+                                                size={14}
+                                                className="text-[#FF7675] fill-current"
+                                            />
+                                        </button>
                                     </div>
-                                    <div className="px-3 sm:px-4 py-2 sm:py-3">
-                                        <h3 className="font-bold text-sm sm:text-[15px] text-gray-800 leading-tight mb-0.5 sm:mb-1">{drink.name}</h3>
-                                        <p className="text-[11px] sm:text-[12px] text-gray-400 leading-tight line-clamp-1 font-medium italic">
-                                            {drink.subName || drink.sub}
-                                        </p>
-                                    </div>
-                                </SwipeableCard>
-                            ))}
+                                </div>
+                                <div className="px-3 sm:px-4 py-2 sm:py-3">
+                                    <h3 className="font-bold text-sm sm:text-[15px] text-gray-800 leading-tight mb-0.5 sm:mb-1">{drink.name}</h3>
+                                    <p className="text-[11px] sm:text-[12px] text-gray-400 leading-tight line-clamp-1 font-medium italic">
+                                        {drink.subName || drink.sub}
+                                    </p>
+                                </div>
+                            </SwipeableCard>
+                        ))}
                         {favorites.length === 0 && (
                             <div className="col-span-2 text-center text-gray-400 text-sm py-10">
                                 还没收藏喜欢的饮品哦
@@ -352,74 +359,74 @@ const MineSection = ({ userInventory, onUpdateInventory, favorites, onSelectDrin
 };
 
 const DakaNoteCard = ({ note, onDelete }) => {
-  const [translateX, setTranslateX] = useState(0);
-  const cardRef = useRef(null);
-  const startX = useRef(0);
-  const currentX = useRef(0);
-  const isDragging = useRef(false);
+    const [translateX, setTranslateX] = useState(0);
+    const cardRef = useRef(null);
+    const startX = useRef(0);
+    const currentX = useRef(0);
+    const isDragging = useRef(false);
 
-  const handleDragStart = (e) => {
-    isDragging.current = true;
-    startX.current = e.type.includes('mouse') ? e.pageX : e.touches[0].clientX;
-    cardRef.current.style.transition = 'none';
-  };
+    const handleDragStart = (e) => {
+        isDragging.current = true;
+        startX.current = e.type.includes('mouse') ? e.pageX : e.touches[0].clientX;
+        cardRef.current.style.transition = 'none';
+    };
 
-  const handleDragMove = (e) => {
-    if (!isDragging.current) return;
-    currentX.current = e.type.includes('mouse') ? e.pageX : e.touches[0].clientX;
-    const diff = currentX.current - startX.current;
-    // Only allow dragging to the left, and cap it at -80px
-    const newTranslateX = Math.min(0, Math.max(-80, diff));
-    setTranslateX(newTranslateX);
-  };
+    const handleDragMove = (e) => {
+        if (!isDragging.current) return;
+        currentX.current = e.type.includes('mouse') ? e.pageX : e.touches[0].clientX;
+        const diff = currentX.current - startX.current;
+        // Only allow dragging to the left, and cap it at -80px
+        const newTranslateX = Math.min(0, Math.max(-80, diff));
+        setTranslateX(newTranslateX);
+    };
 
-  const handleDragEnd = () => {
-    isDragging.current = false;
-    cardRef.current.style.transition = 'transform 0.3s ease';
-    // Snap to either fully open (-72px) or closed (0)
-    if (translateX < -36) {
-      setTranslateX(-72);
-    } else {
-      setTranslateX(0);
-    }
-  };
+    const handleDragEnd = () => {
+        isDragging.current = false;
+        cardRef.current.style.transition = 'transform 0.3s ease';
+        // Snap to either fully open (-72px) or closed (0)
+        if (translateX < -36) {
+            setTranslateX(-72);
+        } else {
+            setTranslateX(0);
+        }
+    };
 
-  return (
-    <div className="relative w-full overflow-hidden rounded-xl">
-      <div
-        className="absolute top-0 right-0 h-full flex items-center justify-center bg-red-500 text-white w-[72px] rounded-r-xl cursor-pointer transition-opacity"
-        style={{ opacity: translateX !== 0 ? 1 : 0 }}
-        onClick={() => {
-          if (translateX !== 0) { // Only allow click if visible
-            onDelete(note.id);
-          }
-        }}
-      >
-        <Trash2 size={20} />
-      </div>
-      <div
-        ref={cardRef}
-        className="bg-white/80 backdrop-blur-md p-4 rounded-xl shadow-sm border border-white/50 w-full relative z-10"
-        style={{ transform: `translateX(${translateX}px)`, transition: 'transform 0.3s ease' }}
-        onMouseDown={handleDragStart}
-        onTouchStart={handleDragStart}
-        onMouseMove={handleDragMove}
-        onTouchMove={handleDragMove}
-        onMouseUp={handleDragEnd}
-        onMouseLeave={handleDragEnd}
-        onTouchEnd={handleDragEnd}
-      >
-        <div className="flex items-start gap-4">
-          <img src={note.customImage || note.image} alt={note.name} className="w-16 h-16 rounded-lg object-cover flex-shrink-0" />
-          <div className="flex-1 min-w-0">
-            <h4 className="font-bold text-gray-800 truncate">{note.name}</h4>
-            <p className="text-xs text-gray-400 mb-2">{new Date(note.dakaTime).toLocaleString()}</p>
-            <p className="text-sm text-gray-600 break-words">{note.note}</p>
-          </div>
+    return (
+        <div className="relative w-full overflow-hidden rounded-xl">
+            <div
+                className="absolute top-0 right-0 h-full flex items-center justify-center bg-red-500 text-white w-[72px] rounded-r-xl cursor-pointer transition-opacity"
+                style={{ opacity: translateX !== 0 ? 1 : 0 }}
+                onClick={() => {
+                    if (translateX !== 0) { // Only allow click if visible
+                        onDelete(note.id);
+                    }
+                }}
+            >
+                <Trash2 size={20} />
+            </div>
+            <div
+                ref={cardRef}
+                className="bg-white/80 backdrop-blur-md p-4 rounded-xl shadow-sm border border-white/50 w-full relative z-10"
+                style={{ transform: `translateX(${translateX}px)`, transition: 'transform 0.3s ease' }}
+                onMouseDown={handleDragStart}
+                onTouchStart={handleDragStart}
+                onMouseMove={handleDragMove}
+                onTouchMove={handleDragMove}
+                onMouseUp={handleDragEnd}
+                onMouseLeave={handleDragEnd}
+                onTouchEnd={handleDragEnd}
+            >
+                <div className="flex items-start gap-4">
+                    <img src={note.customImage || note.image} alt={note.name} className="w-16 h-16 rounded-lg object-cover flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                        <h4 className="font-bold text-gray-800 truncate">{note.name}</h4>
+                        <p className="text-xs text-gray-400 mb-2">{new Date(note.dakaTime).toLocaleString()}</p>
+                        <p className="text-sm text-gray-600 break-words">{note.note}</p>
+                    </div>
+                </div>
+            </div>
         </div>
-      </div>
-    </div>
-  );
+    );
 };
 
 export default MineSection;

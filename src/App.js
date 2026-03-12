@@ -190,7 +190,7 @@ const MoodInputSection = ({
           className="relative z-30 -mt-1 sm:-mt-1.5 mb-0.5 sm:mb-1 px-5 py-2 text-[13px] sm:text-[14px] text-gray-700/80 transition-colors hover:text-gray-800 group"
           style={{ fontFamily: '"FZQingKeBenYueSongS-R-GB", "方正清刻本悦宋简体", "Songti SC", serif', fontWeight: 300, letterSpacing: '0.14em' }}
           onClick={onEditIngredients}
-          aria-label={`三种原料已备齐，当前 ${ingredientCount} 种原料已就绪`}
+          aria-label={`当前有 ${ingredientCount} 种特调原料已备齐`}
         >
           <span
             className="absolute inset-x-0 -inset-y-1 rounded-[999px] pointer-events-none"
@@ -203,7 +203,7 @@ const MoodInputSection = ({
             }}
           />
           <span className="relative inline-flex items-center gap-3">
-            <span>三种原料已备齐</span>
+            <span>{ingredientCount} 种原料已备齐</span>
             <span className="relative h-8 w-8 sm:h-9 sm:w-9">
               <span
                 className="absolute inset-0 rounded-full opacity-0 group-active:opacity-100 group-active:[animation:ink-tap-ripple_420ms_ease-out]"
@@ -1188,6 +1188,9 @@ const App = () => {
     tone: 'default'
   });
 
+  // Track if session ingredients have been initialized from inventory
+  const isSessionInitialized = useRef(false);
+
   const showFriendlyNotice = useCallback((title, message, tone = 'default') => {
     setFriendlyNotice({
       isOpen: true,
@@ -1281,21 +1284,33 @@ const App = () => {
     }
   }, [apiInitialized, apiLoadCategories, apiLoadAll]);
 
-  // Sync session ingredients with inventory
+  // Sync session ingredients with inventory ONLY ONCE at start
   useEffect(() => {
+    // Only initialize if not yet done OR if inventory empty but just loaded
+    const hasInventory = (userInventory.standard?.length || 0) + (userInventory.custom?.length || 0) > 0;
+
+    if (hasInventory && !isSessionInitialized.current) {
+      const list = [
+        ...(userInventory.standard || []).filter(i => i.in_stock).map(i => i.name_cn || i.name),
+        ...(userInventory.custom || []).filter(i => i.in_stock).map(i => i.name_cn || i.name)
+      ].filter(Boolean);
+
+      const uniqueList = [...new Set(list)];
+      if (uniqueList.length > 0) {
+        setSessionIngredients(uniqueList);
+        isSessionInitialized.current = true;
+      }
+    }
+  }, [userInventory]);
+
+
+  // 计算原料总数 (按名称去重，确保与原料斋房一致)
+  const ingredientCount = useMemo(() => {
     const list = [
       ...(userInventory.standard || []).filter(i => i.in_stock).map(i => i.name_cn || i.name),
       ...(userInventory.custom || []).filter(i => i.in_stock).map(i => i.name_cn || i.name)
     ].filter(Boolean);
-    setSessionIngredients(list);
-  }, [userInventory]);
-
-  // 计算原料总数 (与 MineSection.js 保持一致)
-  const ingredientCount = useMemo(() => {
-    return [
-      ...(userInventory.standard || []).filter(i => i.in_stock),
-      ...(userInventory.custom || []).filter(i => i.in_stock)
-    ].length;
+    return new Set(list).size;
   }, [userInventory]);
 
   // Fetch favorites on mount (using LocalStorage)
@@ -1802,7 +1817,7 @@ const App = () => {
                 onGenerate={processMoodAndGenerate}
                 buttonFeedback={{ ...buttonFeedback, loadingText: buttonLoadingText }}
                 isMixing={mixMode === 'generating'}
-                ingredientCount={ingredientCount}
+                ingredientCount={sessionIngredients.length}
                 onEditIngredients={() => setShowIngredientModal(true)}
                 onNavigate={handleNavClick}
                 activeTab={activeTab}

@@ -1281,6 +1281,7 @@ const App = () => {
 
   // Track if session ingredients have been initialized from inventory
   const isSessionInitialized = useRef(false);
+  const isQuoteFetching = useRef(false);
 
   const showFriendlyNotice = useCallback((title, message, tone = 'default') => {
     setFriendlyNotice({
@@ -1629,16 +1630,21 @@ const App = () => {
         allDrinks: allDrinksForPipeline,
         currentTime: new Date().toISOString(),
         interventionType: currentInterventionType,
-        // 🔥 [优化] 提前并行触发文案生成
+        // 🔥 [优化] 核心机制：在预览饮品计算完成后，立即并行触发文案生成
         onVectorSearchSuccess: (matches, contextData) => {
-          console.log(`[Timer] ${Math.round(performance.now() - startTime)}ms: 触发提前并行文案生成`);
-          // 异步执行，不等待回调
+          if (isQuoteFetching.current) return; // 防止在重试逻辑中重复触发
+          isQuoteFetching.current = true;
+
+          console.log(`[Timer] ${Math.round(performance.now() - startTime)}ms: 触发唯一一次异步文案生成`);
           fetchLiveQuotes(matches, contextData, 15).then((quotesMap) => {
             if (Object.keys(quotesMap).length > 0) {
               setCustomQuotes(prev => ({ ...prev, ...quotesMap }));
-              console.log(`[Timer] ${Math.round(performance.now() - startTime)}ms: 提前触发的异步文案完成`);
+              console.log(`[Timer] ${Math.round(performance.now() - startTime)}ms: 异步文案润色完成`);
             }
-          }).catch(err => console.warn('Early live quote generation failed', err));
+          }).catch(err => console.warn('Early live quote generation failed', err))
+            .finally(() => {
+              isQuoteFetching.current = false;
+            });
         }
       });
 
@@ -1758,14 +1764,21 @@ const App = () => {
         inventory: sessionIngredients,
         allDrinks: allDrinksForPipeline,
         currentTime: new Date().toISOString(),
-        // 🔥 [优化] 提前并行触发文案生成
+        // 🔥 [优化] 核心机制：在预览饮品计算完成后，立即并行触发文案生成
         onVectorSearchSuccess: (matches, contextData) => {
-          console.log(`[Timer] ${Math.round(performance.now() - startTime)}ms: 触发提前并行文案生成 (正向)`);
+          if (isQuoteFetching.current) return;
+          isQuoteFetching.current = true;
+
+          console.log(`[Timer] ${Math.round(performance.now() - startTime)}ms: 触发唯一一次异步文案生成 (正向)`);
           fetchLiveQuotes(matches, contextData, 15).then((quotesMap) => {
             if (Object.keys(quotesMap).length > 0) {
               setCustomQuotes(prev => ({ ...prev, ...quotesMap }));
+              console.log(`[Timer] ${Math.round(performance.now() - startTime)}ms: 异步文案润色完成 (正向)`);
             }
-          }).catch(err => console.warn('Early live quote generation failed', err));
+          }).catch(err => console.warn('Early live quote generation failed', err))
+            .finally(() => {
+              isQuoteFetching.current = false;
+            });
         }
       });
 
@@ -1842,19 +1855,6 @@ const App = () => {
       setMixMode('home');
       setShowRecommendationGallery(true);
       console.log(`[Timer] ${Math.round(performance.now() - startTime)}ms: 结果渲染准备就绪，展示画廊`);
-
-      // ✅ 非阻塞流式异步大模型文案润色
-      if (pool.length > 0) {
-        console.log(`[Timer] ${Math.round(performance.now() - startTime)}ms: 启动异步文案润色 (非阻塞)`);
-        fetchLiveQuotes(pool, contextData, 15).then((quotesMap) => {
-          if (Object.keys(quotesMap).length > 0) {
-            setCustomQuotes(prev => ({ ...prev, ...quotesMap }));
-            console.log(`[Timer] ${Math.round(performance.now() - startTime)}ms: 异步文案润色完成`);
-          }
-        }).catch(err => {
-          console.warn('Live quote generation failed non-fatally', err);
-        });
-      }
 
     } catch (error) {
       console.error('分析/推荐出错:', error);

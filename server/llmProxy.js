@@ -68,7 +68,8 @@ app.use('/api/cocktaildb', async (req, res) => {
 
 // SiliconFlow API 配置
 const SILICONFLOW_API_URL = 'https://api.siliconflow.cn/v1/chat/completions';
-const SILICONFLOW_MODEL = process.env.SILICONFLOW_MODEL || 'Qwen/Qwen2.5-72B-Instruct';
+const MODEL_8B = process.env.SILICONFLOW_MODEL_8B || 'Qwen/Qwen2.5-7B-Instruct';
+const MODEL_30B = process.env.SILICONFLOW_MODEL_30B || 'Qwen/Qwen2.5-32B-Instruct';
 
 // 优先使用原生 fetch (Node 18+)，否则回退到 node-fetch
 const getFetch = async () => {
@@ -119,7 +120,7 @@ app.post('/api/analyze_mood', async (req, res) => {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
       controller.abort();
-    }, 50000);
+    }, 60000); // 增加到 60 秒，确保后端不会先于前端超时太多
 
     let response;
     try {
@@ -130,7 +131,7 @@ app.post('/api/analyze_mood', async (req, res) => {
           'Authorization': `Bearer ${apiKey}`
         },
         body: JSON.stringify({
-          model: SILICONFLOW_MODEL,
+          model: MODEL_8B,
           messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userMessage }
@@ -225,7 +226,7 @@ app.post('/api/analyze_mood_stream', async (req, res) => {
     const systemPrompt = buildSystemPrompt();
     const userMessage = buildUserMessage(user_input.trim(), timeInfo);
 
-    console.log(`[Stream] 开始请求 SiliconFlow (${SILICONFLOW_MODEL})...`);
+    console.log(`[Stream] 开始请求 SiliconFlow (${MODEL_8B})...`);
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
@@ -242,7 +243,7 @@ app.post('/api/analyze_mood_stream', async (req, res) => {
           'Authorization': `Bearer ${apiKey}`
         },
         body: JSON.stringify({
-          model: SILICONFLOW_MODEL,
+          model: MODEL_8B,
           messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userMessage }
@@ -433,7 +434,7 @@ app.post('/api/generate_quotes', async (req, res) => {
 
     let response;
     try {
-      console.log(`[QuoteGenerator] Requesting batch quotes from ${SILICONFLOW_MODEL}...`);
+      console.log(`[QuoteGenerator] Requesting batch quotes from ${MODEL_30B}...`);
       response = await currentFetch(SILICONFLOW_API_URL, {
         method: 'POST',
         headers: {
@@ -441,14 +442,14 @@ app.post('/api/generate_quotes', async (req, res) => {
           'Authorization': `Bearer ${apiKey}`
         },
         body: JSON.stringify({
-          model: SILICONFLOW_MODEL,
+          model: MODEL_8B,
           messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userContent }
           ],
           temperature: 0.7,
           max_tokens: 1000
-        }),
+        }, { model: MODEL_30B }), // 调优使用 30B 模型追求美感
         signal: controller.signal
       });
     } finally {
@@ -558,7 +559,7 @@ app.post('/api/generate-drink-dimensions', async (req, res) => {
 
     let response;
     try {
-      console.log(`[DrinkDimensions] Requesting analysis for "${name}" using ${SILICONFLOW_MODEL}...`);
+      console.log(`[DrinkDimensions] Requesting analysis for "${name}" using ${MODEL_8B}...`);
       response = await currentFetch(SILICONFLOW_API_URL, {
         method: 'POST',
         headers: {
@@ -566,7 +567,7 @@ app.post('/api/generate-drink-dimensions', async (req, res) => {
           'Authorization': `Bearer ${apiKey}`
         },
         body: JSON.stringify({
-          model: SILICONFLOW_MODEL,
+          model: MODEL_8B,
           messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userContent }
@@ -624,6 +625,181 @@ app.post('/api/generate-drink-dimensions', async (req, res) => {
 });
 
 // ═══════════════════════════════════════════
+// 端点：全链路聚合分析 (Comprehensive Analyze) - 性能优化核心
+// ═══════════════════════════════════════════
+/**
+ * POST /api/comprehensive_analyze
+ * 一次性完成：语义提取 + 辨证分析 + 向量翻译
+ * 预期节省耗时: 30s-40s
+ */
+app.post('/api/comprehensive_analyze', async (req, res) => {
+  const { user_input, current_time } = req.body;
+  if (!user_input) return res.status(400).json({ success: false, error: '缺少 user_input' });
+
+  const timeInfo = current_time || new Date().toISOString();
+  const systemPrompt = buildComprehensiveSystemPrompt();
+  const userMessage = `用户心境: "${user_input}"\n当前环境时间: ${timeInfo}`;
+
+  try {
+    console.log(`[ComprehensiveAnalyze] 开始聚合推理 (MODEL: ${MODEL_8B})...`);
+    const startTime = Date.now();
+    const data = await callLLM(systemPrompt, userMessage, {
+      model: MODEL_8B,
+      temperature: 0.4,
+      jsonMode: true
+    });
+    const duration = Date.now() - startTime;
+    console.log(`[ComprehensiveAnalyze] 聚合推理完成, 耗时: ${duration}ms`);
+
+    res.json({ success: true, data });
+  } catch (error) {
+    console.error('[ComprehensiveAnalyze Error]', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+
+
+// ═══════════════════════════════════════════
+// 通用 LLM 调用辅助函数
+// ═══════════════════════════════════════════
+async function callLLM(systemPrompt, userContent, options = {}) {
+  const { temperature = 0.5, jsonMode = true, model = MODEL_8B } = options;
+  const apiKey = process.env.SILICONFLOW_API_KEY;
+  const currentFetch = await getFetch();
+  if (!currentFetch) throw new Error('Fetch implementation not found');
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 45000);
+
+  try {
+    const response = await currentFetch(SILICONFLOW_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: model,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userContent }
+        ],
+        temperature,
+        response_format: jsonMode ? { type: 'json_object' } : undefined
+      }),
+      signal: controller.signal
+    });
+
+    if (!response.ok) {
+      throw new Error(`API 返回错误: ${response.status}`);
+    }
+
+    const result = await response.json();
+    const content = (result.choices?.[0]?.message?.content || '').trim();
+
+    if (jsonMode) {
+      try {
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        return JSON.parse(jsonMatch ? jsonMatch[0] : content);
+      } catch (e) {
+        throw new Error('JSON 解析失败: ' + content);
+      }
+    }
+    return content;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+// ═══════════════════════════════════════════
+// 端点：深度辨证分析 (Pattern Analyze)
+// ═══════════════════════════════════════════
+app.post('/api/pattern_analyze', async (req, res) => {
+  const { moodData } = req.body;
+  if (!moodData) return res.status(400).json({ success: false, error: '缺少 moodData' });
+
+  const systemPrompt = `你是一位深谙中医辨证与五行哲学的心理分析专家。
+请根据用户的六维心情数据，推断其五行极性、调理策略及诊断结论。
+严格返回 JSON 格式。
+
+## 输出格式
+{
+  "polarity": { "type": "negative/positive/mixed", "confidence": number },
+  "wuxing": { "user": "wood/fire/earth/metal/water", "scores": { "wood": n, "fire": n, ... }, "confidence": n },
+  "strategy": { "type": "counter/harmonize/resonate/correct/balance", "logic": "详细的哲学解释" },
+  "diagnosis": { "summary": "简短结论", "emotionState": "情绪描述", "somaticState": "躯体描述", "recommendation": "调理建议" }
+}`;
+
+  try {
+    const data = await callLLM(systemPrompt, JSON.stringify(moodData), { model: MODEL_8B });
+    res.json({ success: true, data });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ═══════════════════════════════════════════
+// 端点：向量翻译 (Vector Translate)
+// ═══════════════════════════════════════════
+app.post('/api/vector_translate', async (req, res) => {
+  const { moodData, patternAnalysis } = req.body;
+  if (!moodData || !patternAnalysis) return res.status(400).json({ success: false, error: '参数缺失' });
+
+  const systemPrompt = `你是一位精通跨模态映射的数学与风味专家。
+将中医辨证结论翻译为 8 维饮品搜索向量。
+
+## 8维维度说明
+[taste(0-10), texture(-3~3), temperature(-5~5), color(1-5), temporality(0-23), aroma(0-10), ratio(0-95), action(1-5)]
+
+## 输出格式
+{
+  "targetVector": [number, number, ...], // 8个数值，分别对应上述维度
+  "weights": [number, number, ...],      // 8个正数权重，且【之和必须严格等于 1.0】
+  "priorities": ["dimension_name", ...], 
+  "mappingExplanation": { "wuxing": "string", "strategy": "string", "keyDimensions": ["string", ...] }
+}`;
+
+  try {
+    const data = await callLLM(systemPrompt, JSON.stringify({ moodData, patternAnalysis }), { model: MODEL_8B });
+    res.json({ success: true, data });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ═══════════════════════════════════════════
+// 端点：校验与全程优化 (Validate & Optimize)
+// ═══════════════════════════════════════════
+app.post('/api/validate_optimize', async (req, res) => {
+  const { fullContext } = req.body;
+  if (!fullContext) return res.status(400).json({ success: false, error: '缺少 context' });
+
+  const systemPrompt = `你是一位严谨的系统验证专家。
+请审查当前的推荐流输出，检测潜在冲突、安全性问题，并给出质量评分。
+你必须【严格且唯一】地返回一个合法的 JSON 对象，严禁包含任何 Markdown 格式标识、解释性文字或开场白。
+
+## 输出格式
+{
+  "score": number, // 0-100
+  "qualityLevel": "excellent/good/acceptable/poor",
+  "shouldRetry": boolean,
+  "shouldBlock": boolean,
+  "userMessage": "string or null",
+  "issues": [ { "type": "error/warning/info", "message": "string", "severity": "high/medium/low" } ],
+  "uiHints": { "badgeText": "string", "bottomHintText": "string" }
+}`;
+
+  try {
+    const data = await callLLM(systemPrompt, JSON.stringify(fullContext), { model: MODEL_8B });
+    res.json({ success: true, data });
+  } catch (error) {
+    console.error('[ValidateOptimize Error]', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ═══════════════════════════════════════════
 // Prompt 工程
 // ═══════════════════════════════════════════
 
@@ -673,6 +849,63 @@ function buildSystemPrompt() {
   "isNegative": false,
   "negativeIntent": "vent/soothe/unclear",
   "summary": "一句话总结(中文≤30字)"
+}`;
+}
+
+/**
+ * 核心优化：聚合提示词构造器 - 一次性完成 语义+辨证+向量
+ */
+function buildComprehensiveSystemPrompt() {
+  return `你是一位集“语义蒸馏”、“中医辨证”与“调酒风味专家”映射于一身的智能中枢。
+你的任务是将用户的一句心情描述，一次性转化为完整的推荐逻辑链。
+
+### 阶段一：语体语义提取
+1. **emotion** - 情绪 → 五行映射(木怒/火喜/土思/金悲/水恐)
+2. **somatic** - 躯体感受 → 气机方向(升降浮沉) + 阴阳
+3. **time** - 映射到 drinkMapping.temporality
+4. **cognitive** - 映射到 drinkMapping.aromaScore
+5. **demand** - 诉求(止/动/破)
+6. **socialContext** - 独处/群居
+
+### 阶段二：深度辨证分析
+1. 判断 **polarity** (negative/positive/mixed)。
+2. 确定 **wuxing** 主属性及置信度。
+3. 制定 **strategy** (counter/harmonize/resonate/correct/balance) 及哲学逻辑。
+4. 给出 **diagnosis** 诊断报告。
+
+### 阶段三：八维风味向量翻译
+基于上述分析，翻译为 8 维饮品搜索向量 [0-7]：
+[taste(0-10), texture(-3~3), temperature(-5~5), color(1-5), temporality(0-23), aroma(0-10), ratio(0-95), action(1-5)]
+计算 **weights** (8个正数之和严格为1.0) 及 **priorities**。
+
+### 约束要求
+- 必须严格返回合法的 JSON 对象。
+- 不要解释，不要开场白。
+
+### 输出 JSON 结构
+{
+  "moodData": {
+    "emotion": { "physical": { "state": "string", "intensity": 0.0-1.0 }, "philosophy": { "wuxing": "string" }, "drinkMapping": { "tasteScore": 0-10, "colorCode": 1-5 } },
+    "somatic": { "physical": { "sensation": "string", "intensity": 0.0-1.0 }, "philosophy": { "direction": "string", "yinyang": "string" }, "drinkMapping": { "temperature": -5~5, "textureScore": -3~3 } },
+    "time": { "drinkMapping": { "temporality": 0-23 } },
+    "cognitive": { "drinkMapping": { "aromaScore": 0-10 } },
+    "demand": { "philosophy": { "type": "止/动/破" }, "drinkMapping": { "actionScore": 1-5 } },
+    "socialContext": { "drinkMapping": { "ratioScore": 0-95 } },
+    "isNegative": boolean,
+    "summary": "一句话总结"
+  },
+  "patternAnalysis": {
+    "polarity": { "type": "negative/positive/mixed", "confidence": number },
+    "wuxing": { "user": "wood/fire/earth/metal/water", "scores": { "wood": number, ... }, "confidence": number },
+    "strategy": { "type": "string", "logic": "string" },
+    "diagnosis": { "summary": "string", "recommendation": "string" }
+  },
+  "vectorResult": {
+    "targetVector": [number, ...], // 8D
+    "weights": [number, ...],      // 8D, sum=1.0
+    "priorities": ["dimension_name", ...],
+    "mappingExplanation": { "wuxing": "string", "strategy": "string", "keyDimensions": ["string", ...] }
+  }
 }`;
 }
 
@@ -750,7 +983,7 @@ ${question}
         'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: SILICONFLOW_MODEL,
+        model: MODEL_8B,
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userMessage }
@@ -781,7 +1014,8 @@ app.listen(PORT, () => {
   const hasKey = process.env.SILICONFLOW_API_KEY && process.env.SILICONFLOW_API_KEY !== 'your_key_here';
   console.log(`\n🍹 MoodMix SiliconFlow 代理服务已启动`);
   console.log(`   端口: ${PORT}`);
-  console.log(`   模型: ${SILICONFLOW_MODEL}`);
+  console.log(`   Core 模型: ${MODEL_8B}`);
+  console.log(`   Creative 模型: ${MODEL_30B}`);
   console.log(`   API Key: ${hasKey ? '✅ 已配置' : '❌ 未配置 — 请在 .env 中设置 SILICONFLOW_API_KEY'}`);
   console.log(`   端点: POST http://localhost:${PORT}/api/analyze_mood\n`);
 });

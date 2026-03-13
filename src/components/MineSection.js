@@ -173,7 +173,7 @@ const MineSection = ({ userInventory, onUpdateInventory, favorites, onSelectDrin
             </div>
 
             {/* 原料库区域 - 限制两行，超出用 ... 省略 */}
-            <div className="flex flex-col gap-2 mb-6 px-6 py-4 bg-white/30 backdrop-blur-md rounded-2xl transition-all hover:bg-white/40 shadow-sm">
+            <div className="flex flex-col gap-2 mb-6 px-6 py-4 bg-white/30 backdrop-blur-md rounded-b-2xl transition-all hover:bg-white/40 shadow-sm">
                 <div className="flex items-center justify-between">
                     <h3 className="text-sm font-bold text-[#111813]">原料库</h3>
                     <button

@@ -37,27 +37,22 @@ const DrinkHelpModal = ({ drink, onClose }) => {
     try {
       // 获取用户库存
       const userInventory = inventoryStorage.getAvailableIngredients();
+      const { executeMixologyTask } = await import('../agents');
 
-      const response = await fetch('/api/drink-assistant', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          drink: {
-            name: drink.name,
-            nameEn: drink.nameEn,
-            ingredients: drink.ingredients || []
-          },
-          question: question.trim(),
-          userInventory
-        })
+      const result = await executeMixologyTask('ASSIST', {
+        drink: {
+          name: drink.name,
+          nameEn: drink.nameEn,
+          ingredients: drink.ingredients || []
+        },
+        question: question.trim(),
+        userInventory
       });
 
-      const data = await response.json();
-
-      if (data.success) {
-        setAnswer(data.answer);
+      if (result.success) {
+        setAnswer(result.data.answer);
       } else {
-        setError(data.error || '获取建议失败，请稍后再试');
+        setError(result.userMessage || '获取建议失败，请稍后再试');
       }
     } catch (err) {
       console.error('Drink assistant error:', err);

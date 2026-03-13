@@ -15,12 +15,12 @@
  */
 
 // 核心基础设施
-export { 
-  BaseAgent, 
-  AgentContext, 
+export {
+  BaseAgent,
+  AgentContext,
   AgentOrchestrator,
   executeRecommendationPipeline,
-  extractRecommendationResult 
+  extractRecommendationResult
 } from './core';
 
 // 专用Agent
@@ -29,5 +29,24 @@ export {
   PatternAnalyzer,
   VectorTranslator,
   CreativeCopywriter,
-  ValidatorOptimizer
+  ValidatorOptimizer,
+  MixologyExpert
 } from './specialized';
+
+/**
+ * 快速执行调饮专家任务（分析或助手）
+ */
+export async function executeMixologyTask(taskType, data) {
+  const { MixologyExpert } = await import('./specialized/MixologyExpert');
+  const { AgentContext } = await import('./core/AgentContext');
+
+  const context = new AgentContext({
+    mixologyTaskType: taskType,
+    mixologyData: data
+  });
+
+  const expert = new MixologyExpert();
+  const result = await expert.execute(context);
+
+  return result;
+}

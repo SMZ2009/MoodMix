@@ -15,7 +15,7 @@ import RecommendationGallery from './components/RecommendationGallery';
 
 import { analyzeMood } from './api/moodAnalyzer';
 import { evaluateAndSortDrinks } from './engine/vectorEngine';
-import { executeRecommendationPipeline, extractRecommendationResult } from './agents';
+import { executeRecommendationPipeline, extractRecommendationResult, executeMixologyTask } from './agents';
 import { generatePhilosophyTags } from './engine/philosophyTags';
 import { fetchLiveQuotes } from './api/quoteGenerator';
 import { translateDrinkName, translateIngredient } from './data/translations';
@@ -2281,27 +2281,18 @@ const CustomDrinkModal = ({ isOpen, onClose, onSave }) => {
         .map(s => s.trim())
         .filter(Boolean);
 
-      // 调用AI生成维度向量
-      const apiUrl = process.env.NODE_ENV === 'production'
-        ? '/api/generate-drink-dimensions'
-        : 'http://localhost:3001/api/generate-drink-dimensions';
-
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: name.trim(),
-          description: description.trim(),
-          ingredients: ingredientList,
-          isAlcoholic
-        })
+      const result = await executeMixologyTask('ANALYZE', {
+        name: name.trim(),
+        description: description.trim(),
+        ingredients: ingredientList,
+        isAlcoholic
       });
-
-      const result = await response.json();
 
       if (!result.success) {
         throw new Error(result.error || '生成失败');
       }
+
+      const analysisData = result.data;
 
       // 构建饮品对象
       const drinkData = {
@@ -2312,9 +2303,9 @@ const CustomDrinkModal = ({ isOpen, onClose, onSave }) => {
         briefIngredients: ingredientList.map(ing => ({ label: ing })),
         isAlcoholic,
         image: image || 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=400&h=400&fit=crop',
-        vector: result.vector,
-        dimensions: result.dimensions,
-        abv: isAlcoholic ? (result.vector?.[6] || 15) : 0,
+        vector: analysisData.vector,
+        dimensions: analysisData.dimensions,
+        abv: isAlcoholic ? (analysisData.vector?.[6] || 15) : 0,
         tags: isAlcoholic ? ['含酒精'] : ['无酒精']
       };
 

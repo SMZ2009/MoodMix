@@ -78,4 +78,17 @@
   - `@import "tailwindcss/components";`
   - `@import "tailwindcss/utilities";`
   这不仅能消除警告，还符合标准的 CSS 模块化规范，且 Tailwind 官方同样支持。
-- **多端兼容属性**: 在使用类似 `-webkit-line-clamp` 的私有属性实现多行文本截断时，**必须**同步定义标准的 `line-clamp` 属性，以确保在不同浏览器内核（如 Firefox/Safari）及其更新版本中的稳健表现。
+- **多端兼容属性**: 在使用类似 `-webkit-line-clamp` 的私有属性实现多行文本截断时，**必须**同步定义标准的 `line-clamp`属性，以确保在不同浏览器内核（如 Firefox/Safari）及其更新版本中的稳健表现。
+
+## AI Agent 系统集成经验 (2026-03-13)
+
+### 1. 领域专家 Agent 的解耦与聚合
+**经验**：针对特定垂直领域（如调酒学）的 AI 功能，应创建专门的领域专家 Agent（如 `MixologyExpert`），而非将其逻辑散落在各个 UI 组件或通用的分析器中。
+**优势**：通过统一的代理接口（如 `executeMixologyTask`），可以标准化输入校验输出验证、错误处理以及降级逻辑，使 UI 层保持极致简洁（KISS原则）。
+
+### 2. 异步导入与按需加载
+**策略**：在多 Agent 系统中，由于 Agent 类及其依赖可能较大，推荐在执行辅助函数（Helper Functions）内部使用显式的 `await import()` 进行异步加载。
+**结果**：这能显著降低首屏 JS Bundle 大小，同时在需要时才触发 LLM 相关模块的初始化。
+
+### 3. 多模式 Agent 的统一上下文
+**经验**：一个 Agent 可以支持多种模式（如 `ANALYZE` 和 `ASSIST`）。通过 `AgentContext` 传递 `taskType`，可以在同一个 Agent 类中复用相关的私有方法和辅助逻辑，同时保持代码的紧凑性。

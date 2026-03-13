@@ -250,7 +250,7 @@ AgentOrchestrator.prototype.executeWithCallback = async function (context, onSte
  */
 export async function executeRecommendationPipeline(userInput, options = {}) {
   const pipelineStartTime = performance.now();
-  console.group('🚀 [仪轨启动] 推荐流水线执行中...');
+  console.group('🚀 [启程寻味] 推荐流水线执行中...');
   console.log(`[Timer] 0ms: 流水线开始执行`);
 
   const {
@@ -414,6 +414,11 @@ export async function executeRecommendationPipeline(userInput, options = {}) {
               const validationResult = await validator.execute(context);
               context.setOutput('ValidatorOptimizer', validationResult);
               console.log(`[Async] 质量验证完成: ${validationResult.data?.score || 0}/100`);
+
+              // 如果有验证回调，通知 UI 更新勋章
+              if (options.onValidationSuccess && validationResult.success) {
+                options.onValidationSuccess(validationResult.data);
+              }
             }
           } catch (asyncErr) {
             console.error('[Async Task Error]', asyncErr);

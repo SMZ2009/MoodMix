@@ -60,9 +60,14 @@ export class ValidatorOptimizer extends BaseAgent {
       moodData: context.getIntermediate('moodData'),
       patternAnalysis: context.getIntermediate('patternAnalysis'),
       vectorResult: context.getIntermediate('vectorResult'),
-      matches: context.getIntermediate('matches'),
+      matches: (context.getIntermediate('matches') || []).map(m => ({
+        name: m.drink?.name,
+        similarity: m.similarity,
+        isReady: m.drink?.isReadyToMake,
+        missing: m.drink?.missingCount
+      })).slice(0, 5), // 仅取前 5 个进行质量校验
       creativeCopy: context.getIntermediate('creativeCopy'),
-      inventory: context.input?.inventory || [],
+      inventoryCount: (context.input?.inventory || []).length,
       timestamp: new Date().toISOString()
     };
 
@@ -647,8 +652,8 @@ export class ValidatorOptimizer extends BaseAgent {
         };
       case 'good':
         return {
-          showBadge: false,
-          badgeText: null,
+          showBadge: true,
+          badgeText: '恰有灵犀',
           showBottomHint: false,
           bottomHintText: null,
           buttonText: null
@@ -656,7 +661,7 @@ export class ValidatorOptimizer extends BaseAgent {
       case 'acceptable':
         return {
           showBadge: true,
-          badgeText: '缘来一试',
+          badgeText: '随缘入味',
           showBottomHint: false,
           bottomHintText: null,
           buttonText: null
@@ -665,7 +670,7 @@ export class ValidatorOptimizer extends BaseAgent {
       default:
         return {
           showBadge: true,
-          badgeText: '缘分尚浅',
+          badgeText: '缘来一试',
           showBottomHint: false,
           bottomHintText: null,
           buttonText: null

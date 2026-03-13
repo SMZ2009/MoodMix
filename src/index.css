@@ -1029,7 +1029,7 @@ body {
    ══════════════════════════════════════════════════════════════════ */
 
 .ingredient-modal-container {
-  padding: 1.25rem 1.25rem 1.5rem;
+  padding: 1.25rem 1.25rem 1.75rem;
   background: rgba(255, 255, 255, 0.78);
   backdrop-filter: blur(40px) saturate(1.2);
   -webkit-backdrop-filter: blur(40px) saturate(1.2);
@@ -1038,6 +1038,7 @@ body {
   max-height: 78vh;
   display: flex;
   flex-direction: column;
+  overflow-y: auto;
   box-shadow:
     0 8px 32px rgba(0, 0, 0, 0.08),
     inset 0 1px 0 rgba(255, 255, 255, 0.2);

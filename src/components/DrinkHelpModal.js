@@ -73,13 +73,25 @@ const DrinkHelpModal = ({ drink, onClose }) => {
             <h3 style={{ fontSize: '1.1rem', fontWeight: 700, fontFamily: '"Songti SC","STKaiti","KaiTi",serif', color: '#000000', letterSpacing: '0.1em' }}>制作遇到问题？</h3>
             <p style={{ fontSize: '0.75rem', color: 'rgba(0, 0, 0, 0.6)', marginTop: '2px' }}>{drink.name}</p>
           </div>
-          <InteractiveButton
-            variant="icon"
+          <button
+            type="button"
             onClick={onClose}
-            style={{ background: 'rgba(0,0,0,0.05)', width: '36px', height: '36px' }}
+            aria-label="关闭"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: 'rgba(0,0,0,0.05)',
+              width: '36px',
+              height: '36px',
+              borderRadius: '999px',
+              border: '1px solid rgba(0,0,0,0.04)',
+              color: '#2f2b29',
+              cursor: 'pointer'
+            }}
           >
-            <X size={18} />
-          </InteractiveButton>
+            <X size={18} strokeWidth={2.2} color="#2f2b29" />
+          </button>
         </div>
 
         {/* Content */}

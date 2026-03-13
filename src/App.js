@@ -1061,35 +1061,50 @@ const DrinkDetailSection = ({ drink, checkedIngredients, onToggleIngredient, onB
 
         {/* 悬浮操作按钮 */}
         <div className="absolute top-[calc(env(safe-area-inset-top,0px)+1rem)] inset-x-0 px-6 flex justify-between z-20">
-          <InteractiveButton
-            variant="icon"
+          <button
+            type="button"
             onClick={onBack}
-            className="group"
+            aria-label="返回"
             style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
               background: 'rgba(255,255,255,0.15)',
               backdropFilter: 'blur(12px)',
+              WebkitBackdropFilter: 'blur(12px)',
               border: '1px solid rgba(255,255,255,0.2)',
               color: 'white',
               width: '42px',
-              height: '42px'
+              height: '42px',
+              borderRadius: '999px',
+              boxShadow: '0 4px 18px rgba(0,0,0,0.12)',
+              cursor: 'pointer'
             }}
           >
-            <ChevronLeft size={22} className="text-white group-active:scale-90 transition-transform" />
-          </InteractiveButton>
-          <InteractiveButton
-            variant="icon"
+            <ChevronLeft size={22} strokeWidth={2.2} color="#ffffff" />
+          </button>
+          <button
+            type="button"
             onClick={() => onHelp && onHelp(drink)}
+            aria-label="饮品帮助"
             style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
               background: 'rgba(255,255,255,0.15)',
               backdropFilter: 'blur(12px)',
+              WebkitBackdropFilter: 'blur(12px)',
               border: '1px solid rgba(255,255,255,0.2)',
               color: 'white',
               width: '42px',
-              height: '42px'
+              height: '42px',
+              borderRadius: '999px',
+              boxShadow: '0 4px 18px rgba(0,0,0,0.12)',
+              cursor: 'pointer'
             }}
           >
-            <HelpCircle size={22} className="text-white" />
-          </InteractiveButton>
+            <HelpCircle size={21} strokeWidth={2.2} color="#ffffff" />
+          </button>
         </div>
       </div>
 

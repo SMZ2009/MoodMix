@@ -23,13 +23,25 @@ const HelperModal = ({ onClose }) => {
           color: '#000000',
           letterSpacing: '0.1em'
         }}>生活容器对照表</h3>
-        <InteractiveButton
-          variant="icon"
+        <button
+          type="button"
           onClick={onClose}
-          style={{ background: 'rgba(0,0,0,0.05)', width: '36px', height: '36px' }}
+          aria-label="关闭"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'rgba(0,0,0,0.05)',
+            width: '36px',
+            height: '36px',
+            borderRadius: '999px',
+            border: '1px solid rgba(0,0,0,0.04)',
+            color: '#2f2b29',
+            cursor: 'pointer'
+          }}
         >
-          <X size={18} />
-        </InteractiveButton>
+          <X size={18} strokeWidth={2.2} color="#2f2b29" />
+        </button>
       </div>
       <div className="space-y-3">
         {[

@@ -12,25 +12,32 @@ export class AgentContext {
   constructor(initialData = {}) {
     // 用户原始输入
     this.userInput = initialData.userInput || '';
-    
+
     // 用户库存原料
     this.inventory = initialData.inventory || [];
-    
+
     // 所有可用饮品
     this.allDrinks = initialData.allDrinks || [];
-    
+
     // 当前时间（用于时序分析）
     this.currentTime = initialData.currentTime || new Date().toISOString();
-    
+
     // Agent中间输出存储
     this.intermediate = new Map();
-    
+
+    // 将 initialData 中未被显式定义的 key 存入 intermediate
+    Object.keys(initialData).forEach(key => {
+      if (!['userInput', 'inventory', 'allDrinks', 'currentTime'].includes(key)) {
+        this.intermediate.set(key, initialData[key]);
+      }
+    });
+
     // Agent输出结果存储
     this.outputs = new Map();
-    
+
     // 执行轨迹记录
     this.executionTrace = [];
-    
+
     // 性能指标
     this.metrics = {
       startTime: Date.now(),
@@ -90,7 +97,7 @@ export class AgentContext {
   getExecutionSummary() {
     const endTime = Date.now();
     this.metrics.totalDuration = endTime - this.metrics.startTime;
-    
+
     return {
       userInput: this.userInput,
       totalDuration: this.metrics.totalDuration,

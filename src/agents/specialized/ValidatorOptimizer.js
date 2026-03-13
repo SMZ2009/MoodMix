@@ -56,11 +56,14 @@ export class ValidatorOptimizer extends BaseAgent {
    * 核心处理：验证与优化
    */
   async process(context) {
+    const matches = context.getIntermediate('matches');
+    const safeMatches = Array.isArray(matches) ? matches : [];
+
     const fullContext = {
       moodData: context.getIntermediate('moodData'),
       patternAnalysis: context.getIntermediate('patternAnalysis'),
       vectorResult: context.getIntermediate('vectorResult'),
-      matches: (context.getIntermediate('matches') || []).map(m => ({
+      matches: safeMatches.map(m => ({
         name: m.drink?.name,
         similarity: m.similarity,
         isReady: m.drink?.isReadyToMake,

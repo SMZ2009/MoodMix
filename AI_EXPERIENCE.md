@@ -72,3 +72,10 @@
 ### 3. 事件穿透与交互安全
 **经验**：在使用 `absolute inset-0` 构建装饰性容器时，必须严防 `pointer-events` 导致的点击失效。模式应为：外层容器 `pointer-events-none`（穿透），内层内容块 `pointer-events-auto`（拦截），确保背景装饰不影响卡片本身的点击跳转。
 
+### 4. CSS 兼容性与 Linter 优化 (2026-03-13)
+- **指令替代方案**: 当 IDE 或 Linter 无法识别 Tailwind 的 `@tailwind` 指令（报 Unknown at rule 警告）时，推荐使用标准 CSS 的 `@import` 语法：
+  - `@import "tailwindcss/base";`
+  - `@import "tailwindcss/components";`
+  - `@import "tailwindcss/utilities";`
+  这不仅能消除警告，还符合标准的 CSS 模块化规范，且 Tailwind 官方同样支持。
+- **多端兼容属性**: 在使用类似 `-webkit-line-clamp` 的私有属性实现多行文本截断时，**必须**同步定义标准的 `line-clamp` 属性，以确保在不同浏览器内核（如 Firefox/Safari）及其更新版本中的稳健表现。

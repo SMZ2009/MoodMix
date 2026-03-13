@@ -29,11 +29,11 @@ const WUXING_CN = { wood: '木', fire: '火', earth: '土', metal: '金', water:
  *   - 总长度控制在 4-6 个汉字，不超过 7 个
  */
 const RELATION_PHRASES = {
-    '生':   (el) => `借${el}生发`,   // 用户生饮品：用户的能量往外走，借饮品顺势升发
+    '生': (el) => `借${el}生发`,   // 用户生饮品：用户的能量往外走，借饮品顺势升发
     '被生': (el) => `以${el}滋养`,   // 饮品生用户：饮品补给用户
-    '克':   (el) => `以${el}制衡`,   // 饮品克用户：饮品约束用户过亢的气
+    '克': (el) => `以${el}制衡`,   // 饮品克用户：饮品约束用户过亢的气
     '被克': (el) => `借${el}收敛`,   // 用户克饮品：用户主动收束
-    '同':   (el) => `同${el}共振`,   // 同行：放大当前状态
+    '同': (el) => `同${el}共振`,   // 同行：放大当前状态
 };
 
 /**
@@ -47,15 +47,15 @@ const RELATION_PHRASES = {
 const STATE_DESCRIPTORS = {
     emotion: {
         positive: {
-            wood:  '心气舒展',
-            fire:  '兴致正浓',
+            wood: '心气舒展',
+            fire: '兴致正浓',
             earth: '踏实安稳',
             metal: '清醒自在',
             water: '沉静深远',
         },
         negative: {
-            wood:  '郁气难舒',
-            fire:  '心绪浮躁',
+            wood: '郁气难舒',
+            fire: '心绪浮躁',
             earth: '倦怠沉闷',
             metal: '感伤低落',
             water: '不安焦虑',
@@ -63,12 +63,12 @@ const STATE_DESCRIPTORS = {
     },
     somatic: {
         positive: {
-            hot:  '身暖气足',
+            hot: '身暖气足',
             cold: '体凉神清',
             neutral: '身心安适',
         },
         negative: {
-            hot:  '燥热难安',
+            hot: '燥热难安',
             cold: '寒凉乏力',
             neutral: '气虚体倦',
         },
@@ -79,11 +79,11 @@ const STATE_DESCRIPTORS = {
         scattered: '思绪纷飞',
     },
     demand: {
-        release:  '想要释放',
-        calm:     '想要安静',
+        release: '想要释放',
+        calm: '想要安静',
         energize: '想要提神',
-        social:   '想要热闹',
-        comfort:  '想要慰藉',
+        social: '想要热闹',
+        comfort: '想要慰藉',
     },
 };
 
@@ -98,30 +98,30 @@ const STATE_DESCRIPTORS = {
 const SENSORY_MATRIX = {
     // temp: cold(-5~-2), cool(-2~0), neutral(0~1), warm(1~3), hot(3~5)
     // texture: thin(-3~-1), smooth(-1~1), thick(1~3)
-    'cold_thin':    '清冽·沉降',
-    'cold_smooth':  '冰润·收束',
-    'cold_thick':   '冰感·绵密',
-    'cool_thin':    '微凉·通透',
-    'cool_smooth':  '凉爽·顺滑',
-    'cool_thick':   '凉润·醇厚',
+    'cold_thin': '清冽·沉降',
+    'cold_smooth': '冰润·收束',
+    'cold_thick': '冰感·绵密',
+    'cool_thin': '微凉·通透',
+    'cool_smooth': '凉爽·顺滑',
+    'cool_thick': '凉润·醇厚',
     'neutral_thin': '清淡·轻盈',
-    'neutral_smooth':'柔和·平稳',
+    'neutral_smooth': '柔和·平稳',
     'neutral_thick': '醇厚·饱满',
-    'warm_thin':    '温透·升散',
-    'warm_smooth':  '温润·舒展',
-    'warm_thick':   '温厚·绵长',
-    'hot_thin':     '灼烈·冲击',
-    'hot_smooth':   '热感·蔓延',
-    'hot_thick':    '浓烈·深沉',
+    'warm_thin': '温透·升散',
+    'warm_smooth': '温润·舒展',
+    'warm_thick': '温厚·绵长',
+    'hot_thin': '灼烈·冲击',
+    'hot_smooth': '热感·蔓延',
+    'hot_thick': '浓烈·深沉',
 };
 
 /**
  * 味觉修饰词：当味觉特征突出时，替换或增强体感标签
  */
 const TASTE_MODIFIERS = {
-    sour:  { threshold: 4, word: '酸爽', effect: '开窍' },
+    sour: { threshold: 4, word: '酸爽', effect: '开窍' },
     sweet: { threshold: 5, word: '甘润', effect: '缓释' },
-    bitter:{ threshold: 4, word: '微苦', effect: '清心' },
+    bitter: { threshold: 4, word: '微苦', effect: '清心' },
     spicy: { threshold: 3, word: '辛香', effect: '升提' },
 };
 
@@ -151,10 +151,10 @@ function generateDiagnosisTag(moodData, patternAnalysis) {
 
     // 收集各维度的 intensity
     const dims = [
-        { key: 'emotion',   intensity: moodData.emotion?.intensity ?? 0.5 },
-        { key: 'somatic',   intensity: moodData.somatic?.intensity ?? 0.3 },
-        { key: 'cognitive',  intensity: moodData.cognitive?.intensity ?? 0.3 },
-        { key: 'demand',    intensity: moodData.demand?.intensity ?? 0.3 },
+        { key: 'emotion', intensity: moodData.emotion?.intensity ?? 0.5 },
+        { key: 'somatic', intensity: moodData.somatic?.intensity ?? 0.3 },
+        { key: 'cognitive', intensity: moodData.cognitive?.intensity ?? 0.3 },
+        { key: 'demand', intensity: moodData.demand?.intensity ?? 0.3 },
     ];
 
     // 按 intensity 降序
@@ -292,14 +292,14 @@ function generateSensoryTag(dimensions) {
     const txt = dimensions.texture?.value ?? 0;
 
     const tempKey = temp <= -2 ? 'cold'
-        : temp <= 0  ? 'cool'
-        : temp <= 1  ? 'neutral'
-        : temp <= 3  ? 'warm'
-        : 'hot';
+        : temp <= 0 ? 'cool'
+            : temp <= 1 ? 'neutral'
+                : temp <= 3 ? 'warm'
+                    : 'hot';
 
     const txtKey = txt < -1 ? 'thin'
         : txt <= 1 ? 'smooth'
-        : 'thick';
+            : 'thick';
 
     const matrixKey = `${tempKey}_${txtKey}`;
     let sensory = SENSORY_MATRIX[matrixKey] || '柔和·平稳';
@@ -333,121 +333,100 @@ function generateSensoryTag(dimensions) {
  */
 function generateLocalQuote(moodData, patternAnalysis, dimensions, drinkName) {
     // 获取状态描述 (复用 tag1 的逻辑)
-    const stateDesc = generateDiagnosisTag(moodData, patternAnalysis);
+    const stateDesc = generateDiagnosisTag(moodData, patternAnalysis) || '心绪有些波澜';
 
     // 获取饮品的核心感官特征
     const sensory = describeDrinkCharacter(dimensions);
 
     // 获取调理方向
-    const direction = describeHealingDirection(patternAnalysis);
+    const direction = describeHealingDirection(patternAnalysis, drinkName);
 
     // 饮品名称处理
     const name = drinkName || '这杯酒';
 
-    // 根据策略类型选择句式
-    const strategyType = patternAnalysis?.strategy?.type;
+    // 确定极性
     const polarity = patternAnalysis?.polarity?.type || 'negative';
 
     if (polarity === 'positive') {
-        // 正向情绪 → 共振句式，不需要"治疗"感
         const positiveTemplates = [
-            `${stateDesc}，${name}${sensory}，和你此刻正好合拍。`,
-            `${stateDesc}，来一杯${sensory}的${name}，锦上添花。`,
-            `此刻${stateDesc}，${name}的${sensory}替你把这份好心情再拉长一点。`,
+            `「${stateDesc}，${name}${sensory}，正好接住这份好兴致」`,
+            `「此时此刻${stateDesc}，通过这杯${sensory}的${name}，陪你把快乐拉满」`,
+            `「${stateDesc}，${name}这股${sensory}劲儿，和你现在的状态特别合拍」`,
         ];
-        return positiveTemplates[hashSelect(drinkName, positiveTemplates.length)];
+        return positiveTemplates[hashSelect(name, positiveTemplates.length)];
     }
 
-    // 负向情绪 → 调理句式
+    // 负向情绪 → 调理句式 (Status + Drink + Action)
+    // 增加「」包裹并精简语言，使其在视觉和语态上与 LLM 文案完全一致
     const negativeTemplates = [
-        `${stateDesc}，${name}用${sensory}${direction}。`,
-        `${stateDesc}，来一杯${name}，${sensory}${direction}。`,
-        `${stateDesc}，让${name}的${sensory}${direction}。`,
+        `「${stateDesc}，这杯${name}透出的${sensory}${direction}」`,
+        `「${stateDesc}，这杯${sensory}的${name}${direction}」`,
+        `「${stateDesc}，${name}带着${sensory}${direction}」`,
     ];
-    return negativeTemplates[hashSelect(drinkName, negativeTemplates.length)];
+    return negativeTemplates[hashSelect(name, negativeTemplates.length)];
 }
 
-/**
- * 描述饮品的核心感官特征（用于推荐语）
- * 输出自然语言片段，如 "柑橘的辛香" / "冰凉的清冽"
- */
 function describeDrinkCharacter(dimensions) {
     if (!dimensions) return '独特的风味';
-
     const parts = [];
 
-    // 温度
-    const temp = dimensions.temperature?.value ?? 0;
-    if (temp <= -2) parts.push('冰凉');
-    else if (temp >= 2) parts.push('温热');
-
-    // 味觉 - 取最突出的
     const taste = dimensions.taste || {};
     const tasteEntries = [
-        { key: 'sweet', val: taste.sweet ?? 0, word: '甘甜' },
-        { key: 'sour', val: taste.sour ?? 0, word: '微酸' },
+        { key: 'sour', val: taste.sour ?? 0, word: '酸灵' },
+        { key: 'sweet', val: taste.sweet ?? 0, word: '甜润' },
         { key: 'bitter', val: taste.bitter ?? 0, word: '微苦' },
-        { key: 'spicy', val: taste.spicy ?? 0, word: '辛香' },
+        { key: 'spicy', val: taste.spicy ?? 0, word: '辛热' },
     ].sort((a, b) => b.val - a.val);
 
-    if (tasteEntries[0].val >= 3) {
-        parts.push(tasteEntries[0].word);
-    }
+    const temp = dimensions.temperature?.value ?? 0;
+    if (temp <= -2) parts.push('冰凉');
+    else if (temp >= 2) parts.push('热乎');
 
-    // 质地
-    const txt = dimensions.texture?.value ?? 0;
-    if (txt > 1.5) parts.push('醇厚');
-    else if (txt < -1.5) parts.push('清冽');
+    if (tasteEntries[0].val >= 3) parts.push(tasteEntries[0].word);
 
-    if (parts.length === 0) return '柔和的口感';
-    return parts.join('');
+    const texture = dimensions.texture?.value ?? 0;
+    if (texture > 1.5) parts.push('厚实');
+    else if (texture < -1.5) parts.push('透亮');
+
+    return parts.length > 0 ? parts.join('') : '柔和平衡的口感';
 }
 
-/**
- * 描述调理方向（用于推荐语的结尾）
- * 输出动作性短语，如 "替你把闷气散开" / "帮你沉下来"
- */
-function describeHealingDirection(patternAnalysis) {
-    if (!patternAnalysis) return '帮你找回平衡';
+function describeHealingDirection(patternAnalysis, drinkName = '') {
+    if (!patternAnalysis) return '能帮你定定神';
 
     const strategy = patternAnalysis?.strategy?.type;
     const userWuxing = patternAnalysis?.wuxing?.user || 'earth';
 
-    // 基于用户五行状态 + 策略类型，生成有画面感的调理描述
-    const directionMap = {
-        // 木 - 郁 → 需要疏散
-        wood_correct:   '替你把郁气慢慢散开',
-        wood_counter:   '帮你把堵着的情绪冲开',
-        wood_resonate:  '和你一起往外舒展',
-        wood_harmonize: '轻轻替你松绑',
+    const directionGroups = {
+        wood_correct: ['替你把胸口的闷气慢慢散开', '让心里的乱麻随风理顺', '带你找回在松林呼吸般的自在'],
+        wood_counter: ['帮你把堵着的火气给冲掉', '像剪掉杂草一样还你个清净', '让这股郁结在味蕾间彻底化开'],
+        wood_resonate: ['陪你把这份舒展劲儿再放一放', '看心里的好苗头悄悄往上涨', '让你这一刻的轻快感变得更持久'],
+        wood_harmonize: ['像给绷紧的心弦松个绑', '温温地顺着你的气机走一走', '轻轻化解开眉宇间的一点愁'],
 
-        // 火 - 躁 → 需要沉降
-        fire_correct:   '帮你把浮躁按下来',
-        fire_counter:   '替你把虚火泄掉',
-        fire_resonate:  '和你的热情一起燃烧',
-        fire_harmonize: '替你把火气慢慢收住',
+        fire_correct: ['正好能把浮躁的心思往下沉一沉', '让狂奔的心跳慢下来喘口气', '给沸腾的情绪添一份清安'],
+        fire_counter: ['替你把烧过了头的烦躁泄掉', '像一阵及时雨浇灭心头的无名火', '把这种灼热感从你身边推开'],
+        fire_resonate: ['和你的满腔热情一起燃起来', '看此刻的欢愉在杯子里跳舞', '把你这一刻的透亮感再放大些'],
+        fire_harmonize: ['替你把乱窜的火气慢慢收住', '在温润间稳住你的呼吸频率', '让你的状态像微火一样长久温暖'],
 
-        // 土 - 闷 → 需要激活
-        earth_correct:  '替你把沉闷感唤醒',
-        earth_counter:  '帮你从倦怠里抽身',
-        earth_resonate: '给你踏实的陪伴',
-        earth_harmonize:'温温地把你托住',
+        earth_correct: ['替你把这种沉重感一点点唤醒', '让懈怠的心思重新找回干劲', '从这种厚重的阴影里拉你一把'],
+        earth_counter: ['帮你从这股倦怠里轻巧抽身', '打破生活这一层厚厚的壳子', '给停滞不前的脑子换个新节奏'],
+        earth_resonate: ['给你大地一样踏实的陪伴', '这就懂你这一份厚道的醇和', '用最宽广的怀抱稳稳托住你'],
+        earth_harmonize: ['温温地把你托在掌心里呵护', '过滤掉杂念，还你一片宁静原野', '像遇到老朋友一样的默契心安'],
 
-        // 金 - 悲 → 需要温润
-        metal_correct:  '温温地替你把伤感化开',
-        metal_counter:  '帮你从低落中抬起头',
-        metal_resonate: '陪你安静地待一会',
-        metal_harmonize:'轻轻包裹住你的情绪',
+        metal_correct: ['温温地替你把这份伤感化开', '让寒凉的心绪重新变得暖暖的', '驱散你眼底那一抹淡淡的秋愁'],
+        metal_counter: ['帮你从低落里抬起头来看月亮', '剪断优郁的乱头发，还你个利索', '让凝固的坏情绪重新流转起来'],
+        metal_resonate: ['陪你安安静静守着这一盏灯', '懂你这一刻的清冷和独立', '看透世间冷暖后的那份通透感'],
+        metal_harmonize: ['轻轻包裹住你目前敏感的小情绪', '像给回忆加了一层柔光滤镜', '稳稳护住你心底那份最软的地方'],
 
-        // 水 - 恐/焦 → 需要安定
-        water_correct:  '帮你把不安慢慢放下',
-        water_counter:  '替你把焦虑的气沉到底',
-        water_resonate: '带你往更深处沉静',
-        water_harmonize:'帮你稳住此刻的心绪',
+        water_correct: ['帮你把这种不安慢慢放下来', '像定海神针一样稳住心里的波纹', '让焦虑感沉入最深邃的宁静里'],
+        water_counter: ['替你把焦虑的火火往下面沉一沉', '把惊扰到的波澜全部化作无声', '给悬着的心找一个安全的降落点'],
+        water_resonate: ['带你在这种沉静里往深处去', '在这片墨色中找回最初的自己', '看潮起潮落我也一直陪在你身旁'],
+        water_harmonize: ['帮你在流动中稳住这一刻的你', '顺着水流把那些杂念都带走', '让乱跳的脉搏变得悠长而平稳'],
     };
 
     const key = `${userWuxing}_${strategy}`;
-    return directionMap[key] || '帮你找回平衡';
+    const pool = directionGroups[key] || ['帮你找回平衡', '温顺地梳理心情'];
+    return pool[hashSelect(drinkName, pool.length)];
 }
 
 // ============================================================
@@ -473,7 +452,7 @@ function getWuxingRelation(userWuxing, drinkWuxing) {
     if ((dIdx + 1) % 5 === uIdx) return '被生';  // 饮品生用户
 
     // 相克链：wood(0)→earth(2)→water(4)→fire(1)→metal(3)→wood(0)
-    if ((uIdx + 2) % 5 === dIdx) return '克';    // 用户克饮品 (原代码标注有误，已修正)
+    if ((uIdx + 2) % 5 === dIdx) return '克';    // 用户克饮品
     if ((dIdx + 2) % 5 === uIdx) return '被克';  // 饮品克用户
 
     return '同';
@@ -519,7 +498,7 @@ export function generatePhilosophyTags(dimensions, contextData = null, drinkName
     if (!contextData || !dimensions) {
         return {
             tags: ['待辨证', '调和气机', '口感待品'],
-            quote: '请先描述你此刻的心情，让我为你找到那杯对的酒。',
+            quote: '「请先描述你此刻的心情，让我为你找到那杯对的酒」',
             diagnosis: '待辨证',
             strategy: '调和气机',
             sensory: '口感待品',

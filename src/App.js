@@ -28,6 +28,13 @@ import navIconMix from './assets/nav_icon_mix.png';
 import navIconExplore from './assets/nav_icon_explore.png';
 import navIconMine from './assets/nav_icon_mine.png';
 
+// 一次性清除旧版诗化推荐语缓存 (针对 Phase 2 升级)
+if (!localStorage.getItem('moodmix_v2_cache_cleared')) {
+  localStorage.removeItem('moodmix_ai_quotes_cache');
+  localStorage.setItem('moodmix_v2_cache_cleared', 'true');
+  console.log('⚡ [System] Stale quote cache cleared for V2 upgrade.');
+}
+
 const iconMap = {
   Wine,
   Droplets,
@@ -1621,7 +1628,18 @@ const App = () => {
         inventory: sessionIngredients,
         allDrinks: allDrinksForPipeline,
         currentTime: new Date().toISOString(),
-        interventionType: currentInterventionType  // 传递干预类型
+        interventionType: currentInterventionType,
+        // 🔥 [优化] 提前并行触发文案生成
+        onVectorSearchSuccess: (matches, contextData) => {
+          console.log(`[Timer] ${Math.round(performance.now() - startTime)}ms: 触发提前并行文案生成`);
+          // 异步执行，不等待回调
+          fetchLiveQuotes(matches, contextData, 15).then((quotesMap) => {
+            if (Object.keys(quotesMap).length > 0) {
+              setCustomQuotes(prev => ({ ...prev, ...quotesMap }));
+              console.log(`[Timer] ${Math.round(performance.now() - startTime)}ms: 提前触发的异步文案完成`);
+            }
+          }).catch(err => console.warn('Early live quote generation failed', err));
+        }
       });
 
       const agentResult = await agentPromise;
@@ -1629,7 +1647,7 @@ const App = () => {
       console.log('多Agent系统执行结果:', agentResult);
       clearTimeout(longWaitTimer);
 
-      // 获取匹配结果
+      // 获取匹配结果并展示画廊
       const matches = agentResult.context.getIntermediate('matches') || [];
       const moodData = agentResult.context.getIntermediate('moodData');
       const patternAnalysis = agentResult.context.getIntermediate('patternAnalysis');
@@ -1659,20 +1677,8 @@ const App = () => {
       setCurrentCardIndex(0);
       setMixMode('home');
       setShowRecommendationGallery(true);
-      console.log(`[Timer] ${Math.round(performance.now() - startTime)}ms: 结果渲染准备就绪，展示画廊`);
 
-      // ✅ 非阻塞流式异步大模型文案润色
-      if (pool.length > 0) {
-        console.log(`[Timer] ${Math.round(performance.now() - startTime)}ms: 启动异步文案润色 (非阻塞)`);
-        fetchLiveQuotes(pool, contextData, 15).then((quotesMap) => {
-          if (Object.keys(quotesMap).length > 0) {
-            setCustomQuotes(prev => ({ ...prev, ...quotesMap }));
-            console.log(`[Timer] ${Math.round(performance.now() - startTime)}ms: 异步文案润色完成`);
-          }
-        }).catch(err => {
-          console.warn('Live quote generation failed non-fatally', err);
-        });
-      }
+      console.log(`[Timer] ${Math.round(performance.now() - startTime)}ms: handleStartGeneration 流程准备就绪`);
 
     } catch (error) {
       console.error('分析/推荐出错:', error);
@@ -1751,7 +1757,16 @@ const App = () => {
       const agentPromise = executeRecommendationPipeline(finalInputForAI, {
         inventory: sessionIngredients,
         allDrinks: allDrinksForPipeline,
-        currentTime: new Date().toISOString()
+        currentTime: new Date().toISOString(),
+        // 🔥 [优化] 提前并行触发文案生成
+        onVectorSearchSuccess: (matches, contextData) => {
+          console.log(`[Timer] ${Math.round(performance.now() - startTime)}ms: 触发提前并行文案生成 (正向)`);
+          fetchLiveQuotes(matches, contextData, 15).then((quotesMap) => {
+            if (Object.keys(quotesMap).length > 0) {
+              setCustomQuotes(prev => ({ ...prev, ...quotesMap }));
+            }
+          }).catch(err => console.warn('Early live quote generation failed', err));
+        }
       });
 
       const agentResult = await agentPromise;

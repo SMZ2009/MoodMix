@@ -951,7 +951,7 @@ const ExploreSection = ({
                 }}
                 style={{
                   ...cardFeedback,
-                  borderRadius: '20px sm:24px',
+                  borderRadius: '20px',
                   overflow: 'hidden',
                   background: 'rgba(255, 255, 255, 0.45)',
                   backdropFilter: 'blur(12px)',
@@ -963,8 +963,8 @@ const ExploreSection = ({
               >
                 <div className="p-2 sm:p-3 pb-0">
                   <div
-                    className="relative aspect-[4/5] bg-cover bg-center rounded-xl sm:rounded-2xl overflow-hidden shadow-inner"
-                    style={{ backgroundImage: `url(${drink.image})` }}
+                    className="relative aspect-[4/5] bg-cover bg-center overflow-hidden shadow-inner"
+                    style={{ backgroundImage: `url(${drink.image})`, borderRadius: '20px' }}
                   >
                     <button
                       onClick={(e) => {

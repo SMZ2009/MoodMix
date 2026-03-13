@@ -243,9 +243,8 @@ const CardContent = ({ drink, isActive, isLiked, moodResult, customQuote, valida
         }}
       />
 
-      {/* Quality Badge - Top Left */}
       <div className="absolute top-4 left-4 z-20">
-        {validation?.uiHints?.showBadge && validation.uiHints.badgeText && (
+        {validation?.uiHints?.badgeText && validation?.uiHints?.showBadge !== false && (
           <div className="flex h-8 items-center justify-center rounded-full px-4 text-[11px] font-bold backdrop-blur-md border bg-white/15 border-white/30 text-white shadow-lg animate-in fade-in duration-500">
             <span>{validation.uiHints.badgeText}</span>
           </div>

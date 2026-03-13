@@ -265,7 +265,7 @@ const MoodInputSection = ({
         <div className="-mt-1 sm:-mt-1.5 z-10">
           <button
             onClick={onGenerate}
-            className="relative w-[104px] h-[46px] sm:w-[116px] sm:h-[50px] overflow-visible rounded-[999px] group active:scale-[0.96] transition-transform duration-150"
+            className="relative w-[140px] h-[46px] sm:w-[160px] sm:h-[50px] overflow-visible rounded-[999px] group active:scale-[0.96] transition-transform duration-150"
             style={{
               background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.08) 100%)',
               backdropFilter: 'blur(18px) saturate(1.05)',
@@ -273,7 +273,7 @@ const MoodInputSection = ({
               boxShadow: '0 16px 28px rgba(104, 132, 145, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.28), inset 0 -8px 18px rgba(126, 155, 169, 0.08)',
               animation: 'jade-pendant-float 5.6s ease-in-out infinite'
             }}
-            aria-label="开启仪轨"
+            aria-label="启程寻味"
           >
             <span
               className="absolute -inset-3 rounded-[999px] pointer-events-none"
@@ -301,14 +301,14 @@ const MoodInputSection = ({
                 className="absolute inset-0 flex items-center justify-center text-[12px] sm:text-[13px] font-semibold text-slate-700/88 animate-pulse"
                 style={{ fontFamily: '"FZQingKeBenYueSongS-R-GB", "方正清刻本悦宋简体", "Songti SC", serif', letterSpacing: '0.14em' }}
               >
-                仪轨中
+                {buttonFeedback?.loadingText || '寻味中...'}
               </span>
             ) : (
               <span
                 className="relative z-10 flex h-full w-full items-center justify-center text-[15px] sm:text-[17px] font-semibold text-slate-700/92"
                 style={{ fontFamily: '"FZQingKeBenYueSongS-R-GB", "方正清刻本悦宋简体", "Songti SC", serif', letterSpacing: '0.14em' }}
               >
-                开启仪轨
+                启程寻味
               </span>
             )}
           </button>
@@ -375,7 +375,7 @@ const InterventionModal = ({ isOpen, onClose, onSelectType }) => {
                 fontWeight: 700
               }}
             >
-              仪轨指引
+              寻味指引
             </span>
           </div>
           <h2
@@ -1596,7 +1596,7 @@ const App = () => {
 
   const handleStartGeneration = useCallback(async (type = null) => {
     const startTime = performance.now();
-    console.log(`[Timer] 0ms: 用户点击按钮，开始开启仪轨流程`);
+    console.log(`[Timer] 0ms: 用户点击按钮，开始寻味流程`);
     setMixMode('generating');
     setButtonLoadingText('正在寻杯…');
 
@@ -1620,16 +1620,23 @@ const App = () => {
       finalInputForAI += `\n(重要参考: 用户目前拥有的原料: ${sessionIngredients.join(', ')})`;
     }
 
-    const longWaitTimer = setTimeout(() => {
-      setButtonLoadingText('好饮不急，稍候片刻…');
-    }, 10000);
+    // 动态文字：阶梯式更新加载文案
+    const timers = [];
+    setButtonLoadingText('心与味，正在相遇…');
+
+    timers.push(setTimeout(() => setButtonLoadingText('五行正在推演…'), 3000));
+    timers.push(setTimeout(() => setButtonLoadingText('好饮不急，稍候片刻…'), 8000));
+    timers.push(setTimeout(() => setButtonLoadingText('万般心绪，皆需时机…'), 15000));
+    timers.push(setTimeout(() => setButtonLoadingText('此味将出，稍候片刻…'), 25000));
+
+    const clearAllTimers = () => timers.forEach(t => clearTimeout(t));
 
     try {
       // 检查饮品数据是否已加载
       if (!apiDrinks || apiDrinks.length === 0) {
-        clearTimeout(longWaitTimer);
+        clearAllTimers();
         setMixMode('home');
-        showFriendlyNotice('酒柜还在整理', '饮品数据尚未准备好，稍候片刻再开启仪轨。', 'warning');
+        showFriendlyNotice('酒柜还在整理', '饮品数据尚未准备好，稍候片刻再启程寻味。', 'warning');
         return;
       }
 
@@ -1660,13 +1667,17 @@ const App = () => {
             .finally(() => {
               isQuoteFetching.current = false;
             });
+        },
+        onValidationSuccess: (report) => {
+          console.log('[App] 异步验证报告送达，更新 UI 勋章');
+          setValidationResult(report);
         }
       });
 
       const agentResult = await agentPromise;
 
       console.log('多Agent系统执行结果:', agentResult);
-      clearTimeout(longWaitTimer);
+      clearAllTimers();
 
       // 获取匹配结果并展示画廊
       const matches = agentResult.context.getIntermediate('matches') || [];
@@ -1704,7 +1715,7 @@ const App = () => {
     } catch (error) {
       console.error('分析/推荐出错:', error);
       console.log(`[Timer] ${Math.round(performance.now() - startTime)}ms: 流程出错中断`);
-      clearTimeout(longWaitTimer);
+      clearAllTimers();
       setMixMode('home');
       showFriendlyNotice('灵感有些迟疑', '分析网络可能存在波动，请稍后再试。', 'error');
     }
@@ -1754,19 +1765,24 @@ const App = () => {
     const startTime = performance.now();
     console.log(`[Timer] 0ms: 用户提交情绪，开始处理流程`);
     setMixMode('generating');
+
+    // 动态文字：阶梯式更新加载文案
+    const timers = [];
     setButtonLoadingText('心与味，正在相遇…');
 
-    // 动态文字：10秒后如果还在等待，则安抚用户
-    const longWaitTimer = setTimeout(() => {
-      setButtonLoadingText('好饮不急，稍候片刻…');
-    }, 10000);
+    timers.push(setTimeout(() => setButtonLoadingText('五行正在推演…'), 3000));
+    timers.push(setTimeout(() => setButtonLoadingText('好饮不急，稍候片刻…'), 8000));
+    timers.push(setTimeout(() => setButtonLoadingText('万般心绪，皆需时机…'), 15000));
+    timers.push(setTimeout(() => setButtonLoadingText('此味将出，稍候片刻…'), 25000));
+
+    const clearAllTimers = () => timers.forEach(t => clearTimeout(t));
 
     try {
       // 检查饮品数据是否已加载
       if (!apiDrinks || apiDrinks.length === 0) {
-        clearTimeout(longWaitTimer);
+        clearAllTimers();
         setMixMode('home');
-        showFriendlyNotice('酒柜还在整理', '饮品数据尚未准备好，稍候片刻再开启仪轨。', 'warning');
+        showFriendlyNotice('酒柜还在整理', '饮品数据尚未准备好，稍候片刻再启程寻味。', 'warning');
         return;
       }
 
@@ -1794,18 +1810,22 @@ const App = () => {
             .finally(() => {
               isQuoteFetching.current = false;
             });
+        },
+        onValidationSuccess: (report) => {
+          console.log('[App] 异步验证报告送达 (正向)，更新 UI 勋章');
+          setValidationResult(report);
         }
       });
 
       const agentResult = await agentPromise;
 
       console.log('多Agent系统执行结果:', agentResult);
-      clearTimeout(longWaitTimer);
+      clearAllTimers();
 
       // 检查Agent 1的验证错误（需要用户重新输入）
       const agent1Output = agentResult.context.getOutput('SemanticDistiller');
       if (agent1Output && !agent1Output.success && agent1Output.requiresReinput) {
-        clearTimeout(longWaitTimer);
+        clearAllTimers();
         setMixMode('home');
         showFriendlyNotice('这句话还差一点', agent1Output.userMessage || '输入格式不正确，请重新输入。', 'warning');
         return;
@@ -1828,12 +1848,12 @@ const App = () => {
         if (finalIntent) {
           console.log(`🎯 自动检测到用户意图: ${finalIntent === 'vent' ? '发泄释放' : '温柔安抚'} (LLM: ${llmIntent}, 本地: ${localIntent})`);
           setInterventionType(finalIntent);
-          clearTimeout(longWaitTimer);
+          clearAllTimers();
           setMixMode('home');
           handleStartGeneration(finalIntent);
         } else {
           // 无法自动判断，显示弹窗询问用户
-          clearTimeout(longWaitTimer);
+          clearAllTimers();
           setMixMode('home');
           setShowInterventionModal(true);
         }
@@ -1874,7 +1894,7 @@ const App = () => {
     } catch (error) {
       console.error('分析/推荐出错:', error);
       console.log(`[Timer] ${Math.round(performance.now() - startTime)}ms: 流程出错中断`);
-      clearTimeout(longWaitTimer);
+      clearAllTimers();
       setMixMode('home');
       showFriendlyNotice('灵感有些迟疑', '分析网络可能存在波动，请稍后再试。', 'error');
     }

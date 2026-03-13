@@ -31,6 +31,17 @@ app.use(cors({
 }));
 app.use(express.json());
 
+app.get('/', (req, res) => res.send(' MoodMix LLM Proxy is running.'));
+
+// 全局异常处理，防止进程崩溃
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception thrown:', err);
+});
+
 // 处理host header
 app.use((req, res, next) => {
   // 允许所有host header
@@ -63,6 +74,53 @@ app.use('/api/cocktaildb', async (req, res) => {
   } catch (error) {
     console.error('[CocktailDB Proxy Error]', error);
     res.status(500).json({ error: error.message });
+  }
+});
+
+// ═══════════════════════════════════════════
+// 鸡尾酒图片代理（解决图片加载失败问题）
+// ═══════════════════════════════════════════
+app.get('/api/cocktail_image/:imageName', async (req, res) => {
+  const imageName = req.params.imageName;
+  const targetUrl = `https://www.thecocktaildb.com/images/media/drink/${imageName}`;
+
+  const currentFetch = await getFetch();
+  if (!currentFetch) return res.status(500).send('Fetch implementation not found');
+
+  try {
+    const response = await currentFetch(targetUrl);
+    if (!response.ok) return res.status(response.status).send('Image fetch failed');
+
+    // 转发原始 Content-Type
+    const contentType = response.headers.get('content-type');
+    if (contentType) res.setHeader('Content-Type', contentType);
+
+    // 设置长时间缓存
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+
+    // 流式转发
+    if (response.body.pipe) {
+      response.body.pipe(res);
+    } else {
+      // 针对原生 fetch 返回的 Web ReadableStream
+      const reader = response.body.getReader();
+      const pump = async () => {
+        const { done, value } = await reader.read();
+        if (done) {
+          res.end();
+          return;
+        }
+        res.write(value);
+        pump();
+      };
+      pump().catch(err => {
+        console.error('[Image Pipe Error]', err);
+        res.end();
+      });
+    }
+  } catch (error) {
+    console.error('[Image Proxy Error]', error);
+    res.status(502).send('Gateway Error: Image unreachable');
   }
 });
 
@@ -641,20 +699,32 @@ app.post('/api/comprehensive_analyze', async (req, res) => {
   const userMessage = `用户心境: "${user_input}"\n当前环境时间: ${timeInfo}`;
 
   try {
-    console.log(`[ComprehensiveAnalyze] 开始聚合推理 (MODEL: ${MODEL_8B})...`);
+    const model = MODEL_8B;
+    console.log(`[ComprehensiveAnalyze] >>> 开始聚合推理 (MODEL: ${model})...`);
     const startTime = Date.now();
+
+    // 增加超时保护，防止请求挂死
     const data = await callLLM(systemPrompt, userMessage, {
-      model: MODEL_8B,
+      model: model,
       temperature: 0.4,
-      jsonMode: true
+      jsonMode: true,
+      timeout: 40000 // 40s 超时
     });
+
     const duration = Date.now() - startTime;
-    console.log(`[ComprehensiveAnalyze] 聚合推理完成, 耗时: ${duration}ms`);
+    console.log(`[ComprehensiveAnalyze] <<< 聚合推理完成, 耗时: ${duration}ms`);
 
     res.json({ success: true, data });
   } catch (error) {
-    console.error('[ComprehensiveAnalyze Error]', error);
-    res.status(500).json({ success: false, error: error.message });
+    console.error('[ComprehensiveAnalyze Error] 聚合流程中断:', error.message);
+    if (error.cause) console.error('  Cause:', error.cause);
+    if (error.stack) console.error('  Stack:', error.stack);
+
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      type: error.name === 'AbortError' ? 'timeout' : 'error'
+    });
   }
 });
 
@@ -664,52 +734,87 @@ app.post('/api/comprehensive_analyze', async (req, res) => {
 // 通用 LLM 调用辅助函数
 // ═══════════════════════════════════════════
 async function callLLM(systemPrompt, userContent, options = {}) {
-  const { temperature = 0.5, jsonMode = true, model = MODEL_8B } = options;
+  const {
+    temperature = 0.5,
+    jsonMode = true,
+    model = MODEL_8B,
+    timeout = 45000,
+    maxRetries = 2
+  } = options;
+
   const apiKey = process.env.SILICONFLOW_API_KEY;
   const currentFetch = await getFetch();
   if (!currentFetch) throw new Error('Fetch implementation not found');
 
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 45000);
+  let lastError;
+  for (let i = 0; i <= maxRetries; i++) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
 
-  try {
-    const response = await currentFetch(SILICONFLOW_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: model,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userContent }
-        ],
-        temperature,
-        response_format: jsonMode ? { type: 'json_object' } : undefined
-      }),
-      signal: controller.signal
-    });
+    try {
+      if (i > 0) console.log(`[callLLM] 第 ${i} 次重试 (Model: ${model})...`);
 
-    if (!response.ok) {
-      throw new Error(`API 返回错误: ${response.status}`);
-    }
+      const response = await currentFetch(SILICONFLOW_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          model: model,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userContent }
+          ],
+          temperature,
+          response_format: jsonMode ? { type: 'json_object' } : undefined
+        }),
+        signal: controller.signal
+      });
 
-    const result = await response.json();
-    const content = (result.choices?.[0]?.message?.content || '').trim();
-
-    if (jsonMode) {
-      try {
-        const jsonMatch = content.match(/\{[\s\S]*\}/);
-        return JSON.parse(jsonMatch ? jsonMatch[0] : content);
-      } catch (e) {
-        throw new Error('JSON 解析失败: ' + content);
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => 'No error text');
+        throw new Error(`API 返回错误 (${response.status}): ${errorText.substring(0, 100)}`);
       }
+
+      const result = await response.json();
+      let content = (result.choices?.[0]?.message?.content || '').trim();
+
+      if (jsonMode) {
+        try {
+          // AI 可能会返回带有 markdown 代码块的 JSON
+          if (content.includes('```')) {
+            const match = content.match(/```(?:json)?([\s\S]*?)```/);
+            if (match) content = match[1].trim();
+          }
+
+          const jsonMatch = content.match(/\{[\s\S]*\}/);
+          return JSON.parse(jsonMatch ? jsonMatch[0] : content);
+        } catch (e) {
+          console.error('[callLLM] JSON Parse Error. Content:', content);
+          throw new Error('大模型 JSON 格式化失败，请重试');
+        }
+      }
+      return content;
+    } catch (err) {
+      lastError = err;
+      if (err.name === 'AbortError') {
+        console.warn(`[callLLM] 响应超时 (试图第 ${i + 1}/${maxRetries + 1} 次)`);
+      } else {
+        console.warn(`[callLLM] 请求失败: ${err.message} (试图第 ${i + 1}/${maxRetries + 1} 次)`);
+      }
+
+      // 如果是最后一次尝试，或者不是网络/超时错误，则不再重试
+      if (i === maxRetries) break;
+
+      // 等待 1s 后重试
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    } finally {
+      clearTimeout(timeoutId);
     }
-    return content;
-  } finally {
-    clearTimeout(timeoutId);
   }
+
+  throw lastError || new Error('Unknown LLM error');
 }
 
 // ═══════════════════════════════════════════
@@ -787,15 +892,28 @@ app.post('/api/validate_optimize', async (req, res) => {
   "shouldBlock": boolean,
   "userMessage": "string or null",
   "issues": [ { "type": "error/warning/info", "message": "string", "severity": "high/medium/low" } ],
-  "uiHints": { "badgeText": "string", "bottomHintText": "string" }
-}`;
+  "uiHints": { 
+    "showBadge": boolean, 
+    "badgeText": "string", // 必须【仅返回四个汉字】，严禁包含「」、引号、英文或任何标点。选项：心味相合, 恰有灵犀, 随缘入味, 缘来一试
+    "bottomHintText": "string" 
+  }
+} `;
 
   try {
-    const data = await callLLM(systemPrompt, JSON.stringify(fullContext), { model: MODEL_8B });
+    const data = await callLLM(systemPrompt, JSON.stringify(fullContext), {
+      model: MODEL_8B,
+      timeout: 50000,   // 验证逻辑较重，给予 50s
+      maxRetries: 2    // 支持 2 次重试
+    });
     res.json({ success: true, data });
   } catch (error) {
-    console.error('[ValidateOptimize Error]', error);
-    res.status(500).json({ success: false, error: error.message });
+    console.error('[ValidateOptimize Error] 质检流程中断:', error.message);
+    if (error.cause) console.error('  Cause:', error.cause);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      type: error.name === 'AbortError' ? 'timeout' : 'error'
+    });
   }
 });
 

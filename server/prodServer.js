@@ -444,6 +444,131 @@ app.post('/api/analyze_mood_stream', async (req, res) => {
 });
 
 // ═══════════════════════════════════════════
+// 端点：全链路聚合分析 (Comprehensive Analysis)
+// ═══════════════════════════════════════════
+app.post('/api/comprehensive_analyze', async (req, res) => {
+  const apiKey = process.env.SILICONFLOW_API_KEY;
+
+  if (!apiKey || apiKey === 'your_key_here') {
+    return res.status(500).json({
+      success: false,
+      error: 'API Key not configured'
+    });
+  }
+
+  const { user_input, current_time } = req.body;
+
+  if (!user_input || typeof user_input !== 'string' || !user_input.trim()) {
+    return res.status(400).json({
+      success: false,
+      error: 'user_input is required'
+    });
+  }
+
+  try {
+    console.log('[API] /api/comprehensive_analyze called');
+
+    const timeInfo = current_time || new Date().toISOString();
+
+    // 构建聚合分析的系统提示词
+    const systemPrompt = `你是一个专业的东方养生顾问和混调师。你需要分析用户的当前心理和肉体状态，
+并用一个结构化的中文 JSON 格式来返回分析结果，用于推荐适合的饮品。
+
+你的分析应该涵盖以下维度：
+1. 情绪（emotion）- 用户的心理状态和五行属性
+2. 体感（somatic）- 用户的身体感受
+3. 时间（time）- 当前的时间相关信息
+4. 认知（cognitive）- 用户的思维状态
+5. 诉求（demand）- 用户的需求和期望
+6. 社交/环境（socialContext）- 社交和环境因素
+
+同时提供：
+- 中医辨证结论（patternAnalysis）
+- 八维特征向量（vectorResult）
+
+返回格式必须是有效的 JSON，包含 moodData、patternAnalysis 和 vectorResult 三个主要部分。`;
+
+    const userMessage = `请全面分析我当前的状态（${timeInfo}）：
+
+${user_input.trim()}
+
+请返回包含以下内容的 JSON：
+1. moodData: 六维心境数据（情绪、体感、时间、认知、诉求、社交）
+2. patternAnalysis: 中医辨证结论
+3. vectorResult: 八维特征向量`;
+
+    // 调用 SiliconFlow API
+    const response = await fetch(SILICONFLOW_API_URL, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: SILICONFLOW_MODEL,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userMessage }
+        ],
+        temperature: 0.7,
+        max_tokens: 2500
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error('SiliconFlow API error:', response.status, errorData);
+      return res.status(response.status).json({
+        success: false,
+        error: `SiliconFlow API returned ${response.status}`
+      });
+    }
+
+    const result = await response.json();
+    const aiMessage = result.choices?.[0]?.message?.content || '';
+
+    // 解析 AI 响应，提取三个部分
+    let moodData, patternAnalysis, vectorResult;
+    
+    try {
+      const jsonMatch = aiMessage.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        moodData = parsed.moodData || parsed;
+        patternAnalysis = parsed.patternAnalysis || generateDefaultPatternAnalysis(moodData);
+        vectorResult = parsed.vectorResult || generateDefaultVectorResult(moodData);
+      } else {
+        throw new Error('无法解析 AI 响应');
+      }
+    } catch (e) {
+      console.error('解析 AI 响应失败:', e);
+      // 使用默认数据
+      moodData = parseAIResponse(aiMessage);
+      patternAnalysis = generateDefaultPatternAnalysis(moodData);
+      vectorResult = generateDefaultVectorResult(moodData);
+    }
+
+    console.log('[API] 全链路聚合分析完成');
+
+    return res.json({
+      success: true,
+      data: {
+        moodData,
+        patternAnalysis,
+        vectorResult
+      }
+    });
+
+  } catch (error) {
+    console.error('Error in /api/comprehensive_analyze:', error);
+    return res.status(500).json({
+      success: false,
+      error: error.message || 'Internal server error'
+    });
+  }
+});
+
+// ═══════════════════════════════════════════
 // 辅助函数
 // ═══════════════════════════════════════════
 
@@ -494,6 +619,49 @@ function parseAIResponse(aiMessage) {
   };
 }
 
+// 生成默认的中医辨证分析
+function generateDefaultPatternAnalysis(moodData) {
+  const wuxing = moodData?.emotion?.philosophy?.wuxing || '土';
+  const emotion = moodData?.emotion?.physical?.state || '平静';
+  
+  const wuxingPatterns = {
+    '木': { pattern: '肝气郁结', element: '木', recommendation: '疏肝理气' },
+    '火': { pattern: '心火偏旺', element: '火', recommendation: '清心降火' },
+    '土': { pattern: '脾胃不和', element: '土', recommendation: '健脾和胃' },
+    '金': { pattern: '肺气不足', element: '金', recommendation: '润肺益气' },
+    '水': { pattern: '肾阴亏虚', element: '水', recommendation: '滋阴补肾' }
+  };
+  
+  const pattern = wuxingPatterns[wuxing] || wuxingPatterns['土'];
+  
+  return {
+    diagnosis: pattern.pattern,
+    element: pattern.element,
+    emotion: emotion,
+    recommendation: pattern.recommendation,
+    confidence: 0.75
+  };
+}
+
+// 生成默认的八维特征向量
+function generateDefaultVectorResult(moodData) {
+  const wuxing = moodData?.emotion?.philosophy?.wuxing || '土';
+  
+  const wuxingVectors = {
+    '木': [0.8, 0.3, 0.4, 0.2, 0.5, 0.3, 0.6, 0.4],
+    '火': [0.3, 0.9, 0.5, 0.3, 0.6, 0.4, 0.5, 0.3],
+    '土': [0.4, 0.3, 0.7, 0.5, 0.4, 0.6, 0.4, 0.5],
+    '金': [0.2, 0.4, 0.3, 0.8, 0.3, 0.5, 0.7, 0.4],
+    '水': [0.3, 0.2, 0.4, 0.3, 0.8, 0.4, 0.3, 0.7]
+  };
+  
+  return {
+    vector: wuxingVectors[wuxing] || wuxingVectors['土'],
+    dimensions: ['情绪', '体感', '时间', '季节', '颜色', '味道', '温度', '强度'],
+    normalized: true
+  };
+}
+
 // ═══════════════════════════════════════════
 // 前端静态文件服务
 // ═══════════════════════════════════════════
@@ -527,7 +695,7 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`\n🍹 MoodMix 生产服务器已启动`);
   console.log(`   端口: ${PORT}`);
   console.log(`   前端: 从 ${buildPath} 提供`);
-  console.log(`   API: /api/analyze_mood, /api/analyze_mood_stream, /api/generate_quotes`);
+  console.log(`   API: /api/analyze_mood, /api/analyze_mood_stream, /api/generate_quotes, /api/comprehensive_analyze`);
   console.log(`   模型: ${SILICONFLOW_MODEL}`);
   console.log(`   API Key: ${hasKey ? '✅ 已配置' : '❌ 未配置'}`);
   console.log(`   环境: ${process.env.NODE_ENV || 'development'}`);

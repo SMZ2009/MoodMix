@@ -262,7 +262,7 @@ const MoodInputSection = ({
         </button>
 
         {/* Generate Button */}
-        <div className="-mt-1 sm:-mt-1.5 z-10">
+        <div className="mt-6 sm:mt-8 z-10">
           <button
             onClick={onGenerate}
             className="relative w-[140px] h-[46px] sm:w-[160px] sm:h-[50px] overflow-visible rounded-[999px] group active:scale-[0.96] transition-transform duration-150"

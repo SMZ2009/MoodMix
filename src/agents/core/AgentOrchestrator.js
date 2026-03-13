@@ -407,6 +407,17 @@ export async function executeRecommendationPipeline(userInput, options = {}) {
         }));
 
         context.setIntermediate('matches', matches);
+
+        // 🔥 [优化] 提前并行触发文案生成钩子
+        if (options.onVectorSearchSuccess && matches.length > 0) {
+          const moodData = context.getIntermediate('moodData');
+          const patternAnalysis = context.getIntermediate('patternAnalysis');
+          const contextData = { moodData, patternAnalysis };
+
+          // 异步触发，不阻断后续 Agent 执行
+          options.onVectorSearchSuccess(matches.map(m => m.drink), contextData);
+        }
+
         console.log(`│ ✅ 找到 ${matches.length} 个匹配饮品`);
         if (matches.length > 0) {
           console.log(`│    - 最佳匹配: ${matches[0].drink.name} (${Math.round(matches[0].similarity * 100)}%)`);

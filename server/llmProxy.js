@@ -387,27 +387,41 @@ app.post('/api/generate_quotes', async (req, res) => {
     const currentFetch = await getFetch();
     if (!currentFetch) throw new Error('Fetch implementation not found');
 
-    // 构造 Batch Prompt
-    const systemPrompt = `你是一位深谙东方五行哲学与西方调酒艺术的诗人酒保。
-我将提供给你一批饮品的名字，以及它与当前顾客发生的心境碰撞逻辑。
-请你针对每一组，写一句【高度契合这杯酒名字和意境的、不超过20个字】的诗意短句。
-短句不带标点，格式必须用「」包裹。
-你必须严格输出一个合法的 JSON Object，Key 是传入的饮品 ID，Value 是你写的句子。绝对不要输出其他任何文字！
+    // 构造极致约束、三段式结构的 Prompt
+    const systemPrompt = `你是一位深谙东方五行哲学与现代调酒艺术的专业酒保。
+你的任务是为顾客生成的推荐饮品写一句具有【调理感】的短句。
 
-【参考语境】：
-- 辨证(用户状态)：清醒自在 → 策略：以木制衡 → 体感：凉爽·顺滑 → 「金风玉露一相逢」
-- 辨证：郁气难舒 → 策略：借辛疏散 → 体感：辛香·开窍 → 「借酒浇愁更愁」
-- 辨证：兴致正浓 → 策略：同火共振 → 体感：灼烈·冲击 → 「杯中火焰照丹心」
+【核心要求】：
+1. **长度硬约束**：建议控制在 **25-45 字**之间，确保文案有足够的描写空间。**绝对禁止生成小于20个字的短句**。
+2. **三段式结构**：必须包含：[当前状态] + [饮品的核心特征与细节] + [调理动作/目的]。
+3. **丰富描写**：在保证口语化的前提下，增加画面的颗粒度。比如描述具体的“冷热体感”、“舌尖的触感”或“特定的生活化映射”。
+4. **口语化叙事**：语气要自然、平和。**绝对禁止四字词语堆砌，绝对禁止古风诗词感**。
+5. **格式限制**：不带标点，必须用「」包裹。
+6. **多样性**：同一批次的几杯酒，切入角度要略有不同。
 
-【重要】：每一杯酒的文案必须完全不同，基于饮品的名字、辨证、策略、体感、饮品profile综合构思！`;
+【示例】：
+- 辨证:郁气难舒(木) → 「因为最近总是觉得心里闷闷的，这杯带有辛香的金酒正好能帮你把那股气散开，让整个人都通透不少」
+- 辨证:心绪浮躁(火) → 「看你现在心思有点乱，这杯冰凉透骨的伏特加汤力刚好能压住那股燥火，让你的呼吸稳下来」
+- 辨证:感伤低落(金) → 「这会儿要是觉得心里空落落的，这杯温厚绵密的巧克力能像厚毯子一样紧紧裹住你，把寒意都赶跑」
+- 辨证:劳累(土) → 「加班辛苦了，浓缩马力尼这股先苦后回甘的韧劲儿，最能把你的精神头重新给拎起来」
 
-    let userContent = "请为以下饮品生成专属文案：\n";
-    items.forEach(item => {
-      userContent += `ID: ${item.id}, 饮品名: ${item.name || '未知'}, 辨证: ${item.diagnosis || '无'}, 策略: ${item.strategy || '无'}, 体感: ${item.sensory || '无'}, 饮品profile: ${item.contextPackage?.drinkProfile || '无'}\n`;
-    });
-    userContent += "\n请返回严格的 JSON 格式，不要包含任何 markdown 代码块标识，也不要有多余文字。注意不要有尾随逗号。格式示例：\n{\n";
+你必须严格输出一个合法的 JSON Object，Key 是传入的饮品 ID，Value 是你写的句子。绝对不要输出其他任何文字！`;
+
+    let userContent = `用户当前心境总结: ${items[0].contextPackage?.moodSummary || '未知'}\n`;
+    userContent += `用户主五行属性: ${items[0].userWuxing || '未知'}\n`;
+    userContent += "请为以下饮品生成专属文案。要求：\n";
+    userContent += "1. 长度建议 25-45 字，描写要具体，有画面感。\n";
+    userContent += "2. 必须包含：[当前状态] + [具体特征] + [调理动作]。\n";
+    userContent += "3. 口语化，严禁四字词语。不要标点。\n\n";
+
     items.forEach((item, index) => {
-      userContent += `  "${item.id}": "「诗歌」"${index === items.length - 1 ? '' : ','}\n`;
+      userContent += `[饮品 ${index + 1}] ID: ${item.id}, 名称: ${item.name || '未知'}, 辨证对照: ${item.diagnosis || '无'}, 策略: ${item.strategyType || '无'}, 物理特性: ${item.contextPackage?.drinkProfile || '无'}\n`;
+    });
+
+    userContent += "\n请严格返回 JSON 格式，不要有任何开场白或解释。";
+    userContent += "\n格式示例：\n{\n";
+    items.forEach((item, index) => {
+      userContent += `  "${item.id}": "「结合意象写的唯一句子」"${index === items.length - 1 ? '' : ','}\n`;
     });
     userContent += "}";
 

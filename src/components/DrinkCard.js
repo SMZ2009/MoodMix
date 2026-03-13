@@ -70,12 +70,9 @@ const DrinkCard = ({ drink, isActive, onClick, onLike, onUnlike, customQuote }) 
                 </span>
               ))}
             </div>
-            <p className="text-[12px] text-white/70 font-light italic opacity-90 leading-relaxed max-w-[220px]">
-              {philosophy.quote}
+            <p className="text-[14px] text-white/90 font-medium italic leading-relaxed max-w-[260px] mt-2" style={{ textShadow: '0 2px 10px rgba(0,0,0,0.5)' }}>
+              {(customQuote && customQuote.length >= 10) ? customQuote : philosophy.quote}
             </p>
-            {customQuote && (
-              <p className="text-xs text-yellow-100 mt-1" style={{ textAlign: 'center' }}>{customQuote}</p>
-            )}
           </div>
 
 

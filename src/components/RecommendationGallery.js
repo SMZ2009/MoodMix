@@ -306,18 +306,20 @@ const CardContent = ({ drink, isActive, isLiked, moodResult, customQuote, valida
           </div>
         </div>
 
-        {/* Custom Quote from LLM */}
-        {customQuote && (
-          <p
-            className="text-xs text-indigo-200 italic leading-relaxed mb-2 px-2"
-            style={{
-              fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif',
-              textShadow: '0 0 8px rgba(165, 180, 252, 0.3)'
-            }}
-          >
-            {customQuote}
-          </p>
-        )}
+        {/* Primary Quote (LLM or Philosophy Fallback) */}
+        <p
+          className="text-xs text-indigo-100 italic leading-relaxed mb-4 px-1"
+          style={{
+            fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif',
+            textShadow: '0 2px 8px rgba(0,0,0,0.5)',
+            minHeight: '3em',
+            display: 'flex',
+            alignItems: 'center'
+          }}
+        >
+          {/* 只有当异步生成的文案达到一定长度(非短促诗句)时才覆盖本地高质量长句 */}
+          {(customQuote && customQuote.length >= 10) ? customQuote : philosophy.quote}
+        </p>
 
         {/* Ingredients + Availability */}
         {(drink.briefIngredients || (drink.ingredients && drink.ingredients.length > 0)) && (

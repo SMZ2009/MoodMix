@@ -244,9 +244,9 @@ const CardContent = ({ drink, isActive, isLiked, moodResult, customQuote, valida
       />
 
       {/* Quality Badge - Top Left */}
-      <div className="absolute top-3 left-3 z-20">
+      <div className="absolute top-4 left-4 z-20">
         {validation?.uiHints?.showBadge && validation.uiHints.badgeText && (
-          <div className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[11px] font-semibold backdrop-blur-md border bg-white/15 border-white/30 text-white shadow-lg animate-in fade-in duration-500">
+          <div className="flex h-8 items-center justify-center rounded-full px-4 text-[11px] font-bold backdrop-blur-md border bg-white/15 border-white/30 text-white shadow-lg animate-in fade-in duration-500">
             <span>{validation.uiHints.badgeText}</span>
           </div>
         )}
@@ -262,103 +262,107 @@ const CardContent = ({ drink, isActive, isLiked, moodResult, customQuote, valida
             onLike();
           }
         }}
-        className={`absolute top-3 right-3 z-30 flex h-8 w-8 items-center justify-center rounded-full transition-all duration-300 hover:scale-110 active:scale-95 ${isLiked ? 'text-red-400' : 'text-white/80 hover:text-white'
+        className={`absolute top-4 right-4 z-30 flex h-8 w-8 items-center justify-center rounded-full transition-all duration-300 hover:scale-110 active:scale-95 ${isLiked ? 'text-red-400' : 'text-white/80 hover:text-white'
           }`}
         style={{
           background: isLiked
             ? 'rgba(239, 68, 68, 0.2)'
             : 'rgba(255, 255, 255, 0.1)',
-          backdropFilter: 'blur(8px)',
+          backdropFilter: 'blur(12px)',
           border: isLiked
             ? '1px solid rgba(239, 68, 68, 0.3)'
-            : '1px solid rgba(255, 255, 255, 0.15)',
-          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.2)'
+            : '1px solid rgba(255, 255, 255, 0.2)',
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.2)'
         }}
       >
         <Heart size={16} className={isLiked ? 'fill-current' : ''} />
       </button>
 
       {/* Drink Info - Bottom */}
-      <div className="absolute bottom-0 left-0 right-0 z-20 flex flex-col p-4 pb-20 text-white">
-        <h2
-          className="text-2xl font-bold leading-tight mb-3"
-          style={{
-            fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif',
-            textShadow: '0 2px 12px rgba(0,0,0,0.5)',
-            letterSpacing: '0.05em',
-          }}
-        >
-          {drink.name_cn || translateDrinkName(drink.name) || drink.name}
-        </h2>
+      <div className="absolute inset-0 z-20 flex flex-col justify-end p-5 pb-6 text-white pointer-events-none">
+        <div className="flex flex-col pointer-events-auto">
+          <h2
+            className="text-2xl font-bold leading-tight mb-2"
+            style={{
+              fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif',
+              textShadow: '0 2px 12px rgba(0,0,0,0.5)',
+              letterSpacing: '0.05em',
+            }}
+          >
+            {drink.name_cn || translateDrinkName(drink.name) || drink.name}
+          </h2>
 
-        {/* Philosophy Tags */}
-        <div className="mb-3">
-          <div className="flex flex-wrap gap-2">
-            {philosophy.tags.map(tag => (
-              <span
-                key={tag}
-                className="px-3 py-1 rounded-full bg-white/15 text-white/90 border border-white/20 text-xs tracking-wider font-medium backdrop-blur-sm"
-                style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif' }}
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
-        </div>
-
-        {/* Primary Quote (LLM or Philosophy Fallback) */}
-        <p
-          className="text-xs text-indigo-100 italic leading-relaxed mb-4 px-1"
-          style={{
-            fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif',
-            textShadow: '0 2px 8px rgba(0,0,0,0.5)',
-            minHeight: '3em',
-            display: 'flex',
-            alignItems: 'center'
-          }}
-        >
-          {/* 只有当异步生成的文案达到一定长度(非短促诗句)时才覆盖本地高质量长句 */}
-          {(customQuote && customQuote.length >= 10) ? customQuote : philosophy.quote}
-        </p>
-
-        {/* Ingredients + Availability */}
-        {(drink.briefIngredients || (drink.ingredients && drink.ingredients.length > 0)) && (
-          <div className="flex items-center gap-2 text-white/80 flex-wrap mt-1">
-            <span className="text-[10px] uppercase tracking-widest text-white/50">原料</span>
-            {(drink.briefIngredients || (drink.ingredients || []).map(i => ({ label: i.name, icon: 'Wine' }))).slice(0, 3).map((ing, idx) => (
-              <React.Fragment key={idx}>
-                {idx > 0 && <span className="text-white/30">·</span>}
-                <div className="flex items-center gap-1.5">
-                  {ing.icon === 'Wine' && <Wine size={11} className="text-rose-300" />}
-                  {ing.icon === 'Droplets' && <Droplets size={11} className="text-cyan-300" />}
-                  {ing.icon === 'ThermometerSnowflake' && <Snowflake size={11} className="text-blue-300" />}
-                  {ing.icon === 'GlassWater' && <GlassWater size={11} className="text-sky-300" />}
-                  {ing.icon === 'Flame' && <Wine size={11} className="text-orange-300" />}
-                  <span
-                    className="text-xs font-medium"
-                    style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif' }}
-                  >
-                    {translateIngredient(ing.label || ing.name)}
-                  </span>
-                </div>
-              </React.Fragment>
-            ))}
-            {/* Availability Status - Inline */}
-            {drink.isReadyToMake !== undefined && (
-              <>
-                <span className="text-white/30 mx-1">·</span>
-                <span className={`text-[10px] font-medium ${drink.isReadyToMake ? 'text-emerald-300' : 'text-amber-300'
-                  }`}>
-                  {drink.isReadyToMake ? (
-                    <><Check size={10} className="inline mr-0.5" />齐备</>
-                  ) : (
-                    <><AlertCircle size={10} className="inline mr-0.5" />缺{drink.missingCount}种</>
-                  )}
+          {/* Philosophy Tags */}
+          <div className="mb-3">
+            <div className="flex flex-wrap gap-2">
+              {philosophy.tags.map(tag => (
+                <span
+                  key={tag}
+                  className="px-3 py-1 rounded-full bg-white/15 text-white/90 border border-white/20 text-xs tracking-wider font-medium backdrop-blur-sm"
+                  style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif' }}
+                >
+                  {tag}
                 </span>
-              </>
-            )}
+              ))}
+            </div>
           </div>
-        )}
+
+          {/* Primary Quote (LLM or Philosophy Fallback) */}
+          <div
+            className="mb-4 pl-3 border-l-2 border-white/30"
+            style={{ minHeight: '3.5em', display: 'flex', alignItems: 'center' }}
+          >
+            <p
+              className="text-[14px] font-medium text-white leading-relaxed italic"
+              style={{
+                fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif',
+                textShadow: '0 2px 8px rgba(0,0,0,0.5)',
+              }}
+            >
+              {/* 只有当异步生成的文案达到一定长度(非短促诗句)时才覆盖本地高质量长句 */}
+              {(customQuote && customQuote.length >= 10) ? customQuote : philosophy.quote}
+            </p>
+          </div>
+
+          {/* Ingredients + Availability - Stick to Bottom */}
+          {(drink.briefIngredients || (drink.ingredients && drink.ingredients.length > 0)) && (
+            <div className="flex items-center gap-2 text-white/90 flex-wrap pt-2 border-t border-white/10">
+              <span className="text-[10px] uppercase tracking-widest text-white/50">原料</span>
+              {(drink.briefIngredients || (drink.ingredients || []).map(i => ({ label: i.name, icon: 'Wine' }))).slice(0, 3).map((ing, idx) => (
+                <React.Fragment key={idx}>
+                  {idx > 0 && <span className="text-white/30">·</span>}
+                  <div className="flex items-center gap-1.5">
+                    {ing.icon === 'Wine' && <Wine size={11} className="text-rose-300" />}
+                    {ing.icon === 'Droplets' && <Droplets size={11} className="text-cyan-300" />}
+                    {ing.icon === 'ThermometerSnowflake' && <Snowflake size={11} className="text-blue-300" />}
+                    {ing.icon === 'GlassWater' && <GlassWater size={11} className="text-sky-300" />}
+                    {ing.icon === 'Flame' && <Wine size={11} className="text-orange-300" />}
+                    <span
+                      className="text-xs font-medium"
+                      style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif' }}
+                    >
+                      {translateIngredient(ing.label || ing.name)}
+                    </span>
+                  </div>
+                </React.Fragment>
+              ))}
+              {/* Availability Status - Inline */}
+              {drink.isReadyToMake !== undefined && (
+                <>
+                  <span className="text-white/30 mx-1">·</span>
+                  <span className={`text-[10px] font-medium ${drink.isReadyToMake ? 'text-emerald-300' : 'text-amber-300'
+                    }`}>
+                    {drink.isReadyToMake ? (
+                      <><Check size={10} className="inline mr-0.5" />齐备</>
+                    ) : (
+                      <><AlertCircle size={10} className="inline mr-0.5" />缺{drink.missingCount}种</>
+                    )}
+                  </span>
+                </>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -1,7 +1,7 @@
 {
   "files": {
     "main.css": "/static/css/main.265e240e.css",
-    "main.js": "/static/js/main.ee03cbf6.js",
+    "main.js": "/static/js/main.fa78199a.js",
     "static/js/585.e0b9228b.chunk.js": "/static/js/585.e0b9228b.chunk.js",
     "static/js/902.6a5a3367.chunk.js": "/static/js/902.6a5a3367.chunk.js",
     "static/media/cup-ripple.jpg": "/static/media/cup-ripple.37c47b151f3a83e64b9a.jpg",
@@ -13,6 +13,6 @@
   },
   "entrypoints": [
     "static/css/main.265e240e.css",
-    "static/js/main.ee03cbf6.js"
+    "static/js/main.fa78199a.js"
   ]
 }

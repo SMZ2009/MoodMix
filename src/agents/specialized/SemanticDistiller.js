@@ -16,7 +16,7 @@ export class SemanticDistiller extends BaseAgent {
   constructor(config = {}) {
     super({
       name: 'SemanticDistiller',
-      timeout: 25000,  // 25秒超时，给API更多响应时间
+      timeout: 45000,  // 增加到 45 秒超时，应对复杂流式解析
       maxRetries: 3,
       ...config
     });

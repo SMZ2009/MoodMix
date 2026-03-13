@@ -8,3 +8,4 @@ export { VectorTranslator } from './VectorTranslator';
 export { CreativeCopywriter } from './CreativeCopywriter';
 export { ValidatorOptimizer } from './ValidatorOptimizer';
 export { MixologyExpert } from './MixologyExpert';
+export { ComprehensiveAnalyzer } from './ComprehensiveAnalyzer';

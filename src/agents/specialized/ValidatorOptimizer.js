@@ -465,7 +465,13 @@ export class ValidatorOptimizer extends BaseAgent {
     ];
 
     const fixed = { ...vectorResult };
-    fixed.targetVector = vectorResult.targetVector.map((value, idx) => {
+    const targetVector = vectorResult?.targetVector;
+    
+    if (!Array.isArray(targetVector)) {
+      return fixed;
+    }
+    
+    fixed.targetVector = targetVector.map((value, idx) => {
       const [min, max] = ranges[idx];
       return Math.max(min, Math.min(max, value));
     });
@@ -510,14 +516,20 @@ export class ValidatorOptimizer extends BaseAgent {
    */
   fixWeights(vectorResult) {
     const fixed = { ...vectorResult };
-    const weights = [...vectorResult.weights];
+    const weights = vectorResult?.weights;
+
+    if (!Array.isArray(weights)) {
+      return fixed;
+    }
+
+    const weightsCopy = [...weights];
 
     // 确保非负
-    const nonNegative = weights.map(w => Math.max(0, w));
+    const nonNegative = weightsCopy.map(w => Math.max(0, w));
 
     // 归一化
     const sum = nonNegative.reduce((a, b) => a + b, 0);
-    fixed.weights = sum > 0 ? nonNegative.map(w => w / sum) : weights.map(() => 1 / 8);
+    fixed.weights = sum > 0 ? nonNegative.map(w => w / sum) : weightsCopy.map(() => 1 / 8);
 
     return fixed;
   }

@@ -1308,7 +1308,8 @@ const App = () => {
       console.log('右滑 detected, opening side nav');
       setIsSideNavOpen(true);
     },
-    threshold: 60
+    threshold: 30,
+    resistance: 1.5
   });
 
   const showFriendlyNotice = useCallback((title, message, tone = 'default') => {

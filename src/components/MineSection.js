@@ -1,12 +1,11 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Edit3, ChevronRight, ArrowLeft, Camera, Trash2, Heart } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Edit3, Camera, Trash2, Heart } from 'lucide-react';
 import { SwipeableCard } from './ui';
-import IngredientManager from './IngredientManager';
 import { translateDrinkName } from '../data/translations';
 
 const STORAGE_KEY_PROFILE = 'moodmix_profile';
 
-const MineSection = ({ userInventory, onUpdateInventory, favorites, onSelectDrink, cardFeedback, initialTab = 'favorites', dakaNotes = [], onDeleteDakaNote }) => {
+const MineSection = ({ favorites, onSelectDrink, cardFeedback, initialTab = 'favorites', dakaNotes = [], onDeleteDakaNote }) => {
     const [mineTab, setMineTab] = useState(initialTab);
 
     useEffect(() => {
@@ -14,7 +13,6 @@ const MineSection = ({ userInventory, onUpdateInventory, favorites, onSelectDrin
             setMineTab(initialTab);
         }
     }, [initialTab]);
-    const [showFullInventory, setShowFullInventory] = useState(false);
     const [nickname, setNickname] = useState('调饮爱好者');
     const [avatarUrl, setAvatarUrl] = useState('https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&h=200&fit=crop');
     const [isEditingNickname, setIsEditingNickname] = useState(false);
@@ -47,48 +45,6 @@ const MineSection = ({ userInventory, onUpdateInventory, favorites, onSelectDrin
             console.error('Failed to save profile:', error);
         }
     };
-
-    // Combine standard and custom for display (only in_stock items, de-duplicated by name)
-    const allInventoryItems = useMemo(() => {
-        const customItems = (userInventory.custom || []).filter(i => i.in_stock).map(i => ({ ...i, id: `custom-${i.id}`, name: i.name_cn || i.name }));
-        const standardItems = (userInventory.standard || []).filter(i => i.in_stock).map(i => ({ ...i, id: i.ing_id, name: i.name_cn || i.name }));
-
-        const combined = [...customItems, ...standardItems];
-        // 按名称去重
-        const seen = new Set();
-        return combined.filter(item => {
-            const itemName = item.name?.trim();
-            if (!itemName || seen.has(itemName)) return false;
-            seen.add(itemName);
-            return true;
-        });
-    }, [userInventory]);
-
-    if (showFullInventory) {
-        return (
-            <div className="fixed inset-0 z-[150] flex flex-col bg-dreamy-gradient w-full h-[100vh] overflow-hidden">
-                {/* 头部导航 */}
-                <div className="im-page-header">
-                    <div className="flex items-center">
-                        <button
-                            onClick={() => {
-                                onUpdateInventory();
-                                setShowFullInventory(false);
-                            }}
-                            className="im-back-btn"
-                        >
-                            <ArrowLeft size={20} />
-                        </button>
-                        <h1 className="im-page-title">原料管理</h1>
-                    </div>
-
-                </div>
-                <div className="flex-1 overflow-hidden p-6">
-                    <IngredientManager userInventory={userInventory} onUpdate={onUpdateInventory} />
-                </div>
-            </div>
-        );
-    }
 
     return (
         <div
@@ -168,61 +124,8 @@ const MineSection = ({ userInventory, onUpdateInventory, favorites, onSelectDrin
                     </button>
                 </div>
                 <p className="text-[#608a6e] text-[11px] font-medium bg-white/60 px-3 py-1 rounded-full backdrop-blur-sm mt-1">
-                    {allInventoryItems.length} 原料 | {favorites.length} 喜欢
+                    {favorites.length} 喜欢
                 </p>
-            </div>
-
-            {/* 原料库区域 - 限制两行，超出用 ... 省略 */}
-            <div className="flex flex-col gap-2 mb-6 px-6 py-4 bg-white/30 backdrop-blur-md rounded-b-2xl transition-all hover:bg-white/40 shadow-sm">
-                <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-bold text-[#111813]">原料库</h3>
-                    <button
-                        onClick={() => setShowFullInventory(true)}
-                        className="text-[#608a6e] text-xs flex items-center gap-1 hover:text-[#4a6b54] transition-colors"
-                    >
-                        管理 <ChevronRight size={12} />
-                    </button>
-                </div>
-                <div className="w-full">
-                    <div className="flex flex-row flex-nowrap overflow-x-auto overflow-y-hidden no-scrollbar gap-2 py-2 w-full">
-                        {allInventoryItems.length === 0 ? (
-                            <div className="text-xs text-gray-400 italic">暂无原料，点击管理添加</div>
-                        ) : (
-                            allInventoryItems.map((item, idx) => {
-                                return (
-                                    <span
-                                        key={item.id}
-                                        className="px-3 py-1.5 rounded-full text-[11px] whitespace-nowrap transition-transform hover:scale-105 flex-shrink-0"
-                                        style={{
-                                            fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif',
-                                            fontWeight: 600,
-                                            letterSpacing: '0.08em',
-                                            background: 'rgba(255,255,255,0.55)',
-                                            border: '1px solid rgba(60,59,54,0.15)',
-                                            color: 'rgba(60,59,54,0.80)',
-                                            backdropFilter: 'blur(8px)',
-                                            WebkitBackdropFilter: 'blur(8px)'
-                                        }}
-                                    >
-                                        {item.name}
-                                    </span>
-                                );
-                            })
-                        )}
-                        <span
-                            className="px-3 py-1.5 rounded-full text-[11px] whitespace-nowrap self-center shadow-sm flex-shrink-0"
-                            style={{
-                                fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif',
-                                fontWeight: 700,
-                                letterSpacing: '0.08em',
-                                background: 'linear-gradient(135deg, rgba(60,59,54,0.90) 0%, rgba(40,39,34,0.95) 100%)',
-                                color: '#f7f0e4',
-                            }}
-                        >
-                            ...共{allInventoryItems.length}种
-                        </span>
-                    </div>
-                </div>
             </div>
 
             {/* Tab 切换栏 - 更贴合整体水墨氛围 */}

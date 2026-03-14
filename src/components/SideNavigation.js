@@ -1,9 +1,10 @@
 import React from 'react';
+import { Package } from 'lucide-react';
 import navIconMix from '../assets/nav_icon_mix.png';
 import navIconExplore from '../assets/nav_icon_explore.png';
 import navIconMine from '../assets/nav_icon_mine.png';
 
-const SideNavigation = ({ isOpen, onClose, activeTab, onTabChange }) => {
+const SideNavigation = ({ isOpen, onClose, activeTab, onTabChange, onOpenIngredientLibrary }) => {
   return (
     <div className={`fixed top-0 left-0 h-full w-64 bg-white shadow-2xl z-50 transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
       <div className="flex flex-col h-full p-6">
@@ -51,6 +52,21 @@ const SideNavigation = ({ isOpen, onClose, activeTab, onTabChange }) => {
             </div>
             <span className="text-lg font-medium">我的</span>
           </button>
+
+          <div className="border-t border-gray-100 pt-6">
+            <button
+              onClick={() => {
+                onOpenIngredientLibrary?.();
+                onClose();
+              }}
+              className="flex items-center gap-4 w-full p-3 rounded-lg transition-colors text-gray-600 hover:bg-gray-50"
+            >
+              <div className="w-10 h-10 rounded-full flex items-center justify-center bg-amber-50">
+                <Package className="w-5 h-5 text-amber-600" />
+              </div>
+              <span className="text-lg font-medium">原料库</span>
+            </button>
+          </div>
         </nav>
         
         <div className="mt-auto pt-6 border-t border-gray-100">

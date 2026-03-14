@@ -21,6 +21,7 @@ import { generatePhilosophyTags } from './engine/philosophyTags';
 import { fetchLiveQuotes } from './api/quoteGenerator';
 import { translateDrinkName, translateIngredient } from './data/translations';
 import MineSection from './components/MineSection';
+import IngredientManager from './components/IngredientManager';
 import { useTouchFeedback, useKeyboardNavigation, useCocktailApi, useSwipeGesture } from './hooks';
 import { InteractiveButton, SwipeableCard, PageTransition, Modal } from './components/ui';
 import IngredientEditModal from './components/IngredientEditModal';
@@ -1329,6 +1330,7 @@ const App = () => {
     tone: 'default'
   });
   const [isSideNavOpen, setIsSideNavOpen] = useState(false);
+    const [showIngredientLibrary, setShowIngredientLibrary] = useState(false);
 
   // Track if session ingredients have been initialized from inventory
   const isSessionInitialized = useRef(false);
@@ -1987,6 +1989,7 @@ const App = () => {
         onClose={() => setIsSideNavOpen(false)}
         activeTab={activeTab}
         onTabChange={handleNavClick}
+        onOpenIngredientLibrary={() => setShowIngredientLibrary(true)}
       />
       {isSideNavOpen && (
         <div
@@ -2088,8 +2091,6 @@ const App = () => {
         {activeTab === 'mine' && !currentDrink && (
           <PageTransition animation="fade" duration={400}>
             <MineSection
-              userInventory={userInventory}
-              onUpdateInventory={fetchInventory}
               favorites={favoriteDrinks}
               cardFeedback={cardFeedback}
               onSelectDrink={setCurrentDrink}
@@ -2219,6 +2220,29 @@ const App = () => {
         tone={friendlyNotice.tone}
         onClose={closeFriendlyNotice}
       />
+
+      {/* Ingredient Library Fullscreen */}
+      {showIngredientLibrary && (
+        <div className="fixed inset-0 z-[150] flex flex-col bg-dreamy-gradient w-full h-[100vh] overflow-hidden">
+          <div className="im-page-header">
+            <div className="flex items-center">
+              <button
+                onClick={() => {
+                  fetchInventory();
+                  setShowIngredientLibrary(false);
+                }}
+                className="im-back-btn"
+              >
+                <ChevronLeft size={20} />
+              </button>
+              <h1 className="im-page-title">原料库</h1>
+            </div>
+          </div>
+          <div className="flex-1 overflow-hidden p-6">
+            <IngredientManager userInventory={userInventory} onUpdate={fetchInventory} />
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -20,6 +20,7 @@ import { executeRecommendationPipeline, extractRecommendationResult, executeMixo
 import { generatePhilosophyTags } from './engine/philosophyTags';
 import { fetchLiveQuotes } from './api/quoteGenerator';
 import { translateDrinkName, translateIngredient } from './data/translations';
+import { validateInput } from './utils/inputValidator';
 import MineSection from './components/MineSection';
 import IngredientManager from './components/IngredientManager';
 import { useTouchFeedback, useKeyboardNavigation, useCocktailApi, useSwipeGesture } from './hooks';
@@ -524,7 +525,7 @@ const FriendlyNoticeModal = ({ isOpen, title, message, tone = 'default', onClose
   return (
     <Modal isOpen={isOpen} onClose={onClose} position="center" closeOnBackdrop>
       <div
-        className="rounded-[2rem] p-6 sm:p-7 w-[calc(100vw-2rem)] max-w-[22rem] sm:max-w-[24rem] mx-auto"
+        className="rounded-[2rem] p-5 sm:p-6 w-[calc(100vw-3rem)] max-w-[18rem] sm:max-w-[20rem] mx-auto"
         style={{
           position: 'relative',
           overflow: 'hidden',
@@ -566,24 +567,12 @@ const FriendlyNoticeModal = ({ isOpen, title, message, tone = 'default', onClose
             </span>
           </div>
 
-          <h3
-            style={{
-              fontSize: '1.25rem',
-              lineHeight: 1.4,
-              color: '#2f2b29',
-              fontWeight: 700,
-              fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif',
-              letterSpacing: '0.06em'
-            }}
-          >
-            {title}
-          </h3>
           <p
             style={{
-              marginTop: '0.85rem',
-              fontSize: '0.92rem',
+              marginTop: '0.5rem',
+              fontSize: '0.95rem',
               lineHeight: 1.85,
-              color: 'rgba(43, 39, 36, 0.78)',
+              color: 'rgba(43, 39, 36, 0.85)',
               fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif',
               letterSpacing: '0.04em'
             }}
@@ -1664,6 +1653,16 @@ const App = () => {
     const currentInterventionType = type || interventionType;
     const combinedInput = (moodInput + (selectedMood || "")).trim();
 
+    // 输入验证 - 检测特殊输入场景（但允许空输入，因为负面情绪流程有默认值）
+    if (combinedInput) {
+      const validation = validateInput(combinedInput);
+      if (!validation.valid && validation.scene !== 'empty') {
+        setMixMode('home');
+        showFriendlyNotice(validation.title, validation.message, validation.tone || 'default');
+        return;
+      }
+    }
+
     // 构造带有干预类型的输入
     let finalInputForAI = combinedInput || '心情不太好';
     if (currentInterventionType === 'soothe') {
@@ -1781,9 +1780,10 @@ const App = () => {
   const processMoodAndGenerate = useCallback(async () => {
     const combinedInput = (moodInput + (selectedMood || "")).trim();
 
-    // 空输入检查 - 用户什么都没输入也没选标签
-    if (!combinedInput) {
-      showFriendlyNotice('还没听见你的心绪', '心里装着什么？说与我听，我为你寻一杯。', 'default');
+    // 综合输入验证 - 检测特殊输入场景
+    const validation = validateInput(combinedInput);
+    if (!validation.valid) {
+      showFriendlyNotice(validation.title, validation.message, validation.tone || 'default');
       return;
     }
 

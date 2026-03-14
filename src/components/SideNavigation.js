@@ -9,7 +9,7 @@ const SideNavigation = ({ isOpen, onClose, activeTab, onTabChange }) => {
       <div className="flex flex-col h-full p-6">
         <div className="mb-12 mt-8">
           <h1 className="text-2xl font-bold font-serif tracking-tight text-gray-800 italic leading-none">Mood Mix</h1>
-          <p className="text-sm text-gray-500 mt-1">情绪处方</p>
+          <p className="text-sm text-gray-500 mt-1">喝一杯</p>
         </div>
         
         <nav className="flex-1 space-y-8">
@@ -23,7 +23,7 @@ const SideNavigation = ({ isOpen, onClose, activeTab, onTabChange }) => {
             <div className={`w-10 h-10 rounded-full flex items-center justify-center ${activeTab === 'mix' ? 'scale-110 drop-shadow-md' : 'filter grayscale opacity-60'}`}>
               <img src={navIconMix} alt="特调" className="w-8 h-8 object-contain" />
             </div>
-            <span className="text-lg font-medium">音乐库</span>
+            <span className="text-lg font-medium">特调</span>
           </button>
           
           <button
@@ -36,7 +36,7 @@ const SideNavigation = ({ isOpen, onClose, activeTab, onTabChange }) => {
             <div className={`w-10 h-10 rounded-full flex items-center justify-center ${activeTab === 'explore' ? 'scale-110 drop-shadow-md' : 'filter grayscale opacity-60'}`}>
               <img src={navIconExplore} alt="灵感" className="w-9 h-9 object-contain" />
             </div>
-            <span className="text-lg font-medium">饮品库</span>
+            <span className="text-lg font-medium">灵感</span>
           </button>
           
           <button

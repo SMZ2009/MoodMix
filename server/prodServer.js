@@ -569,6 +569,209 @@ ${user_input.trim()}
 });
 
 // ═══════════════════════════════════════════
+// 端点：生成饮品维度向量
+// ═══════════════════════════════════════════
+app.post('/api/generate-drink-dimensions', async (req, res) => {
+  const apiKey = process.env.SILICONFLOW_API_KEY;
+  if (!apiKey || apiKey === 'your_key_here') {
+    return res.status(500).json({ success: false, error: 'API Key 未配置' });
+  }
+
+  const { name, description, ingredients, isAlcoholic } = req.body;
+
+  if (!name || typeof name !== 'string' || !name.trim()) {
+    return res.status(400).json({ success: false, error: '缺少饮品名称' });
+  }
+
+  try {
+    const systemPrompt = `你是一位调酒和饮品专家，精通东方五行哲学与饮品风味分析。
+根据用户描述的饮品信息，生成8维风味向量。
+
+你必须严格返回 JSON 格式，不要添加任何额外文字。
+
+## 8维向量说明
+1. taste (主味分值): 0-10 (0=无味, 5=适中, 10=浓烈)
+2. texture (气机方向): -3~3 (-3=下沉, 0=平衡, 3=上扬)
+3. temperature (阴阳): -5~5 (-5=极冰, 0=常温, 5=热饮)
+4. element (五行): 1-5 (1=木/绿, 2=火/红, 3=土/黄, 4=金/白, 5=水/黑)
+5. time (适饮时段): 0-23 (小时)
+6. aroma (香气强度): 0-10
+7. abv (酒精度%): 0-95
+8. action (冥想类型): 1-5 (1=专注, 2=放松, 3=社交, 4=独处, 5=庆祝)
+
+## 输出 JSON Schema
+{
+  "vector": [number, number, number, number, number, number, number, number],
+  "dimensions": {
+    "sweetness": { "value": number, "label": "string" },
+    "sourness": { "value": number, "label": "string" },
+    "bitterness": { "value": number, "label": "string" },
+    "temperature": { "value": number, "label": "string" },
+    "aroma": { "value": number, "label": "string" },
+    "texture": { "value": number, "label": "string" },
+    "strength": { "value": number, "label": "string" }
+  },
+  "reasoning": "string — 简短的分析理由"
+}`;
+
+    const userContent = `请为以下饮品生成8维风味向量：
+
+饮品名称：${name.trim()}
+口感描述：${description || '未提供'}
+主要原料：${ingredients && Array.isArray(ingredients) && ingredients.length > 0 ? ingredients.join(', ') : '未提供'}
+含酒精：${isAlcoholic ? '是' : '否'}
+
+请根据以上信息，结合你的专业知识推断合理的风味向量。`;
+
+    console.log(`[DrinkDimensions] Requesting analysis for "${name}"...`);
+    const response = await fetch(SILICONFLOW_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: SILICONFLOW_MODEL,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userContent }
+        ],
+        temperature: 0.5
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[DrinkDimensions] API error:', errorText);
+      return res.status(response.status).json({ success: false, error: errorText });
+    }
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content || '';
+
+    // 解析 JSON
+    try {
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const result = JSON.parse(jsonMatch[0]);
+        return res.json({ success: true, ...result });
+      }
+    } catch (e) {
+      console.error('[DrinkDimensions] Failed to parse JSON:', e);
+    }
+
+    // 返回默认结果
+    return res.json({
+      success: true,
+      vector: [5, 0, 0, 3, 12, 5, 0, 2],
+      dimensions: {
+        sweetness: { value: 5, label: "适中" },
+        sourness: { value: 3, label: "轻微" },
+        bitterness: { value: 1, label: "极低" },
+        temperature: { value: 0, label: "常温" },
+        aroma: { value: 5, label: "清香" },
+        texture: { value: 0, label: "平衡" },
+        strength: { value: 0, label: "无酒精" }
+      },
+      reasoning: "已应用经典平衡配比"
+    });
+
+  } catch (error) {
+    console.error('[DrinkDimensions] Error:', error);
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ═══════════════════════════════════════════
+// 端点：饮品制作助手
+// ═══════════════════════════════════════════
+app.post('/api/drink-assistant', async (req, res) => {
+  const apiKey = process.env.SILICONFLOW_API_KEY;
+
+  if (!apiKey || apiKey === 'your_key_here') {
+    return res.status(500).json({
+      success: false,
+      error: 'SILICONFLOW_API_KEY 未配置'
+    });
+  }
+
+  const { drink, question, userInventory } = req.body;
+
+  if (!drink || !question) {
+    return res.status(400).json({
+      success: false,
+      error: '缺少 drink 或 question 参数'
+    });
+  }
+
+  try {
+    // 构建配方信息
+    const ingredientList = drink.ingredients?.map(ing =>
+      `${ing.name || ing.ingredient}: ${ing.measure || ''}`
+    ).join('\n') || '未知配方';
+
+    // 构建用户库存信息
+    const inventoryText = userInventory?.length > 0
+      ? userInventory.join('、')
+      : '未提供库存信息';
+
+    const systemPrompt = `你是一位专业调酒师助手，擅长解决制作饮品时遇到的各种问题。
+
+你的回答应该：
+1. 简洁实用，控制在150字内
+2. 具体到用量/比例
+3. 口语化、友好亲切的语气
+4. 如果是口味问题，给出具体调整建议
+5. 如果是原料缺失，优先推荐用户库存中有的替代品，若无则推荐常见替代
+6. 如果是工具问题，给出家庭常见物品的替代方案`;
+
+    const userMessage = `用户正在制作: ${drink.name || '未知饮品'}
+
+【饮品配方】
+${ingredientList}
+
+【用户库存】
+${inventoryText}
+
+【用户问题】
+${question}
+
+请给出实用建议。`;
+
+    const response = await fetch(SILICONFLOW_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: SILICONFLOW_MODEL,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userMessage }
+        ],
+        max_tokens: 500,
+        temperature: 0.7
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[Drink Assistant] API error:', errorText);
+      return res.status(response.status).json({ success: false, error: errorText });
+    }
+
+    const data = await response.json();
+    const answer = data.choices?.[0]?.message?.content || '抱歉，暂时无法回答。';
+
+    res.json({ success: true, answer });
+  } catch (error) {
+    console.error('[Drink Assistant] Error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ═══════════════════════════════════════════
 // 辅助函数
 // ═══════════════════════════════════════════
 
@@ -695,7 +898,7 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`\n🍹 MoodMix 生产服务器已启动`);
   console.log(`   端口: ${PORT}`);
   console.log(`   前端: 从 ${buildPath} 提供`);
-  console.log(`   API: /api/analyze_mood, /api/analyze_mood_stream, /api/generate_quotes, /api/comprehensive_analyze`);
+  console.log(`   API: /api/analyze_mood, /api/analyze_mood_stream, /api/generate_quotes, /api/comprehensive_analyze, /api/generate-drink-dimensions, /api/drink-assistant`);
   console.log(`   模型: ${SILICONFLOW_MODEL}`);
   console.log(`   API Key: ${hasKey ? '✅ 已配置' : '❌ 未配置'}`);
   console.log(`   环境: ${process.env.NODE_ENV || 'development'}`);

@@ -12,6 +12,7 @@ import HelperModal from './components/HelperModal';
 import DrinkHelpModal from './components/DrinkHelpModal';
 import FocusModeView from './components/FocusModeView';
 import RecommendationGallery from './components/RecommendationGallery';
+import SideNavigation from './components/SideNavigation';
 
 import { analyzeMood } from './api/moodAnalyzer';
 import { evaluateAndSortDrinks } from './engine/vectorEngine';
@@ -20,7 +21,7 @@ import { generatePhilosophyTags } from './engine/philosophyTags';
 import { fetchLiveQuotes } from './api/quoteGenerator';
 import { translateDrinkName, translateIngredient } from './data/translations';
 import MineSection from './components/MineSection';
-import { useTouchFeedback, useKeyboardNavigation, useCocktailApi } from './hooks';
+import { useTouchFeedback, useKeyboardNavigation, useCocktailApi, useSwipeGesture } from './hooks';
 import { InteractiveButton, SwipeableCard, PageTransition, Modal } from './components/ui';
 import IngredientEditModal from './components/IngredientEditModal';
 import cupRippleImage from './assets/cup-ripple.jpg';
@@ -1293,10 +1294,22 @@ const App = () => {
     message: '',
     tone: 'default'
   });
+  const [isSideNavOpen, setIsSideNavOpen] = useState(false);
 
   // Track if session ingredients have been initialized from inventory
   const isSessionInitialized = useRef(false);
   const isQuoteFetching = useRef(false);
+  const mainContentRef = useRef(null);
+
+  // 右滑显示侧边导航栏
+  const swipeGesture = useSwipeGesture({
+    enabled: !currentDrink && !isFocusMode,
+    onSwipeRight: () => {
+      console.log('右滑 detected, opening side nav');
+      setIsSideNavOpen(true);
+    },
+    threshold: 60
+  });
 
   const showFriendlyNotice = useCallback((title, message, tone = 'default') => {
     setFriendlyNotice({
@@ -1549,8 +1562,6 @@ const App = () => {
     const detail = await apiLoadDrinkDetail(drink);
     setCurrentDrink(detail || drink);
   }, [apiLoadDrinkDetail]);
-
-  const mainContentRef = useRef(null);
 
   useEffect(() => {
     console.log('isFocusMode changed to:', isFocusMode);
@@ -1926,10 +1937,25 @@ const App = () => {
 
   return (
     <div
-      ref={mainContentRef}
+      ref={(el) => {
+        mainContentRef.current = el;
+        swipeGesture.setElementRef(el);
+      }}
       className={`min-h-screen font-sans w-full relative shadow-2xl overflow-x-hidden flex flex-col transition-colors duration-700 ${getBackgroundClass()}`}
       tabIndex={-1}
     >
+      <SideNavigation 
+        isOpen={isSideNavOpen} 
+        onClose={() => setIsSideNavOpen(false)} 
+        activeTab={activeTab} 
+        onTabChange={handleNavClick} 
+      />
+      {isSideNavOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 transition-opacity duration-300"
+          onClick={() => setIsSideNavOpen(false)}
+        />
+      )}
       <main className="flex-1 flex flex-col w-full relative">
         {activeTab === 'mix' && showRecommendationGallery && visibleDrinks.length > 0 && (
           <RecommendationGallery

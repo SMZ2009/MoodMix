@@ -16,9 +16,15 @@ export const useSwipeGesture = (options = {}) => {
   const [startPos, setStartPos] = useState({ x: 0, y: 0 });
   const [currentPos, setCurrentPos] = useState({ x: 0, y: 0 });
   const [velocity, setVelocity] = useState({ x: 0, y: 0 });
+  const [elementState, setElementState] = useState(null);
   const elementRef = useRef(null);
   const lastPosRef = useRef({ x: 0, y: 0 });
   const lastTimeRef = useRef(Date.now());
+
+  const setElementRef = useCallback((ref) => {
+    elementRef.current = ref;
+    setElementState(ref);
+  }, []);
 
   const handleTouchStart = useCallback((e) => {
     if (!enabled) return;
@@ -104,7 +110,7 @@ export const useSwipeGesture = (options = {}) => {
   useEffect(() => {
     if (!enabled) return;
 
-    const element = elementRef.current;
+    const element = elementRef.current || elementState;
     if (!element) return;
 
     element.addEventListener('touchstart', handleTouchStart, { passive: true });
@@ -129,7 +135,7 @@ export const useSwipeGesture = (options = {}) => {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [enabled, handleTouchStart, handleTouchMove, handleTouchEnd]);
+  }, [enabled, handleTouchStart, handleTouchMove, handleTouchEnd, elementState]);
 
   // --- 重要：必须有 return，否则 SwipeableCard 拿不到数据 ---
   return {
@@ -138,7 +144,7 @@ export const useSwipeGesture = (options = {}) => {
     currentPos,
     getTransform,
     getOpacity,
-    setElementRef: (ref) => { elementRef.current = ref; }
+    setElementRef
   };
 };
 

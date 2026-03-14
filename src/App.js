@@ -4,7 +4,7 @@ import {
   Martini, User, Settings2, Maximize2,
   Wine, Droplets, ThermometerSnowflake,
   Sparkles, Lightbulb, GlassWater,
-  Users, HeartOff, Loader2, Camera, X
+  Users, HeartOff, Loader2, Camera, X, Menu
 } from 'lucide-react';
 
 import { inventoryStorage, favoriteStorage, collectionStorage, customDrinkStorage } from './store/localStorageAdapter';
@@ -1977,6 +1977,18 @@ const App = () => {
           onClick={() => setIsSideNavOpen(false)}
         />
       )}
+      
+      {/* Menu button to open sidebar */}
+      {!isSideNavOpen && (
+        <button
+          onClick={() => setIsSideNavOpen(true)}
+          className="fixed top-4 left-4 z-30 p-1 hover:opacity-70 transition-opacity duration-200"
+          aria-label="打开菜单"
+        >
+          <Menu className="w-5 h-5 text-gray-600" />
+        </button>
+      )}
+
       <main className="flex-1 flex flex-col w-full relative">
         {activeTab === 'mix' && showRecommendationGallery && visibleDrinks.length > 0 && (
           <RecommendationGallery

@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Edit3, Camera, Trash2, Heart } from 'lucide-react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { Edit3, Camera, Trash2, Heart, ChevronLeft, ChevronRight } from 'lucide-react';
 import { SwipeableCard } from './ui';
 import { translateDrinkName } from '../data/translations';
 
@@ -146,8 +146,8 @@ const MineSection = ({ favorites, onSelectDrink, cardFeedback, initialTab = 'fav
                     />
                     <div className="relative grid grid-cols-2 gap-2">
                         {[
-                            { id: 'favorites', title: '喜欢', subtitle: '偏爱留香', accent: 'rgba(172, 103, 101, 0.16)' },
-                            { id: 'collections', title: '赏味集', subtitle: '杯中札记', accent: 'rgba(121, 143, 167, 0.16)' }
+                            { id: 'collections', title: '赏味集', subtitle: '杯中札记', accent: 'rgba(121, 143, 167, 0.16)' },
+                            { id: 'favorites', title: '喜欢', subtitle: '偏爱留香', accent: 'rgba(172, 103, 101, 0.16)' }
                         ].map((tab) => {
                             const isActive = mineTab === tab.id;
 
@@ -258,22 +258,152 @@ const MineSection = ({ favorites, onSelectDrink, cardFeedback, initialTab = 'fav
                     </div>
                 )}
                 {mineTab === 'collections' && (
-                    <div>
-                        {dakaNotes.length === 0 ? (
-                            <div className="text-center text-gray-400 text-sm py-10">
-                                暂无赏味集
-                            </div>
-                        ) : (
-                            <div className="space-y-4">
-                                {dakaNotes.map(note => (
-                                    <DakaNoteCard key={note.id} note={note} onDelete={onDeleteDakaNote} />
-                                ))}
-                            </div>
-                        )}
-                    </div>
+                    <CollectionsCalendar dakaNotes={dakaNotes} onDeleteDakaNote={onDeleteDakaNote} />
                 )}
             </div>
 
+        </div>
+    );
+};
+
+const CollectionsCalendar = ({ dakaNotes, onDeleteDakaNote }) => {
+    const [currentDate, setCurrentDate] = useState(new Date());
+    const [selectedDate, setSelectedDate] = useState(null);
+
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+
+    // Group notes by date
+    const notesByDate = useMemo(() => {
+        const map = {};
+        dakaNotes.forEach(note => {
+            const date = new Date(note.dakaTime);
+            const key = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+            if (!map[key]) map[key] = [];
+            map[key].push(note);
+        });
+        return map;
+    }, [dakaNotes]);
+
+    // Get days in month
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const firstDayOfMonth = new Date(year, month, 1).getDay();
+
+    // Generate calendar days
+    const calendarDays = useMemo(() => {
+        const days = [];
+        // Empty cells for days before the 1st
+        for (let i = 0; i < firstDayOfMonth; i++) {
+            days.push({ day: null, key: `empty-${i}` });
+        }
+        // Days of the month
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dateKey = `${year}-${month}-${day}`;
+            days.push({
+                day,
+                key: dateKey,
+                hasNotes: !!notesByDate[dateKey],
+                notesCount: notesByDate[dateKey]?.length || 0
+            });
+        }
+        return days;
+    }, [year, month, daysInMonth, firstDayOfMonth, notesByDate]);
+
+    const monthNames = ['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月'];
+    const weekDays = ['日', '一', '二', '三', '四', '五', '六'];
+
+    const goToPrevMonth = () => {
+        setCurrentDate(new Date(year, month - 1, 1));
+        setSelectedDate(null);
+    };
+
+    const goToNextMonth = () => {
+        setCurrentDate(new Date(year, month + 1, 1));
+        setSelectedDate(null);
+    };
+
+    const handleDayClick = (day) => {
+        if (!day) return;
+        const dateKey = `${year}-${month}-${day}`;
+        if (notesByDate[dateKey]) {
+            setSelectedDate(selectedDate === dateKey ? null : dateKey);
+        }
+    };
+
+    const selectedNotes = selectedDate ? notesByDate[selectedDate] || [] : [];
+
+    return (
+        <div>
+            {/* Calendar Header */}
+            <div className="flex items-center justify-between mb-4">
+                <button
+                    onClick={goToPrevMonth}
+                    className="p-2 rounded-full hover:bg-white/50 transition-colors"
+                >
+                    <ChevronLeft size={20} className="text-gray-600" />
+                </button>
+                <h3 className="text-lg font-bold text-gray-800" style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif' }}>
+                    {year}年 {monthNames[month]}
+                </h3>
+                <button
+                    onClick={goToNextMonth}
+                    className="p-2 rounded-full hover:bg-white/50 transition-colors"
+                >
+                    <ChevronRight size={20} className="text-gray-600" />
+                </button>
+            </div>
+
+            {/* Week Days Header */}
+            <div className="grid grid-cols-7 gap-1 mb-2">
+                {weekDays.map(day => (
+                    <div key={day} className="text-center text-xs text-gray-500 font-medium py-1">
+                        {day}
+                    </div>
+                ))}
+            </div>
+
+            {/* Calendar Grid */}
+            <div className="grid grid-cols-7 gap-1 mb-4">
+                {calendarDays.map(({ day, key, hasNotes, notesCount }) => (
+                    <button
+                        key={key}
+                        onClick={() => handleDayClick(day)}
+                        disabled={!day}
+                        className={`
+                            aspect-square rounded-lg flex flex-col items-center justify-center text-sm transition-all
+                            ${!day ? 'invisible' : ''}
+                            ${hasNotes ? 'bg-purple-100 hover:bg-purple-200 cursor-pointer' : 'bg-white/40 hover:bg-white/60'}
+                            ${selectedDate === key ? 'ring-2 ring-purple-400 bg-purple-200' : ''}
+                        `}
+                    >
+                        <span className={`${hasNotes ? 'text-purple-700 font-bold' : 'text-gray-600'}`}>
+                            {day}
+                        </span>
+                        {hasNotes && (
+                            <span className="text-[10px] text-purple-500">{notesCount}杯</span>
+                        )}
+                    </button>
+                ))}
+            </div>
+
+            {/* Selected Day Notes */}
+            {selectedDate && selectedNotes.length > 0 && (
+                <div className="space-y-3 mt-4 pt-4 border-t border-gray-200">
+                    <h4 className="text-sm font-medium text-gray-600 mb-2">
+                        {new Date(year, month, parseInt(selectedDate.split('-')[2])).toLocaleDateString('zh-CN', { month: 'long', day: 'numeric' })} 的赏味记录
+                    </h4>
+                    {selectedNotes.map(note => (
+                        <DakaNoteCard key={note.id} note={note} onDelete={onDeleteDakaNote} />
+                    ))}
+                </div>
+            )}
+
+            {/* Empty State */}
+            {dakaNotes.length === 0 && (
+                <div className="text-center text-gray-400 text-sm py-6">
+                    暂无赏味记录，去品尝一杯吧
+                </div>
+            )}
         </div>
     );
 };

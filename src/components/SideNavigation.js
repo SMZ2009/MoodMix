@@ -42,6 +42,19 @@ const SideNavigation = ({ isOpen, onClose, activeTab, onTabChange, onOpenIngredi
           
           <button
             onClick={() => {
+              onOpenIngredientLibrary?.();
+              onClose();
+            }}
+            className="flex items-center gap-4 w-full p-3 rounded-lg transition-colors text-gray-600 hover:bg-gray-50"
+          >
+            <div className="w-10 h-10 rounded-full flex items-center justify-center bg-amber-50">
+              <Package className="w-5 h-5 text-amber-600" />
+            </div>
+            <span className="text-lg font-medium">原料库</span>
+          </button>
+          
+          <button
+            onClick={() => {
               onTabChange('mine');
               onClose();
             }}
@@ -52,21 +65,6 @@ const SideNavigation = ({ isOpen, onClose, activeTab, onTabChange, onOpenIngredi
             </div>
             <span className="text-lg font-medium">我的</span>
           </button>
-
-          <div className="border-t border-gray-100 pt-6">
-            <button
-              onClick={() => {
-                onOpenIngredientLibrary?.();
-                onClose();
-              }}
-              className="flex items-center gap-4 w-full p-3 rounded-lg transition-colors text-gray-600 hover:bg-gray-50"
-            >
-              <div className="w-10 h-10 rounded-full flex items-center justify-center bg-amber-50">
-                <Package className="w-5 h-5 text-amber-600" />
-              </div>
-              <span className="text-lg font-medium">原料库</span>
-            </button>
-          </div>
         </nav>
         
         <div className="mt-auto pt-6 border-t border-gray-100">

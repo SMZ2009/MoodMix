@@ -176,7 +176,7 @@ const MoodInputSection = ({
           万般心绪，皆可入杯
         </p>
       </div>
-      <div className="relative flex-1 w-full flex flex-col items-center justify-start pt-2 sm:pt-3 pb-12 sm:pb-16">
+      <div className="relative flex-1 w-full flex flex-col items-center justify-start pt-6 sm:pt-8 pb-12 sm:pb-16">
         <div className="relative z-20 w-[320px] sm:w-[420px] max-w-[92vw] transition-all duration-500">
           <img
             src={cupRippleImage}
@@ -187,7 +187,7 @@ const MoodInputSection = ({
 
         <button
           type="button"
-          className="relative z-30 -mt-1 sm:-mt-1.5 mb-0.5 sm:mb-1 px-5 py-2 text-[13px] sm:text-[14px] text-gray-700/80 transition-colors hover:text-gray-800 group"
+          className="relative z-30 mt-4 sm:mt-5 mb-0.5 sm:mb-1 px-5 py-2 text-[13px] sm:text-[14px] text-gray-700/80 transition-colors hover:text-gray-800 group"
           style={{ fontFamily: '"FZQingKeBenYueSongS-R-GB", "方正清刻本悦宋简体", "Songti SC", serif', fontWeight: 300, letterSpacing: '0.14em' }}
           onClick={onEditIngredients}
           aria-label={`当前有 ${ingredientCount} 种特调原料已备齐`}
@@ -255,9 +255,9 @@ const MoodInputSection = ({
       </div>
 
       {/* 固定在底部的区域 */}
-      <div className="fixed bottom-0 left-0 right-0 px-6 pb-6 pt-4 bg-gradient-to-t from-white/80 to-transparent z-20">
+      <div className="fixed bottom-0 left-0 right-0 px-6 pb-6 pt-4 bg-gradient-to-t from-white/90 to-transparent z-20">
         {/* 情绪标签按钮 */}
-        <div className="flex flex-wrap gap-2 sm:gap-4 justify-center mb-4 z-10">
+        <div className="flex flex-wrap gap-4 justify-center mb-4 z-10">
           {[
             { label: '放松', value: '#放松' },
             { label: '浪漫', value: '#浪漫' },
@@ -269,14 +269,15 @@ const MoodInputSection = ({
                 key={mood.value}
                 type="button"
                 onClick={() => setSelectedMood(isSelected ? null : mood.value)}
-                className={`mood-ink-tag ${isSelected ? 'is-selected' : ''}`}
-                aria-pressed={isSelected}
+                className={`px-4 py-1.5 rounded-full transition-all duration-300 ${isSelected ? 'bg-amber-100 text-amber-800' : 'bg-white/40 text-gray-600'}`}
                 style={{
-                  '--mood-ink-color': isSelected ? 'rgba(224, 197, 110, 0.24)' : 'rgba(104, 114, 120, 0.2)',
-                  '--mood-ink-accent': isSelected ? 'rgba(204, 172, 74, 0.82)' : 'rgba(72, 82, 89, 0.5)'
+                  backdropFilter: 'blur(12px)',
+                  border: isSelected ? '1px solid rgba(245, 158, 11, 0.3)' : '1px solid rgba(255, 255, 255, 0.5)',
+                  boxShadow: isSelected ? '0 4px 12px rgba(245, 158, 11, 0.15)' : '0 2px 8px rgba(0, 0, 0, 0.05)'
                 }}
+                aria-pressed={isSelected}
               >
-                <span className={`mood-ink-tag__label ${isSelected ? 'is-selected' : ''}`}>{mood.label}</span>
+                <span className="text-sm font-medium" style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif' }}>{mood.label}</span>
               </button>
             );
           })}
@@ -284,19 +285,19 @@ const MoodInputSection = ({
 
         {/* 输入框 */}
         <div className="w-full max-w-[21rem] sm:max-w-[23rem] relative mx-auto z-10 group">
-          <div className="absolute inset-0 bg-white/10 backdrop-blur-[28px] sm:backdrop-blur-[34px] rounded-xl sm:rounded-2xl group-focus-within:bg-white/15 group-focus-within:scale-[1.02] transition-all duration-500" style={{ boxShadow: 'rgba(255, 255, 255, 0.22) 0px 10px 34px, rgba(154, 169, 186, 0.12) 0px 20px 44px' }}></div>
-          <div className="relative flex items-center h-10 sm:h-12 lg:h-14 px-3.5 sm:px-4.5">
+          <div className="absolute inset-0 bg-white/30 backdrop-blur-[20px] rounded-2xl group-focus-within:bg-white/40 group-focus-within:scale-[1.02] transition-all duration-500" style={{ boxShadow: 'rgba(255, 255, 255, 0.3) 0px 8px 24px, rgba(154, 169, 186, 0.1) 0px 16px 32px', border: '1px solid rgba(255, 255, 255, 0.6)' }}></div>
+          <div className="relative flex items-center h-12 px-4">
             <button
               type="button"
               onClick={isListening ? stopListening : handleVoiceInput}
-              className={`w-[36px] h-[36px] sm:w-[44px] sm:h-[44px] mr-1.5 sm:mr-2 flex-shrink-0 transition-transform duration-500 group-focus-within:scale-105 ${isListening ? 'animate-pulse' : ''}`}
+              className={`w-8 h-8 mr-2 flex-shrink-0 transition-transform duration-500 group-focus-within:scale-105 ${isListening ? 'animate-pulse' : ''}`}
               style={{ color: isListening ? 'rgba(239, 68, 68, 0.9)' : 'rgba(228, 181, 94, 0.86)' }}
               aria-label={isListening ? '停止语音输入' : '开始语音输入'}
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                width="44"
-                height="44"
+                width="24"
+                height="24"
                 viewBox="0 0 24 24"
                 fill="none"
                 className="w-full h-full"
@@ -309,14 +310,35 @@ const MoodInputSection = ({
             <div className="relative flex-1">
               {!moodInput && (
                 <span
-                  className="absolute inset-y-0 left-0 flex items-center text-gray-400 text-sm sm:text-[15px] font-medium pointer-events-none"
+                  className="absolute inset-y-0 left-0 flex items-center text-gray-400 text-sm font-medium pointer-events-none"
                   style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif' }}
                 >
-                  {MOOD_INPUT_PLACEHOLDERS[placeholderIndex]}
+                  比如，老板又给我加薪了...
                 </span>
               )}
-              <input className="bg-transparent border-none focus:outline-none focus:ring-0 text-gray-800 w-full text-sm sm:text-[15px] font-medium outline-none" placeholder="" value={moodInput} onChange={(e) => setMoodInput(e.target.value)}></input>
+              <input className="bg-transparent border-none focus:outline-none focus:ring-0 text-gray-800 w-full text-sm font-medium outline-none" placeholder="" value={moodInput} onChange={(e) => setMoodInput(e.target.value)}></input>
             </div>
+            <button
+              type="button"
+              className="w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-full bg-white/50 backdrop-blur-sm border border-white/60 transition-transform hover:scale-105"
+              style={{ color: 'rgba(104, 114, 120, 0.7)' }}
+              onClick={onGenerate}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M5 12h14" />
+                <path d="m12 5 7 7-7 7" />
+              </svg>
+            </button>
           </div>
         </div>
       </div>

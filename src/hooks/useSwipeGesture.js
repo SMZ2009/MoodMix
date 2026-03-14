@@ -110,32 +110,30 @@ export const useSwipeGesture = (options = {}) => {
   useEffect(() => {
     if (!enabled) return;
 
-    const element = elementRef.current || elementState;
-    if (!element) return;
-
-    element.addEventListener('touchstart', handleTouchStart, { passive: true });
-    element.addEventListener('touchmove', handleTouchMove, { passive: true });
-    element.addEventListener('touchend', handleTouchEnd);
+    // 在整个窗口上监听触摸事件，实现屏幕任何位置都能触发
+    window.addEventListener('touchstart', handleTouchStart, { passive: true });
+    window.addEventListener('touchmove', handleTouchMove, { passive: true });
+    window.addEventListener('touchend', handleTouchEnd);
     
     // 电脑端模拟
     const handleMouseDown = (e) => handleTouchStart(e);
     const handleMouseMove = (e) => handleTouchMove(e);
     const handleMouseUp = () => handleTouchEnd();
 
-    element.addEventListener('mousedown', handleMouseDown);
+    window.addEventListener('mousedown', handleMouseDown);
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('mouseup', handleMouseUp);
 
     return () => {
-      element.removeEventListener('touchstart', handleTouchStart);
-      element.removeEventListener('touchmove', handleTouchMove);
-      element.removeEventListener('touchend', handleTouchEnd);
+      window.removeEventListener('touchstart', handleTouchStart);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleTouchEnd);
       
-      element.removeEventListener('mousedown', handleMouseDown);
+      window.removeEventListener('mousedown', handleMouseDown);
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [enabled, handleTouchStart, handleTouchMove, handleTouchEnd, elementState]);
+  }, [enabled, handleTouchStart, handleTouchMove, handleTouchEnd]);
 
   // --- 重要：必须有 return，否则 SwipeableCard 拿不到数据 ---
   return {

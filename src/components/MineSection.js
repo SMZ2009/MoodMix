@@ -5,7 +5,7 @@ import { translateDrinkName } from '../data/translations';
 
 const STORAGE_KEY_PROFILE = 'moodmix_profile';
 
-const MineSection = ({ favorites, onSelectDrink, cardFeedback, initialTab = 'favorites', dakaNotes = [], onDeleteDakaNote, onNavigate }) => {
+const MineSection = ({ favorites, onSelectDrink, cardFeedback, initialTab = 'collections', dakaNotes = [], onDeleteDakaNote, onNavigate }) => {
     const [mineTab, setMineTab] = useState(initialTab);
 
     useEffect(() => {

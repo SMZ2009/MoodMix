@@ -4,7 +4,7 @@ import {
   Martini, User, Settings2, Maximize2,
   Wine, Droplets, ThermometerSnowflake,
   Sparkles, Lightbulb, GlassWater,
-  Users, HeartOff, Loader2, Camera, X, Menu
+  Users, HeartOff, Loader2, Camera, X, Menu, ArrowLeft
 } from 'lucide-react';
 
 import { inventoryStorage, favoriteStorage, collectionStorage, customDrinkStorage } from './store/localStorageAdapter';
@@ -881,6 +881,14 @@ const ExploreSection = ({
       <header className="sticky top-0 z-40 px-4 pt-[calc(env(safe-area-inset-top,0px)+1rem)] pb-2 bg-dreamy-gradient/80 backdrop-blur-md">
         <div className="flex flex-col gap-4">
           <div className="flex items-center gap-3 w-full">
+            {/* 返回按钮 */}
+            <button
+              onClick={() => onNavigate && onNavigate('mix')}
+              className="w-10 h-10 rounded-full bg-white/50 backdrop-blur-md flex items-center justify-center hover:bg-white/70 transition-colors border border-white/30 shadow-sm flex-shrink-0"
+              aria-label="返回特调"
+            >
+              <ArrowLeft size={18} className="text-gray-600" />
+            </button>
             <div className="flex-1 relative group">
               <div
                 className="flex items-center w-full h-12 rounded-2xl px-4 border border-white/40 bg-white/30 backdrop-blur-xl shadow-sm transition-all 

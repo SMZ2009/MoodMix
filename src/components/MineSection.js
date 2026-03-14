@@ -1,11 +1,11 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Edit3, Camera, Trash2, Heart, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Edit3, Camera, Trash2, Heart, ChevronLeft, ChevronRight, ArrowLeft } from 'lucide-react';
 import { SwipeableCard } from './ui';
 import { translateDrinkName } from '../data/translations';
 
 const STORAGE_KEY_PROFILE = 'moodmix_profile';
 
-const MineSection = ({ favorites, onSelectDrink, cardFeedback, initialTab = 'favorites', dakaNotes = [], onDeleteDakaNote }) => {
+const MineSection = ({ favorites, onSelectDrink, cardFeedback, initialTab = 'favorites', dakaNotes = [], onDeleteDakaNote, onNavigate }) => {
     const [mineTab, setMineTab] = useState(initialTab);
 
     useEffect(() => {
@@ -52,7 +52,15 @@ const MineSection = ({ favorites, onSelectDrink, cardFeedback, initialTab = 'fav
             style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif' }}
         >
             {/* 头部区域 */}
-            <div className="flex flex-col items-center pt-[calc(env(safe-area-inset-top,0px)+1.25rem)] pb-4 px-6 bg-white/30 backdrop-blur-md border-b border-white/20">
+            <div className="relative flex flex-col items-center pt-[calc(env(safe-area-inset-top,0px)+1.25rem)] pb-4 px-6 bg-white/30 backdrop-blur-md border-b border-white/20">
+                {/* 返回按钮 */}
+                <button
+                    onClick={() => onNavigate && onNavigate('mix')}
+                    className="absolute left-4 top-[calc(env(safe-area-inset-top,0px)+1.25rem)] w-9 h-9 rounded-full bg-white/50 backdrop-blur-md flex items-center justify-center hover:bg-white/70 transition-colors border border-white/30 shadow-sm"
+                    aria-label="返回特调"
+                >
+                    <ArrowLeft size={18} className="text-gray-600" />
+                </button>
                 {/* 头像 - 点击修改 */}
                 <div
                     className="relative mb-2 cursor-pointer group"

@@ -1777,17 +1777,16 @@ body {
   font-family: "Songti SC", "STKaiti", "KaiTi", "SimSun", serif;
   font-size: 1.1rem;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.95);
+  color: #1a1a1a;
   letter-spacing: 0.12em;
   margin-left: 0.5rem;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 .im-back-btn {
   padding: 0.5rem;
   margin-left: -0.5rem;
   border-radius: 50%;
-  color: rgba(255, 255, 255, 0.75);
+  color: #1a1a1a;
   background: transparent;
   border: none;
   cursor: pointer;
@@ -1795,8 +1794,8 @@ body {
 }
 
 .im-back-btn:hover {
-  background: rgba(255, 255, 255, 0.15);
-  color: rgba(255, 255, 255, 0.95);
+  background: rgba(0, 0, 0, 0.08);
+  color: #000;
 }
 
 .im-container {

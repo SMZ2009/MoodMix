@@ -2007,7 +2007,7 @@ const App = () => {
       )}
       
       {/* Menu button to open sidebar */}
-      {!isSideNavOpen && (
+      {!isSideNavOpen && activeTab !== 'mine' && (
         <button
           onClick={() => setIsSideNavOpen(true)}
           className="fixed top-4 left-4 z-30 p-1 hover:opacity-70 transition-opacity duration-200"

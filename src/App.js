@@ -2088,12 +2088,6 @@ const App = () => {
         )}
       </main>
 
-      {!currentDrink && !isFocusMode && (
-        <NavigationBar activeTab={activeTab} onTabChange={handleNavClick} />
-      )}
-
-
-
       <Modal isOpen={showHelper} onClose={() => setShowHelper(false)} position="bottom">
         <HelperModal onClose={() => setShowHelper(false)} />
       </Modal>
@@ -2619,34 +2613,4 @@ const CustomMineIcon = ({ size = 26, className = "" }) => (
   </svg>
 );
 
-const NavigationBar = ({ activeTab, onTabChange }) => (
-  <nav className="fixed bottom-4 left-4 right-4 z-50 flex items-center justify-around px-6 py-1.5 bg-[rgba(255,255,255,0.85)] backdrop-blur-xl border border-[rgba(180,160,200,0.3)] shadow-[0_8px_32px_rgba(148,120,72,0.15)] rounded-[24px] max-w-md mx-auto">
-    <button
-      onClick={() => onTabChange('mix')}
-      className={`flex flex-col items-center ${activeTab === 'mix' ? 'text-gray-800' : 'text-gray-400 hover:text-gray-600'} transition-colors`}
-    >
-      <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${activeTab === 'mix' ? 'scale-110 drop-shadow-md' : 'bg-transparent filter grayscale opacity-60'}`}>
-        <img src={navIconMix} alt="特调" className="w-10 h-10 object-contain" />
-      </div>
-      <span className="text-[10px] font-bold font-serif tracking-widest" style={{ letterSpacing: '0.15em', marginTop: '-4px' }}>特调</span>
-    </button>
-    <button
-      onClick={() => onTabChange('explore')}
-      className={`flex flex-col items-center ${activeTab === 'explore' ? 'text-gray-800' : 'text-gray-400 hover:text-gray-600'} transition-colors`}
-    >
-      <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${activeTab === 'explore' ? 'scale-110 drop-shadow-md' : 'bg-transparent filter grayscale opacity-60'}`}>
-        <img src={navIconExplore} alt="灵感" className="w-11 h-11 object-contain" />
-      </div>
-      <span className="text-[10px] font-bold font-serif tracking-widest" style={{ letterSpacing: '0.15em', marginTop: '-4px' }}>灵感</span>
-    </button>
-    <button
-      onClick={() => onTabChange('mine')}
-      className={`flex flex-col items-center ${activeTab === 'mine' ? 'text-gray-800' : 'text-gray-400 hover:text-gray-600'} transition-colors`}
-    >
-      <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${activeTab === 'mine' ? 'scale-110 drop-shadow-md' : 'bg-transparent filter grayscale opacity-60'}`}>
-        <img src={navIconMine} alt="我的" className="w-10 h-10 object-contain" />
-      </div>
-      <span className="text-[10px] font-bold font-serif tracking-widest" style={{ letterSpacing: '0.15em', marginTop: '-4px' }}>我的</span>
-    </button>
-  </nav>
-);
+

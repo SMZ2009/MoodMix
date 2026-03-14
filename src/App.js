@@ -187,7 +187,7 @@ const MoodInputSection = ({
 
         <button
           type="button"
-          className="relative z-30 mt-[30px] -mt-1 sm:-mt-1.5 mb-0.5 sm:mb-1 px-5 py-2 text-[13px] sm:text-[14px] text-gray-700/80 transition-colors hover:text-gray-800 group"
+          className="relative z-30 mt-[40px] -mt-1 sm:-mt-1.5 mb-0.5 sm:mb-1 px-5 py-2 text-[13px] sm:text-[14px] text-gray-700/80 transition-colors hover:text-gray-800 group"
           style={{ fontFamily: '"FZQingKeBenYueSongS-R-GB", "方正清刻本悦宋简体", "Songti SC", serif', fontWeight: 300, letterSpacing: '0.14em' }}
           onClick={onEditIngredients}
           aria-label={`当前有 ${ingredientCount} 种特调原料已备齐`}
@@ -283,69 +283,78 @@ const MoodInputSection = ({
         </div>
 
         {/* 输入框 */}
-        <div className="w-full max-w-[22rem] sm:max-w-[26rem] relative mx-auto z-10 group">
-          <div className="absolute inset-0 bg-white/15 backdrop-blur-[28px] sm:backdrop-blur-[34px] rounded-2xl sm:rounded-3xl group-focus-within:bg-white/20 group-focus-within:scale-[1.02] transition-all duration-500" style={{ boxShadow: 'rgba(255, 255, 255, 0.25) 0px 10px 40px, rgba(154, 169, 186, 0.15) 0px 20px 50px, inset 0 1px 0 rgba(255,255,255,0.3)' }}></div>
-          <div className="relative flex items-center h-12 sm:h-14 lg:h-16 px-4 sm:px-5">
+        <div className="w-full max-w-[28rem] relative mx-auto z-10">
+          <div
+            className="flex items-center h-14 bg-white/95 backdrop-blur-2xl rounded-full border border-gray-200/70 shadow-xl px-5 focus-within:border-amber-400/60 focus-within:shadow-amber-100/60 transition-all duration-300"
+            style={{ boxShadow: 'rgba(0, 0, 0, 0.08) 0px 6px 24px, rgba(255, 255, 255, 0.9) 0px 1px 0px inset', borderRadius: '32px' }}
+          >
             <button
               type="button"
               onClick={isListening ? stopListening : handleVoiceInput}
-              className={`w-[40px] h-[40px] sm:w-[48px] sm:h-[48px] mr-2 sm:mr-3 flex-shrink-0 transition-all duration-500 group-focus-within:scale-105 hover:scale-110 ${isListening ? 'animate-pulse' : ''}`}
-              style={{ color: isListening ? 'rgba(239, 68, 68, 0.9)' : 'rgba(228, 181, 94, 0.9)' }}
-              aria-label={isListening ? '停止语音输入' : '开始语音输入'}
+              className="w-10 h-10 flex items-center justify-center rounded-full mr-3 flex-shrink-0 hover:bg-gray-100 active:scale-95 transition-all duration-200"
+              style={{ boxShadow: 'rgba(0, 0, 0, 0.06) 0px 2px 8px', backgroundColor: 'rgba(255, 255, 255, 0.8)' }}
+              aria-label={isListening ? '停止语音输入' : '切换到语音输入'}
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                width="48"
-                height="48"
+                width="18"
+                height="18"
                 viewBox="0 0 24 24"
                 fill="none"
-                className="w-full h-full drop-shadow-md"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className={isListening ? 'text-red-500' : 'text-gray-500'}
+                aria-hidden="true"
               >
-                <rect x="8" y="3" width="8" height="11" rx="4" fill="currentColor" />
-                <path d="M6 11a6 6 0 0 0 12 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" fill="none" />
-                <path d="M12 17v4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                <path d="M9 21h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                <path d="M12 19v3" />
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                <rect x="9" y="2" width="6" height="13" rx="3" />
               </svg>
             </button>
-            <div className="relative flex-1">
+            <div className="flex-1 relative">
               {!moodInput && (
                 <span
-                  className="absolute inset-y-0 left-0 flex items-center text-gray-400/80 text-sm sm:text-[15px] font-medium pointer-events-none"
-                  style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif' }}
+                  className="absolute inset-y-0 left-0 flex items-center text-gray-400 text-sm pointer-events-none transition-opacity duration-200"
+                  style={{ fontFamily: '"Songti SC", STKaiti, KaiTi, serif' }}
                 >
                   {MOOD_INPUT_PLACEHOLDERS[placeholderIndex]}
                 </span>
               )}
-              <input 
-                className="bg-transparent border-none focus:outline-none focus:ring-0 text-gray-800 w-full text-sm sm:text-[15px] font-medium outline-none py-2" 
-                placeholder="" 
-                value={moodInput} 
+              <input
+                className="bg-transparent border-none focus:outline-none focus:ring-0 w-full text-sm text-gray-800 h-full px-2"
+                placeholder=""
+                value={moodInput}
                 onChange={(e) => setMoodInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && moodInput.trim() && onGenerate()}
+                style={{ fontFamily: '"Songti SC", STKaiti, KaiTi, serif', letterSpacing: '0.05em' }}
               />
             </div>
             <button
               type="button"
               onClick={onGenerate}
               disabled={!moodInput.trim() || isMixing}
-              className={`w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center rounded-full ml-2 sm:ml-3 transition-all duration-300 flex-shrink-0 ${
+              className={`w-10 h-10 flex items-center justify-center rounded-full ml-3 transition-all duration-300 flex-shrink-0 ${
                 moodInput.trim() && !isMixing
                   ? 'bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-lg hover:shadow-xl hover:scale-105 active:scale-95'
                   : 'bg-gray-100 text-gray-400 cursor-not-allowed'
               }`}
+              style={{ boxShadow: 'rgba(0, 0, 0, 0.05) 0px 2px 6px' }}
               aria-label="发送"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="20"
+                width="16"
+                height="16"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
-                strokeWidth="2.5"
+                strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className={`transition-transform duration-300 ${moodInput.trim() && !isMixing ? 'translate-y-[-1px]' : ''}`}
+                className={moodInput.trim() && !isMixing ? 'text-white' : 'text-gray-400'}
+                aria-hidden="true"
               >
                 <path d="m5 12 7-7 7 7" />
                 <path d="M12 19V5" />

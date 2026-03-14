@@ -176,8 +176,8 @@ const MoodInputSection = ({
           万般心绪，皆可入杯
         </p>
       </div>
-      <div className="relative flex-1 w-full flex flex-col items-center justify-start pt-6 sm:pt-8 pb-12 sm:pb-16">
-        <div className="relative z-20 w-[320px] sm:w-[420px] max-w-[92vw] transition-all duration-500">
+      <div className="relative flex-1 w-full flex flex-col items-center justify-start pt-8 sm:pt-9 pb-12 sm:pb-16">
+        <div className="relative z-20 w-[320px] sm:w-[420px] max-w-[92vw] transition-all duration-500 translate-y-[30px]">
           <img
             src={cupRippleImage}
             alt="杯子和水波"
@@ -187,7 +187,7 @@ const MoodInputSection = ({
 
         <button
           type="button"
-          className="relative z-30 mt-4 sm:mt-5 mb-0.5 sm:mb-1 px-5 py-2 text-[13px] sm:text-[14px] text-gray-700/80 transition-colors hover:text-gray-800 group"
+          className="relative z-30 mt-[30px] -mt-1 sm:-mt-1.5 mb-0.5 sm:mb-1 px-5 py-2 text-[13px] sm:text-[14px] text-gray-700/80 transition-colors hover:text-gray-800 group"
           style={{ fontFamily: '"FZQingKeBenYueSongS-R-GB", "方正清刻本悦宋简体", "Songti SC", serif', fontWeight: 300, letterSpacing: '0.14em' }}
           onClick={onEditIngredients}
           aria-label={`当前有 ${ingredientCount} 种特调原料已备齐`}
@@ -255,9 +255,9 @@ const MoodInputSection = ({
       </div>
 
       {/* 固定在底部的区域 */}
-      <div className="fixed bottom-0 left-0 right-0 px-6 pb-6 pt-4 bg-gradient-to-t from-white/90 to-transparent z-20">
+      <div className="fixed bottom-0 left-0 right-0 px-6 pb-6 pt-4 bg-gradient-to-t from-white/80 to-transparent z-20">
         {/* 情绪标签按钮 */}
-        <div className="flex flex-wrap gap-4 justify-center mb-4 z-10">
+        <div className="flex flex-wrap gap-2 sm:gap-4 justify-center mb-4 z-10">
           {[
             { label: '放松', value: '#放松' },
             { label: '浪漫', value: '#浪漫' },
@@ -269,74 +269,86 @@ const MoodInputSection = ({
                 key={mood.value}
                 type="button"
                 onClick={() => setSelectedMood(isSelected ? null : mood.value)}
-                className={`px-4 py-1.5 rounded-full transition-all duration-300 ${isSelected ? 'bg-amber-100 text-amber-800' : 'bg-white/40 text-gray-600'}`}
-                style={{
-                  backdropFilter: 'blur(12px)',
-                  border: isSelected ? '1px solid rgba(245, 158, 11, 0.3)' : '1px solid rgba(255, 255, 255, 0.5)',
-                  boxShadow: isSelected ? '0 4px 12px rgba(245, 158, 11, 0.15)' : '0 2px 8px rgba(0, 0, 0, 0.05)'
-                }}
+                className={`mood-ink-tag ${isSelected ? 'is-selected' : ''}`}
                 aria-pressed={isSelected}
+                style={{
+                  '--mood-ink-color': isSelected ? 'rgba(224, 197, 110, 0.24)' : 'rgba(104, 114, 120, 0.2)',
+                  '--mood-ink-accent': isSelected ? 'rgba(204, 172, 74, 0.82)' : 'rgba(72, 82, 89, 0.5)'
+                }}
               >
-                <span className="text-sm font-medium" style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif' }}>{mood.label}</span>
+                <span className={`mood-ink-tag__label ${isSelected ? 'is-selected' : ''}`}>{mood.label}</span>
               </button>
             );
           })}
         </div>
 
         {/* 输入框 */}
-        <div className="w-full max-w-[21rem] sm:max-w-[23rem] relative mx-auto z-10 group">
-          <div className="absolute inset-0 bg-white/30 backdrop-blur-[20px] rounded-2xl group-focus-within:bg-white/40 group-focus-within:scale-[1.02] transition-all duration-500" style={{ boxShadow: 'rgba(255, 255, 255, 0.3) 0px 8px 24px, rgba(154, 169, 186, 0.1) 0px 16px 32px', border: '1px solid rgba(255, 255, 255, 0.6)' }}></div>
-          <div className="relative flex items-center h-12 px-4">
+        <div className="w-full max-w-[22rem] sm:max-w-[26rem] relative mx-auto z-10 group">
+          <div className="absolute inset-0 bg-white/15 backdrop-blur-[28px] sm:backdrop-blur-[34px] rounded-2xl sm:rounded-3xl group-focus-within:bg-white/20 group-focus-within:scale-[1.02] transition-all duration-500" style={{ boxShadow: 'rgba(255, 255, 255, 0.25) 0px 10px 40px, rgba(154, 169, 186, 0.15) 0px 20px 50px, inset 0 1px 0 rgba(255,255,255,0.3)' }}></div>
+          <div className="relative flex items-center h-12 sm:h-14 lg:h-16 px-4 sm:px-5">
             <button
               type="button"
               onClick={isListening ? stopListening : handleVoiceInput}
-              className={`w-8 h-8 mr-2 flex-shrink-0 transition-transform duration-500 group-focus-within:scale-105 ${isListening ? 'animate-pulse' : ''}`}
-              style={{ color: isListening ? 'rgba(239, 68, 68, 0.9)' : 'rgba(228, 181, 94, 0.86)' }}
+              className={`w-[40px] h-[40px] sm:w-[48px] sm:h-[48px] mr-2 sm:mr-3 flex-shrink-0 transition-all duration-500 group-focus-within:scale-105 hover:scale-110 ${isListening ? 'animate-pulse' : ''}`}
+              style={{ color: isListening ? 'rgba(239, 68, 68, 0.9)' : 'rgba(228, 181, 94, 0.9)' }}
               aria-label={isListening ? '停止语音输入' : '开始语音输入'}
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
+                width="48"
+                height="48"
                 viewBox="0 0 24 24"
                 fill="none"
-                className="w-full h-full"
+                className="w-full h-full drop-shadow-md"
               >
-                <path d="M12 1a3 3 0 0 0-3 3v4a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" fill="currentColor" />
-                <path d="M19 10v2a7 7 0 0 1-14 0v-2a9 9 0 0 1 18 0z" fill="currentColor" />
-                <path d="M12 18.75a.75.75 0 0 1 0 0 1.5v2.25a.75.75 0 0 1 0-1.5v-2.25a.75.75 0 0 1 0 0-1.5z" fill="currentColor" />
+                <rect x="8" y="3" width="8" height="11" rx="4" fill="currentColor" />
+                <path d="M6 11a6 6 0 0 0 12 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" fill="none" />
+                <path d="M12 17v4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                <path d="M9 21h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
               </svg>
             </button>
             <div className="relative flex-1">
               {!moodInput && (
                 <span
-                  className="absolute inset-y-0 left-0 flex items-center text-gray-400 text-sm font-medium pointer-events-none"
+                  className="absolute inset-y-0 left-0 flex items-center text-gray-400/80 text-sm sm:text-[15px] font-medium pointer-events-none"
                   style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif' }}
                 >
-                  比如，老板又给我加薪了...
+                  {MOOD_INPUT_PLACEHOLDERS[placeholderIndex]}
                 </span>
               )}
-              <input className="bg-transparent border-none focus:outline-none focus:ring-0 text-gray-800 w-full text-sm font-medium outline-none" placeholder="" value={moodInput} onChange={(e) => setMoodInput(e.target.value)}></input>
+              <input 
+                className="bg-transparent border-none focus:outline-none focus:ring-0 text-gray-800 w-full text-sm sm:text-[15px] font-medium outline-none py-2" 
+                placeholder="" 
+                value={moodInput} 
+                onChange={(e) => setMoodInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && moodInput.trim() && onGenerate()}
+              />
             </div>
             <button
               type="button"
-              className="w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-full bg-white/50 backdrop-blur-sm border border-white/60 transition-transform hover:scale-105"
-              style={{ color: 'rgba(104, 114, 120, 0.7)' }}
               onClick={onGenerate}
+              disabled={!moodInput.trim() || isMixing}
+              className={`w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center rounded-full ml-2 sm:ml-3 transition-all duration-300 flex-shrink-0 ${
+                moodInput.trim() && !isMixing
+                  ? 'bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-lg hover:shadow-xl hover:scale-105 active:scale-95'
+                  : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+              }`}
+              aria-label="发送"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
+                width="20"
+                height="20"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
-                strokeWidth="2"
+                strokeWidth="2.5"
                 strokeLinecap="round"
                 strokeLinejoin="round"
+                className={`transition-transform duration-300 ${moodInput.trim() && !isMixing ? 'translate-y-[-1px]' : ''}`}
               >
-                <path d="M5 12h14" />
-                <path d="m12 5 7 7-7 7" />
+                <path d="m5 12 7-7 7 7" />
+                <path d="M12 19V5" />
               </svg>
             </button>
           </div>

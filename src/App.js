@@ -336,8 +336,8 @@ const MoodInputSection = ({
               onClick={onGenerate}
               disabled={!moodInput.trim() || isMixing}
               className={`w-10 h-10 flex items-center justify-center rounded-full ml-3 transition-all duration-300 flex-shrink-0 ${moodInput.trim() && !isMixing
-                  ? 'bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-lg hover:shadow-xl hover:scale-105 active:scale-95'
-                  : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                ? 'bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-lg hover:shadow-xl hover:scale-105 active:scale-95'
+                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                 }`}
               style={{ boxShadow: 'rgba(0, 0, 0, 0.05) 0px 2px 6px' }}
               aria-label="发送"
@@ -1095,178 +1095,156 @@ const DrinkDetailSection = ({ drink, checkedIngredients, onToggleIngredient, onB
 
   return (
     <div className="fixed inset-0 z-50 bg-[#F7F6F2] h-screen overflow-y-auto pb-32">
-      {/* 顶部浸入式图片区域 */}
-      <div className="relative h-[42vh] w-full overflow-hidden ink-wash-mask">
-        <img
-          src={drink.image}
-          className="w-full h-full object-cover transition-transform duration-[2s] hover:scale-110"
-          alt={drink.name}
-        />
-        {/* 图片底部水墨融合渐变 */}
-        <div className="drink-hero-mask-layer" />
-
-        {/* 悬浮操作按钮 */}
-        <div className="absolute top-[calc(env(safe-area-inset-top,0px)+1rem)] inset-x-0 px-6 flex justify-between z-20">
-          <button
-            type="button"
-            onClick={onBack}
-            aria-label="返回"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              background: 'rgba(255,255,255,0.15)',
-              backdropFilter: 'blur(12px)',
-              WebkitBackdropFilter: 'blur(12px)',
-              border: '1px solid rgba(255,255,255,0.2)',
-              color: 'white',
-              width: '42px',
-              height: '42px',
-              borderRadius: '999px',
-              boxShadow: '0 4px 18px rgba(0,0,0,0.12)',
-              cursor: 'pointer'
-            }}
-          >
-            <ChevronLeft size={22} strokeWidth={2.2} color="#ffffff" />
-          </button>
-          <button
-            type="button"
-            onClick={() => onHelp && onHelp(drink)}
-            aria-label="饮品帮助"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              background: 'rgba(255,255,255,0.15)',
-              backdropFilter: 'blur(12px)',
-              WebkitBackdropFilter: 'blur(12px)',
-              border: '1px solid rgba(255,255,255,0.2)',
-              color: 'white',
-              width: '42px',
-              height: '42px',
-              borderRadius: '999px',
-              boxShadow: '0 4px 18px rgba(0,0,0,0.12)',
-              cursor: 'pointer'
-            }}
-          >
-            <HelpCircle size={21} strokeWidth={2.2} color="#ffffff" />
-          </button>
-        </div>
+      {/* 顶部导航栏 */}
+      <div className="sticky top-0 z-[60] px-6 py-4 flex justify-between bg-[#F7F6F2]/80 backdrop-blur-md">
+        <button
+          type="button"
+          onClick={onBack}
+          aria-label="返回"
+          className="flex items-center justify-center bg-white/50 backdrop-blur-md border border-gray-200/50 text-gray-800 w-10 h-10 rounded-full shadow-sm hover:bg-white/80 transition-all active:scale-95"
+        >
+          <ChevronLeft size={22} strokeWidth={2.2} />
+        </button>
+        <button
+          type="button"
+          onClick={() => onHelp && onHelp(drink)}
+          aria-label="饮品帮助"
+          className="flex items-center justify-center bg-white/50 backdrop-blur-md border border-gray-200/50 text-gray-800 w-10 h-10 rounded-full shadow-sm hover:bg-white/80 transition-all active:scale-95"
+        >
+          <HelpCircle size={21} strokeWidth={2.2} />
+        </button>
       </div>
 
-      {/* 极简详情内容容器 */}
-      <div className="relative -mt-16 detail-glass-container px-7 pt-9 pb-12 max-w-2xl mx-auto">
-        {/* 标题标题区域 */}
-        <div className="mb-9">
-          <div className="flex flex-wrap items-baseline gap-3 mb-4">
-            <h1 className="text-[2.25rem] oriental-title-large">
-              {drink.name_cn || translateDrinkName(drink.name) || drink.name}
-            </h1>
-            {drink.nameEn && drink.nameEn !== drink.name && (
-              <span className="text-[14px] text-gray-400 font-serif italic tracking-wider opacity-60">
-                / {drink.nameEn}
-              </span>
-            )}
-          </div>
+      <div className="max-w-6xl mx-auto px-4 sm:px-8 py-4">
+        {/* 上部：左右布局容器 */}
+        <div className="flex flex-col lg:flex-row gap-8 lg:items-start mb-12">
 
-          <div className="flex flex-wrap gap-2.5">
-            {drink.abv > 0 && (
-              <div
-                className="px-3.5 py-1.5 rounded-full flex items-center gap-1.5"
-                style={{ background: 'rgba(59, 130, 246, 0.08)', border: '0.5px solid rgba(59, 130, 246, 0.15)' }}
-              >
-                <Martini size={14} className="text-blue-500/80" />
-                <span className="text-[11px] font-bold text-blue-600/90 tracking-widest">ABV {drink.abv}%</span>
+          {/* 左侧：名称与原料 (Flex-1) */}
+          <div className="flex-1 order-2 lg:order-1">
+            {/* 标题区域 */}
+            <div className="mb-8">
+              <div className="flex flex-wrap items-baseline gap-3 mb-4">
+                <h1 className="text-[2rem] sm:text-[2.5rem] oriental-title-large">
+                  {drink.name_cn || translateDrinkName(drink.name) || drink.name}
+                </h1>
+                {drink.nameEn && drink.nameEn !== drink.name && (
+                  <span className="text-[14px] text-gray-400 font-serif italic tracking-wider opacity-60">
+                    / {drink.nameEn}
+                  </span>
+                )}
               </div>
-            )}
-            {drink.tags?.map((tag, idx) => (
-              <span
-                key={idx}
-                className="px-3.5 py-1.5 bg-gray-50/80 rounded-full text-[11px] font-bold text-gray-500/80 tracking-widest border border-gray-100"
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
-        </div>
 
-        {/* 辨证短语/描述 */}
-        {drink.reason && (
-          <div className="mb-10 relative">
-            <div className="absolute -left-3 top-0 bottom-0 w-[2px] bg-gradient-to-b from-gray-200 via-gray-100 to-transparent" />
-            <p
-              className="text-[15px] text-gray-600 leading-[1.8] font-serif pl-3 italic opacity-90"
-              style={{ fontFamily: '"FZYouSong", "方正悠宋", "Songti SC", serif' }}
-            >
-              {drink.reason}
-            </p>
-          </div>
-        )}
-
-        {/* 原料清单部分 */}
-        <div className="mb-12">
-          <div className="flex justify-between items-end mb-6">
-            <h3 className="text-[18px] font-bold text-gray-900 tracking-[0.1em]" style={{ fontFamily: '"Songti SC", serif' }}>原料清单</h3>
-            <span className="text-[11px] text-gray-400 bg-gray-50/80 px-3 py-1 rounded-full font-medium flex items-center gap-1">
-              <Users size={12} /> 一人份量
-            </span>
-          </div>
-          <div className="grid grid-cols-1 gap-3">
-            {drinkIngredients.map(ing => {
-              const IngredientIcon = iconMap[ing.icon] || Wine;
-              const isChecked = checkedIngredients[ing.id];
-
-              return (
-                <div
-                  key={ing.id}
-                  className={`flex items-center justify-between p-4 rounded-[1.25rem] transition-all duration-500 soft-ingredient-pill ${isChecked ? 'is-checked scale-[0.98]' : ''}`}
-                  onClick={() => onToggleIngredient(ing.id)}
-                  style={cardFeedback}
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="w-11 h-11 bg-white rounded-xl flex items-center justify-center text-blue-500/80 shadow-[0_4px_12px_rgba(0,0,0,0.04)]">
-                      <IngredientIcon size={20} strokeWidth={1.5} />
-                    </div>
-                    <span
-                      className="text-[16px] font-bold text-gray-800"
-                      style={{ fontFamily: '"Songti SC", "STKaiti", serif' }}
-                    >
-                      {translateIngredient(ing.name)}
-                    </span>
-                  </div>
-                  <div className="flex flex-col items-end">
-                    <span className="text-[17px] font-extrabold text-gray-900 font-serif">{ing.amount}</span>
-                    <span className="text-[10px] text-gray-400 font-medium uppercase tracking-tighter -mt-1">{ing.unit}</span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* 制作步骤部分 */}
-        <div className="mb-16">
-          <h3 className="text-[18px] font-bold text-gray-900 mb-8 tracking-[0.1em]" style={{ fontFamily: '"Songti SC", serif' }}>制作步骤</h3>
-          <div className="relative">
-            {drinkSteps.map((step, idx) => (
-              <div key={idx} className="flex gap-7 pb-10 group last:pb-2">
-                {drinkSteps.length > 1 && (
-                  <div className="relative flex flex-col items-center flex-none">
-                    <div className="method-step-ink-point" />
-                    {idx !== drinkSteps.length - 1 && (
-                      <div className="method-line-vertical" />
-                    )}
+              <div className="flex flex-wrap gap-2.5 mb-6">
+                {drink.abv > 0 && (
+                  <div
+                    className="px-3.5 py-1.5 rounded-full flex items-center gap-1.5"
+                    style={{ background: 'rgba(59, 130, 246, 0.08)', border: '0.5px solid rgba(59, 130, 246, 0.15)' }}
+                  >
+                    <Martini size={14} className="text-blue-500/80" />
+                    <span className="text-[11px] font-bold text-blue-600/90 tracking-widest">ABV {drink.abv}%</span>
                   </div>
                 )}
-                <div className="flex-1 -mt-1 pt-0.5">
-                  {drinkSteps.length > 1 && (
-                    <h4
-                      className="text-[15px] font-black text-gray-900 mb-2 tracking-wider"
-                      style={{ fontFamily: '"Songti SC", "STKaiti", serif' }}
+                {drink.tags?.map((tag, idx) => (
+                  <span
+                    key={idx}
+                    className="px-3.5 py-1.5 bg-gray-50/80 rounded-full text-[11px] font-bold text-gray-500/80 tracking-widest border border-gray-100"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+
+              {/* 推荐理由 */}
+              {drink.reason && (
+                <div className="relative mb-8 pl-4 border-l-2 border-gray-200">
+                  <p
+                    className="text-[15px] text-gray-600 leading-[1.8] font-serif italic opacity-90"
+                    style={{ fontFamily: '"FZYouSong", "方正悠宋", "Songti SC", serif' }}
+                  >
+                    {drink.reason}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* 原料清单 */}
+            <div className="bg-white/40 backdrop-blur-sm rounded-[2rem] p-6 border border-white/60">
+              <div className="flex justify-between items-end mb-6">
+                <h3 className="text-[18px] font-bold text-gray-900 tracking-[0.1em]" style={{ fontFamily: '"Songti SC", serif' }}>原料清单</h3>
+                <span className="text-[11px] text-gray-400 bg-gray-50/80 px-3 py-1 rounded-full font-medium flex items-center gap-1">
+                  <Users size={12} /> 一人份量
+                </span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-3">
+                {drinkIngredients.map(ing => {
+                  const IngredientIcon = iconMap[ing.icon] || Wine;
+                  const isChecked = checkedIngredients[ing.id];
+
+                  return (
+                    <div
+                      key={ing.id}
+                      className={`flex items-center justify-between p-4 rounded-[1.25rem] transition-all duration-500 soft-ingredient-pill ${isChecked ? 'is-checked scale-[0.98]' : ''}`}
+                      onClick={() => onToggleIngredient(ing.id)}
+                      style={cardFeedback}
                     >
-                      {getChineseStep(idx)}
-                    </h4>
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-blue-500/80 shadow-[0_4px_12px_rgba(0,0,0,0.04)]">
+                          <IngredientIcon size={18} strokeWidth={1.5} />
+                        </div>
+                        <span
+                          className="text-[15px] font-bold text-gray-800"
+                          style={{ fontFamily: '"Songti SC", "STKaiti", serif' }}
+                        >
+                          {translateIngredient(ing.name)}
+                        </span>
+                      </div>
+                      <div className="flex flex-col items-end">
+                        <span className="text-[16px] font-extrabold text-gray-900 font-serif">{ing.amount}</span>
+                        <span className="text-[10px] text-gray-400 font-medium uppercase tracking-tighter -mt-1">{ing.unit}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* 右侧：饮品图片 (Fixed/Custom Width) */}
+          <div className="w-full lg:w-[400px] xl:w-[480px] order-1 lg:order-2">
+            <div className="sticky top-24">
+              <div className="relative aspect-square lg:aspect-[4/5] rounded-[2.5rem] overflow-hidden shadow-2xl group">
+                <img
+                  src={drink.image}
+                  className="w-full h-full object-cover transition-transform duration-[2s] group-hover:scale-110"
+                  alt={drink.name}
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 下部：制作步骤 (Full Width) */}
+        <div className="mt-8 border-t border-gray-100 pt-12">
+          <h3 className="text-[18px] font-bold text-gray-900 mb-10 tracking-[0.1em]" style={{ fontFamily: '"Songti SC", serif' }}>制作步骤</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-12 gap-y-10">
+            {drinkSteps.map((step, idx) => (
+              <div key={idx} className="flex gap-5 group">
+                <div className="flex flex-col items-center flex-none">
+                  <div className="w-8 h-8 rounded-full bg-[#3c3b36] text-[#ebdfc8] flex items-center justify-center font-bold text-sm shadow-lg">
+                    {idx + 1}
+                  </div>
+                  {idx !== drinkSteps.length - 1 && (
+                    <div className="hidden md:block w-px h-full bg-gradient-to-b from-[#3c3b36] to-transparent opacity-20 mt-2" />
                   )}
+                </div>
+                <div className="flex-1">
+                  <h4
+                    className="text-[15px] font-black text-gray-900 mb-2 tracking-wider"
+                    style={{ fontFamily: '"Songti SC", "STKaiti", serif' }}
+                  >
+                    {getChineseStep(idx)}
+                  </h4>
                   <p className="text-[14px] text-gray-500 leading-[1.75] font-medium opacity-85">
                     {step.desc}
                   </p>
@@ -1275,9 +1253,6 @@ const DrinkDetailSection = ({ drink, checkedIngredients, onToggleIngredient, onB
             ))}
           </div>
         </div>
-
-        {/* 底部占位空白，确保滚动到底时内容高于悬浮操作栏 */}
-        <div className="h-4" />
       </div>
 
       {/* 底部悬浮操作栏 */}

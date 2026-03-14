@@ -187,7 +187,7 @@ const MoodInputSection = ({
 
         <button
           type="button"
-          className="relative z-30 mt-[40px] -mt-1 sm:-mt-1.5 mb-0.5 sm:mb-1 px-5 py-2 text-[13px] sm:text-[14px] text-gray-700/80 transition-colors hover:text-gray-800 group"
+          className="relative z-30 mt-[50px] -mt-1 sm:-mt-1.5 mb-0.5 sm:mb-1 px-5 py-2 text-[13px] sm:text-[14px] text-gray-700/80 transition-colors hover:text-gray-800 group"
           style={{ fontFamily: '"FZQingKeBenYueSongS-R-GB", "方正清刻本悦宋简体", "Songti SC", serif', fontWeight: 300, letterSpacing: '0.14em' }}
           onClick={onEditIngredients}
           aria-label={`当前有 ${ingredientCount} 种特调原料已备齐`}
@@ -335,11 +335,7 @@ const MoodInputSection = ({
               type="button"
               onClick={onGenerate}
               disabled={!moodInput.trim() || isMixing}
-              className={`w-10 h-10 flex items-center justify-center rounded-full ml-3 transition-all duration-300 flex-shrink-0 ${
-                moodInput.trim() && !isMixing
-                  ? 'bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-lg hover:shadow-xl hover:scale-105 active:scale-95'
-                  : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-              }`}
+              className="w-10 h-10 flex items-center justify-center rounded-full ml-3 transition-all duration-300 flex-shrink-0 bg-gray-100 text-gray-400 cursor-not-allowed"
               style={{ boxShadow: 'rgba(0, 0, 0, 0.05) 0px 2px 6px' }}
               aria-label="发送"
             >
@@ -353,7 +349,7 @@ const MoodInputSection = ({
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className={moodInput.trim() && !isMixing ? 'text-white' : 'text-gray-400'}
+                className="text-gray-400"
                 aria-hidden="true"
               >
                 <path d="m5 12 7-7 7 7" />

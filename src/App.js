@@ -132,60 +132,6 @@ const MoodInputSection = ({
           万般心绪，皆可入杯
         </p>
       </div>
-      <div className="w-full max-w-[21rem] sm:max-w-[23rem] relative mb-4 sm:mb-6 z-10 group">
-        <div className="absolute inset-0 bg-white/10 backdrop-blur-[28px] sm:backdrop-blur-[34px] rounded-xl sm:rounded-2xl group-focus-within:bg-white/15 group-focus-within:scale-[1.02] transition-all duration-500" style={{ boxShadow: 'rgba(255, 255, 255, 0.22) 0px 10px 34px, rgba(154, 169, 186, 0.12) 0px 20px 44px' }}></div>
-        <div className="relative flex items-center h-10 sm:h-12 lg:h-14 px-3.5 sm:px-4.5">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="44"
-            height="44"
-            viewBox="0 0 24 24"
-            fill="none"
-            className="w-[36px] h-[36px] sm:w-[44px] sm:h-[44px] mr-1.5 sm:mr-2 flex-shrink-0 transition-transform duration-500 group-focus-within:scale-105"
-            style={{ animation: 'ember-drop-breathe 3s ease-in-out infinite' }}
-            aria-hidden="true"
-          >
-            <path d="M12.2 4.4C10.1 7 8.9 9.2 8.9 11.8C8.9 14.8 10.8 17 13 17C15 17 16.7 15.3 16.7 12.8C16.7 10.5 15.5 8.1 12.2 4.4Z" fill="rgba(228, 181, 94, 0.86)"></path>
-            <path d="M12.4 7.4C11.1 9 10.4 10.4 10.4 12C10.4 13.8 11.5 15 12.9 15C14.1 15 15 14 15 12.4C15 10.9 14.2 9.4 12.4 7.4Z" fill="rgba(255, 240, 196, 0.72)"></path>
-            <circle cx="16.7" cy="8.1" r="1" fill="rgba(255, 228, 168, 0.48)"></circle>
-          </svg>
-          <div className="relative flex-1">
-            {!moodInput && (
-              <span
-                className="absolute inset-y-0 left-0 flex items-center text-gray-400 text-sm sm:text-[15px] font-medium pointer-events-none"
-                style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif' }}
-              >
-                {MOOD_INPUT_PLACEHOLDERS[placeholderIndex]}
-              </span>
-            )}
-            <input className="bg-transparent border-none focus:outline-none focus:ring-0 text-gray-800 w-full text-sm sm:text-[15px] font-medium outline-none" placeholder="" value={moodInput} onChange={(e) => setMoodInput(e.target.value)}></input>
-          </div>
-        </div>
-      </div>
-      <div className="flex flex-wrap gap-2 sm:gap-4 justify-center mb-4 sm:mb-6 z-10">
-        {[
-          { label: '放松', value: '#放松' },
-          { label: '浪漫', value: '#浪漫' },
-          { label: '难受', value: '#难受' }
-        ].map((mood) => {
-          const isSelected = selectedMood === mood.value;
-          return (
-            <button
-              key={mood.value}
-              type="button"
-              onClick={() => setSelectedMood(isSelected ? null : mood.value)}
-              className={`mood-ink-tag ${isSelected ? 'is-selected' : ''}`}
-              aria-pressed={isSelected}
-              style={{
-                '--mood-ink-color': isSelected ? 'rgba(224, 197, 110, 0.24)' : 'rgba(104, 114, 120, 0.2)',
-                '--mood-ink-accent': isSelected ? 'rgba(204, 172, 74, 0.82)' : 'rgba(72, 82, 89, 0.5)'
-              }}
-            >
-              <span className={`mood-ink-tag__label ${isSelected ? 'is-selected' : ''}`}>{mood.label}</span>
-            </button>
-          );
-        })}
-      </div>
       <div className="relative flex-1 w-full flex flex-col items-center justify-start pt-2 sm:pt-3 pb-12 sm:pb-16">
         <div className="relative z-20 w-[320px] sm:w-[420px] max-w-[92vw] transition-all duration-500">
           <img
@@ -262,59 +208,63 @@ const MoodInputSection = ({
           </span>
         </button>
 
-        {/* Generate Button */}
-        <div className="mt-6 sm:mt-8 z-10">
-          <button
-            onClick={onGenerate}
-            className="relative w-[140px] h-[46px] sm:w-[160px] sm:h-[50px] overflow-visible rounded-[999px] group active:scale-[0.96] transition-transform duration-150"
-            style={{
-              background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.08) 100%)',
-              backdropFilter: 'blur(18px) saturate(1.05)',
-              WebkitBackdropFilter: 'blur(18px) saturate(1.05)',
-              boxShadow: '0 16px 28px rgba(104, 132, 145, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.28), inset 0 -8px 18px rgba(126, 155, 169, 0.08)',
-              animation: 'jade-pendant-float 5.6s ease-in-out infinite'
-            }}
-            aria-label="启程寻味"
-          >
-            <span
-              className="absolute -inset-3 rounded-[999px] pointer-events-none"
-              style={{
-                background: 'radial-gradient(ellipse at center, rgba(120, 176, 186, 0.16) 0%, rgba(207, 171, 104, 0.1) 42%, transparent 74%)',
-                filter: 'blur(8px)',
-                animation: 'seal-ink-ripple 3.8s ease-out infinite'
-              }}
-            />
-            <div
-              className="absolute inset-[3px] rounded-[999px] opacity-80"
-              style={{
-                border: '1px solid rgba(184, 213, 218, 0.32)',
-                boxShadow: 'inset 0 0 0 1px rgba(255, 248, 238, 0.1)'
-              }}
-            />
-            <div
-              className="absolute inset-0 rounded-[999px] opacity-90"
-              style={{
-                background: 'radial-gradient(circle at 34% 24%, rgba(255, 255, 255, 0.3), transparent 24%), linear-gradient(180deg, rgba(162, 208, 214, 0.1), rgba(232, 196, 121, 0.08))'
-              }}
-            />
-            {isMixing ? (
-              <span
-                className="absolute inset-0 flex items-center justify-center text-[12px] sm:text-[13px] font-semibold text-slate-700/88 animate-pulse"
-                style={{ fontFamily: '"FZQingKeBenYueSongS-R-GB", "方正清刻本悦宋简体", "Songti SC", serif', letterSpacing: '0.14em' }}
+        {/* 情绪标签按钮 - 放在输入框上方 */}
+        <div className="flex flex-wrap gap-2 sm:gap-4 justify-center mt-8 mb-4 z-10">
+          {[
+            { label: '放松', value: '#放松' },
+            { label: '浪漫', value: '#浪漫' },
+            { label: '难受', value: '#难受' }
+          ].map((mood) => {
+            const isSelected = selectedMood === mood.value;
+            return (
+              <button
+                key={mood.value}
+                type="button"
+                onClick={() => setSelectedMood(isSelected ? null : mood.value)}
+                className={`mood-ink-tag ${isSelected ? 'is-selected' : ''}`}
+                aria-pressed={isSelected}
+                style={{
+                  '--mood-ink-color': isSelected ? 'rgba(224, 197, 110, 0.24)' : 'rgba(104, 114, 120, 0.2)',
+                  '--mood-ink-accent': isSelected ? 'rgba(204, 172, 74, 0.82)' : 'rgba(72, 82, 89, 0.5)'
+                }}
               >
-                {buttonFeedback?.loadingText || '寻味中...'}
-              </span>
-            ) : (
-              <span
-                className="relative z-10 flex h-full w-full items-center justify-center text-[15px] sm:text-[17px] font-semibold text-slate-700/92"
-                style={{ fontFamily: '"FZQingKeBenYueSongS-R-GB", "方正清刻本悦宋简体", "Songti SC", serif', letterSpacing: '0.14em' }}
-              >
-                启程寻味
-              </span>
-            )}
-          </button>
+                <span className={`mood-ink-tag__label ${isSelected ? 'is-selected' : ''}`}>{mood.label}</span>
+              </button>
+            );
+          })}
         </div>
 
+        {/* 输入框 - 放在页面底部 */}
+        <div className="w-full max-w-[21rem] sm:max-w-[23rem] relative mb-4 sm:mb-6 z-10 group">
+          <div className="absolute inset-0 bg-white/10 backdrop-blur-[28px] sm:backdrop-blur-[34px] rounded-xl sm:rounded-2xl group-focus-within:bg-white/15 group-focus-within:scale-[1.02] transition-all duration-500" style={{ boxShadow: 'rgba(255, 255, 255, 0.22) 0px 10px 34px, rgba(154, 169, 186, 0.12) 0px 20px 44px' }}></div>
+          <div className="relative flex items-center h-10 sm:h-12 lg:h-14 px-3.5 sm:px-4.5">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="44"
+              height="44"
+              viewBox="0 0 24 24"
+              fill="none"
+              className="w-[36px] h-[36px] sm:w-[44px] sm:h-[44px] mr-1.5 sm:mr-2 flex-shrink-0 transition-transform duration-500 group-focus-within:scale-105"
+              style={{ animation: 'ember-drop-breathe 3s ease-in-out infinite' }}
+              aria-hidden="true"
+            >
+              <path d="M12.2 4.4C10.1 7 8.9 9.2 8.9 11.8C8.9 14.8 10.8 17 13 17C15 17 16.7 15.3 16.7 12.8C16.7 10.5 15.5 8.1 12.2 4.4Z" fill="rgba(228, 181, 94, 0.86)"></path>
+              <path d="M12.4 7.4C11.1 9 10.4 10.4 10.4 12C10.4 13.8 11.5 15 12.9 15C14.1 15 15 14 15 12.4C15 10.9 14.2 9.4 12.4 7.4Z" fill="rgba(255, 240, 196, 0.72)"></path>
+              <circle cx="16.7" cy="8.1" r="1" fill="rgba(255, 228, 168, 0.48)"></circle>
+            </svg>
+            <div className="relative flex-1">
+              {!moodInput && (
+                <span
+                  className="absolute inset-y-0 left-0 flex items-center text-gray-400 text-sm sm:text-[15px] font-medium pointer-events-none"
+                  style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif' }}
+                >
+                  {MOOD_INPUT_PLACEHOLDERS[placeholderIndex]}
+                </span>
+              )}
+              <input className="bg-transparent border-none focus:outline-none focus:ring-0 text-gray-800 w-full text-sm sm:text-[15px] font-medium outline-none" placeholder="" value={moodInput} onChange={(e) => setMoodInput(e.target.value)}></input>
+            </div>
+          </div>
+        </div>
 
       </div>
     </div>

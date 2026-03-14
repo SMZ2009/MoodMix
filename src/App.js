@@ -182,7 +182,7 @@ const MoodInputSection = ({
           <h1 className="text-lg font-bold text-[#111813]">{storedText}</h1>
         </div>
       )}
-      <div className="text-center mb-4 sm:mb-6 z-10">
+      <div className="text-center mt-12 sm:mt-16 mb-4 sm:mb-6 z-10">
         <h2 className="text-2xl xs:text-[24px] sm:text-[28px] font-extrabold text-gray-800 mb-2 sm:mb-3 tracking-wide mx-auto text-center" style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif' }}>此刻，心境如何？</h2>
         <p
           className="text-gray-500 text-xs sm:text-sm font-light tracking-wider mx-auto text-center italic"
@@ -191,7 +191,7 @@ const MoodInputSection = ({
           万般心绪，皆可入杯
         </p>
       </div>
-      <div className="relative flex-1 w-full flex flex-col items-center justify-start pt-8 sm:pt-9 pb-12 sm:pb-16">
+      <div className="relative flex-1 w-full flex flex-col items-center justify-center pb-12 sm:pb-16">
         <div className="relative z-20 w-[320px] sm:w-[420px] max-w-[92vw] transition-all duration-500 translate-y-[30px]">
           <img
             src={cupRippleImage}
@@ -202,7 +202,7 @@ const MoodInputSection = ({
 
         <button
           type="button"
-          className="relative z-30 mt-[50px] -mt-1 sm:-mt-1.5 mb-0.5 sm:mb-1 px-5 py-2 text-[13px] sm:text-[14px] text-gray-700/80 transition-colors hover:text-gray-800 group"
+          className="relative z-30 mt-16 sm:mt-20 mb-0.5 sm:mb-1 px-5 py-2 text-[13px] sm:text-[14px] text-gray-700/80 transition-colors hover:text-gray-800 group"
           style={{ fontFamily: '"FZQingKeBenYueSongS-R-GB", "方正清刻本悦宋简体", "Songti SC", serif', fontWeight: 300, letterSpacing: '0.14em' }}
           onClick={onEditIngredients}
           aria-label={`当前有 ${ingredientCount} 种特调原料已备齐`}

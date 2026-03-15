@@ -110,10 +110,7 @@ const MoodInputSection = ({
   ingredientCount, onEditIngredients, onNavigate, activeTab, showFriendlyNotice
 }) => {
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
-  const [isListening, setIsListening] = useState(false);
   const [storedText, setStoredText] = useState('');
-  const mediaRecorderRef = useRef(null);
-  const audioChunksRef = useRef([]);
 
   useEffect(() => {
     const stored = localStorage.getItem('moodmix_user_text');
@@ -131,114 +128,6 @@ const MoodInputSection = ({
       window.clearInterval(intervalId);
     };
   }, []);
-
-  const handleVoiceInput = async () => {
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-
-    if (isMobile || isTouchDevice) {
-      showFriendlyNotice('语音提示', '手机端语音识别体验不佳\n建议使用键盘输入，体验更稳定', 'default');
-      return;
-    }
-
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          sampleRate: 16000
-        }
-      });
-
-      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-        ? 'audio/webm;codecs=opus'
-        : 'audio/webm';
-
-      const mediaRecorder = new MediaRecorder(stream, { mimeType });
-      mediaRecorderRef.current = mediaRecorder;
-      audioChunksRef.current = [];
-
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
-        }
-      };
-
-      mediaRecorder.onstop = async () => {
-        stream.getTracks().forEach(track => track.stop());
-        setIsListening(false);
-
-        if (audioChunksRef.current.length === 0) {
-          showFriendlyNotice('语音提示', '未检测到语音，请重试', 'warning');
-          return;
-        }
-
-        const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
-
-        try {
-          showFriendlyNotice('正在识别', '语音处理中...', 'default');
-
-          // 将音频转换为 base64
-          const arrayBuffer = await audioBlob.arrayBuffer();
-          const base64Audio = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
-
-          // 调用后端 API 进行语音识别
-          const response = await fetch('/api/speech-to-text', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ audio: base64Audio }),
-          });
-
-          const result = await response.json();
-
-          if (result.success && result.text && result.text.trim()) {
-            const cleanText = result.text.replace(/\[.*?\]/g, '').trim();
-            setMoodInput(cleanText);
-          } else {
-            showFriendlyNotice('识别失败', '未识别到有效语音，请重试', 'warning');
-          }
-        } catch (err) {
-          console.error('语音识别失败:', err);
-          showFriendlyNotice('识别失败', '语音识别出错，请重试', 'warning');
-        }
-      };
-
-      mediaRecorder.onerror = (event) => {
-        console.error('录音错误:', event.error);
-        stream.getTracks().forEach(track => track.stop());
-        setIsListening(false);
-        showFriendlyNotice('录音错误', '麦克风录音失败', 'warning');
-      };
-
-      mediaRecorder.start();
-      setIsListening(true);
-
-      setTimeout(() => {
-        if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-          mediaRecorderRef.current.stop();
-        }
-      }, 10000);
-
-    } catch (err) {
-      console.error('麦克风访问失败:', err);
-
-      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-        showFriendlyNotice('权限被拒绝', '请在浏览器设置中允许麦克风访问', 'warning');
-      } else if (err.name === 'NotFoundError') {
-        showFriendlyNotice('未找到麦克风', '请确保设备已连接麦克风', 'warning');
-      } else {
-        showFriendlyNotice('麦克风错误', '无法访问麦克风，请检查设备', 'warning');
-      }
-    }
-  };
-
-  const stopListening = () => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-      mediaRecorderRef.current.stop();
-    }
-  };
 
   return (
     <div className="flex-1 flex flex-col items-center px-6 pt-[calc(env(safe-area-inset-top,0px)+1.25rem)] pb-24 bg-dreamy-gradient w-full min-h-[100svh] relative overflow-x-hidden overflow-y-auto trae-browser-inspect-draggable">
@@ -368,40 +257,9 @@ const MoodInputSection = ({
         {/* 输入框 */}
         <div className="w-full max-w-[28rem] relative mx-auto z-10">
           <div
-            className="flex items-center h-14 bg-white/95 backdrop-blur-2xl rounded-full border border-gray-200/70 shadow-xl px-5 focus-within:border-amber-400/60 focus-within:shadow-amber-100/60 transition-all duration-300"
+            className="flex items-center h-14 bg-white/95 backdrop-blur-2xl rounded-full border border-gray-200/70 shadow-xl pl-5 pr-3 focus-within:border-amber-400/60 focus-within:shadow-amber-100/60 transition-all duration-300"
             style={{ boxShadow: 'rgba(0, 0, 0, 0.08) 0px 6px 24px, rgba(255, 255, 255, 0.9) 0px 1px 0px inset', borderRadius: '32px' }}
           >
-            <button
-              type="button"
-              onClick={isListening ? stopListening : handleVoiceInput}
-              className={`w-10 h-10 flex items-center justify-center rounded-full mr-3 flex-shrink-0 transition-all duration-200 ${isListening ? '' : 'hover:bg-gray-100 active:scale-95'}`}
-              style={{
-                boxShadow: isListening
-                  ? '0 0 0 2px rgba(239, 68, 68, 0.5), 0 0 12px rgba(239, 68, 68, 0.4), 0 0 24px rgba(239, 68, 68, 0.2)'
-                  : 'rgba(0, 0, 0, 0.06) 0px 2px 8px',
-                backgroundColor: 'rgba(255, 255, 255, 0.8)',
-                animation: isListening ? 'pulse-glow 1.5s ease-in-out infinite' : 'none'
-              }}
-              aria-label={isListening ? '停止语音输入' : '切换到语音输入'}
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className={isListening ? 'text-red-500' : 'text-gray-500'}
-                aria-hidden="true"
-              >
-                <path d="M12 19v3" />
-                <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-                <rect x="9" y="2" width="6" height="13" rx="3" />
-              </svg>
-            </button>
             <div className="flex-1 relative">
               {!moodInput && (
                 <span
@@ -424,7 +282,7 @@ const MoodInputSection = ({
               type="button"
               onClick={onGenerate}
               disabled={!moodInput.trim() || isMixing}
-              className={`w-10 h-10 flex items-center justify-center rounded-full ml-3 transition-all duration-300 flex-shrink-0 ${moodInput.trim() && !isMixing
+              className={`w-10 h-10 flex items-center justify-center rounded-full ml-2 transition-all duration-300 flex-shrink-0 ${moodInput.trim() && !isMixing
                 ? 'bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-lg hover:shadow-xl hover:scale-105 active:scale-95'
                 : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                 }`}

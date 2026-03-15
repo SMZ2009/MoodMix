@@ -24,7 +24,7 @@ import { validateInput } from './utils/inputValidator';
 import MineSection from './components/MineSection';
 import IngredientManager from './components/IngredientManager';
 import { useTouchFeedback, useKeyboardNavigation, useCocktailApi, useSwipeGesture } from './hooks';
-import { InteractiveButton, SwipeableCard, PageTransition, Modal } from './components/ui';
+import { InteractiveButton, SwipeableCard, PageTransition, Modal, LoadingTransition } from './components/ui';
 import IngredientEditModal from './components/IngredientEditModal';
 import cupRippleImage from './assets/cup-ripple.jpg';
 import navIconMix from './assets/nav_icon_mix.png';
@@ -1992,6 +1992,10 @@ const App = () => {
       className={`min-h-screen font-sans w-full relative shadow-2xl overflow-x-hidden flex flex-col transition-colors duration-700 ${getBackgroundClass()}`}
       tabIndex={-1}
     >
+      <LoadingTransition 
+        isLoading={mixMode === 'generating'} 
+        loadingText={buttonLoadingText}
+      />
       <SideNavigation
         isOpen={isSideNavOpen}
         onClose={() => setIsSideNavOpen(false)}

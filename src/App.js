@@ -78,40 +78,26 @@ function getImageDisplayStyle(imgWidth, imgHeight) {
  * - 宽高比 0.55-0.9：保留原比例，max-height 420px
  * - 宽高比 <0.55：aspect-ratio 9/16，max-height 450px
  */
+/**
+ * ShareCardImage component - Forced 3:4 aspect ratio with cover fit
+ */
 const ShareCardImage = ({ src }) => {
-  const [style, setStyle] = useState({ aspectRatio: '4/3', objectFit: 'cover' });
-
-  const handleLoad = (e) => {
-    const { naturalWidth, naturalHeight } = e.target;
-    const ratio = naturalWidth / naturalHeight;
-    
-    if (ratio > 1.4) {
-      // 极宽横图：裁切为 16:10
-      setStyle({ aspectRatio: '16/10', objectFit: 'cover' });
-    } else if (ratio >= 0.9) {
-      // 普通横图或方图：裁切为 4:3
-      setStyle({ aspectRatio: '4/3', objectFit: 'cover' });
-    } else if (ratio >= 0.55) {
-      // 普通竖图：保留原比例，限制最大高度
-      setStyle({ maxHeight: '420px', objectFit: 'cover' });
-    } else {
-      // 极窄竖图：裁切为 9:16 上限
-      setStyle({ aspectRatio: '9/16', objectFit: 'cover', maxHeight: '450px' });
-    }
-  };
-
   return (
-    <div className="card-img-wrapper">
+    <div style={{
+      width: '100%',
+      aspectRatio: '4 / 5', // Adjusted from 3:4 for better balance
+      overflow: 'hidden',
+      borderRadius: '12px',
+      background: '#f0ebe3'
+    }}>
       <img
         src={src}
-        onLoad={handleLoad}
+        alt="Drink"
         style={{
           width: '100%',
-          display: 'block',
-          ...style,
+          height: '100%',
+          objectFit: 'cover'
         }}
-        alt="drink"
-        crossOrigin="anonymous"
       />
     </div>
   );
@@ -127,34 +113,100 @@ const ShareCard = React.forwardRef(({ drinkName, emotion, wuxing, imageSrc, llmC
   const formattedDate = `${today.getFullYear()}.${String(today.getMonth() + 1).padStart(2, '0')}.${String(today.getDate()).padStart(2, '0')}`;
 
   return (
-    <div ref={ref} className="share-card">
-      {/* 顶部品牌栏 */}
-      <div className="card-header">
-        <span className="brand">MoodMix | 心绪调饮</span>
-        <span className="date">{formattedDate}</span>
+    <div ref={ref} className="share-card" style={{ background: '#FAF8F5' }}>
+      {/* 顶部品牌栏 - 优化版 */}
+      <div className="card-header" style={{ padding: '20px 24px', borderBottom: 'none' }}>
+        <div className="flex flex-col">
+          <span className="brand" style={{
+            fontFamily: '"Songti SC", "STKaiti", serif',
+            fontSize: '18px',
+            fontWeight: 700,
+            color: '#3c3b36',
+            letterSpacing: '0.1em'
+          }}>MoodMix | 心绪调饮</span>
+          <span style={{
+            fontSize: '10px',
+            color: '#a09382',
+            textTransform: 'uppercase',
+            letterSpacing: '0.2em',
+            marginTop: '2px'
+          }}>Oriental Alchemy</span>
+        </div>
+        <span className="date" style={{ color: '#8c8b86', fontSize: '14px', fontFamily: '"FZYouSong", serif' }}>{formattedDate}</span>
       </div>
 
-      {/* 图片区域 - 自适应比例 */}
-      <ShareCardImage src={imageSrc} />
+      {/* 图片区域 - 强制 3:4 */}
+      <div style={{ padding: '0 24px' }}>
+        <ShareCardImage src={imageSrc} />
+      </div>
 
       {/* 内容区域 */}
-      <div className="card-body">
-        <h2 className="drink-name">{drinkName}</h2>
-        <span className="emotion-tag">此刻心迹 · {emotion}</span>
-        <div className="card-divider" />
-        <p className="llm-copy">{llmCopy}</p>
-        <p className="wuxing-line">{wuxing}</p>
+      <div className="card-body" style={{ padding: '24px' }}>
+        <h2 className="drink-name" style={{
+          fontSize: '32px',
+          marginBottom: '12px',
+          fontFamily: '"Songti SC", "STKaiti", serif',
+          color: '#1a1a1a'
+        }}>{drinkName}</h2>
+
+        {/* 移除 "此刻心迹" 前缀 */}
+        <div className="flex items-center gap-2 mb-4">
+          <span className="emotion-tag" style={{
+            background: 'rgba(60, 59, 54, 0.05)',
+            padding: '4px 12px',
+            borderRadius: '100px',
+            fontSize: '13px',
+            color: '#5c5b56',
+            fontFamily: '"STKaiti", serif'
+          }}>{emotion}</span>
+          <span style={{ color: '#d1cdc2', fontSize: '12px' }}>|</span>
+          <span style={{ fontSize: '13px', color: '#8c8b86', fontFamily: '"STKaiti", serif' }}>{wuxing}</span>
+        </div>
+
+        <div className="card-divider" style={{
+          height: '1px',
+          background: 'linear-gradient(90deg, #d1cdc2 0%, transparent 100%)',
+          margin: '20px 0',
+          opacity: 0.5
+        }} />
+
+        {/* 推荐语对齐画廊风格 */}
+        <div style={{
+          borderLeft: '2px solid #d1cdc2',
+          paddingLeft: '16px',
+          marginTop: '16px'
+        }}>
+          <p className="llm-copy" style={{
+            fontSize: '15px',
+            lineHeight: '1.8',
+            color: '#4c4b46',
+            fontFamily: '"STKaiti", "KaiTi", serif',
+            fontStyle: 'italic'
+          }}>{llmCopy}</p>
+        </div>
       </div>
 
-      {/* 底部引流区（卡片内部，border-top 分隔） */}
-      <div className="card-footer">
-        <span className="cta">扫码试试你的情绪饮品</span>
-        <div className="qr-code-box">
-          {qrCodeSrc ? (
-            <img src={qrCodeSrc} alt="QR Code" className="qr-code-img" />
-          ) : (
-            <Sparkles size={18} className="text-[#a09382]/50" />
-          )}
+      {/* 底部引流区 */}
+      <div className="card-footer" style={{ borderTop: 'none', padding: '24px', paddingTop: '0' }}>
+        <div className="flex items-center justify-between w-full">
+          <div className="flex flex-col">
+            <span className="cta" style={{ fontSize: '12px', color: '#a09382', letterSpacing: '0.05em' }}>扫码试试你的情绪饮品</span>
+            <span style={{ fontSize: '10px', color: '#d1cdc2', textTransform: 'uppercase', marginTop: '2px' }}>Scan for your Mood Mix</span>
+          </div>
+          <div className="qr-code-box" style={{
+            width: '64px',
+            height: '64px',
+            background: '#fff',
+            padding: '6px',
+            borderRadius: '8px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
+          }}>
+            {qrCodeSrc ? (
+              <img src={qrCodeSrc} alt="QR Code" className="qr-code-img" style={{ width: '100%', height: '100%' }} />
+            ) : (
+              <Sparkles size={18} className="text-[#a09382]/50" />
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -1497,21 +1549,61 @@ const DrinkDetailSection = ({ drink, checkedIngredients, onToggleIngredient, onB
 
       {/* 分享卡片预览弹窗 */}
       {shareCardUrl && (
-        <Modal isOpen={true} onClose={() => setShareCardUrl(null)} position="center">
-          <div style={{ background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(40px) saturate(1.2)', WebkitBackdropFilter: 'blur(40px) saturate(1.2)', border: '1px solid rgba(255,255,255,0.15)', boxShadow: '0 8px 32px rgba(0,0,0,0.08)' }} className="rounded-2xl p-6 w-full max-w-sm mx-auto text-center">
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center px-4"
+          style={{
+            background: (() => {
+              const gradients = [
+                'radial-gradient(circle at 0% 0%, #fdfbfb 0%, #ebedee 100%)',
+                'radial-gradient(circle at top right, #f5f5f0 0%, #e1e1d6 100%)',
+                'linear-gradient(135deg, #e9e4f0 0%, #d3d3d3 100%)',
+                'linear-gradient(to top, #ece9e6 0%, #ffffff 100%)',
+                'radial-gradient(circle at center, #f3f4f6 0%, #e5e7eb 100%)',
+                'linear-gradient(120deg, #fdfcfb 0%, #e2d1c3 100%)'
+              ];
+              // Soft, muted gradients for a better "Zen" feel
+              return gradients[Math.floor(Math.random() * gradients.length)];
+            })(),
+            backdropFilter: 'blur(30px) saturate(0.8)',
+            WebkitBackdropFilter: 'blur(30px) saturate(0.8)'
+          }}
+          onClick={() => setShareCardUrl(null)}
+        >
+          <div
+            style={{
+              background: 'rgba(255,255,255,0.15)',
+              backdropFilter: 'blur(40px) saturate(1.2)',
+              WebkitBackdropFilter: 'blur(40px) saturate(1.2)',
+              border: '1px solid rgba(255,255,255,0.2)',
+              boxShadow: '0 24px 64px rgba(0,0,0,0.15)',
+              position: 'relative'
+            }}
+            className="rounded-3xl p-6 xs:p-8 w-full max-w-[400px] mx-auto text-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close Button */}
+            <button
+              onClick={() => setShareCardUrl(null)}
+              className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-black/10 text-white/80 hover:bg-black/20 hover:text-white transition-all"
+            >
+              <X size={18} />
+            </button>
+
             <div className="flex justify-center mb-4">
-              <div className="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center text-blue-400 mb-2">
-                <CheckCircle size={24} />
+              <div className="w-10 h-10 bg-emerald-500/20 rounded-full flex items-center justify-center text-emerald-400 mb-2">
+                <CheckCircle size={20} />
               </div>
             </div>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem', fontFamily: '"Noto Sans SC", sans-serif', color: 'white' }}>分享卡片已生成</h2>
-            <p style={{ color: 'rgba(255,255,255,0.6)', marginBottom: '1.5rem', fontSize: '0.875rem', fontFamily: '"Noto Sans SC", sans-serif' }}>长按保存图片或扫码分享</p>
+            <h2 style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: '0.25rem', fontFamily: '"Songti SC", serif', color: 'white' }}>分享卡片已生成</h2>
+            <p style={{ color: 'rgba(255,255,255,0.5)', marginBottom: '1.5rem', fontSize: '0.8rem', fontFamily: '"Songti SC", serif' }}>长按保存图片或扫码分享</p>
 
-            <img src={shareCardUrl} alt="Share Card" className="w-full h-auto object-contain" style={{ position: 'relative', zIndex: 10 }} />
+            <div className="relative group overflow-hidden rounded-2xl shadow-2xl">
+              <img src={shareCardUrl} alt="Share Card" className="w-full h-auto object-contain transition-transform duration-500 group-hover:scale-[1.02]" />
+            </div>
 
-
+            <p className="mt-8 text-[11px] text-white/30 tracking-widest uppercase">Explore Mood Mix • Aesthetic Life</p>
           </div>
-        </Modal>
+        </div>
       )}
 
       {/* Hidden Share Card for generating image */}
@@ -1679,16 +1771,16 @@ const App = () => {
     const handleSharedDrink = () => {
       const urlParams = new URLSearchParams(window.location.search);
       const drinkName = urlParams.get('drink');
-      
+
       if (drinkName && apiDrinks.length > 0) {
         const decodedName = decodeURIComponent(drinkName);
-        const foundDrink = apiDrinks.find(d => 
-          d.name === decodedName || 
-          d.name_cn === decodedName || 
+        const foundDrink = apiDrinks.find(d =>
+          d.name === decodedName ||
+          d.name_cn === decodedName ||
           d.nameEn === decodedName ||
           d.name.toLowerCase() === decodedName.toLowerCase()
         );
-        
+
         if (foundDrink) {
           setCurrentDrink(foundDrink);
           setActiveTab('explore');

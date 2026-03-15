@@ -18,15 +18,15 @@ export const generateShareCard = async ({ drink, note, date = new Date(), custom
     if (!ctx) return null;
 
     // 1. Draw Background (Paper Texture / Cream)
-    ctx.fillStyle = '#F7F6F2';
+    ctx.fillStyle = '#FAF8F5'; // Matches the new background color
     ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
     // Subtle paper grain (simulated)
-    ctx.fillStyle = 'rgba(0,0,0,0.02)';
-    for (let i = 0; i < 2000; i++) {
+    ctx.fillStyle = 'rgba(0,0,0,0.012)';
+    for (let i = 0; i < 1200; i++) {
         const x = Math.random() * CANVAS_WIDTH;
         const y = Math.random() * CANVAS_HEIGHT;
-        ctx.fillRect(x, y, 2, 2);
+        ctx.fillRect(x, y, 1.2, 1.2);
     }
 
     // 2. Load and Draw Main Image
@@ -36,88 +36,98 @@ export const generateShareCard = async ({ drink, note, date = new Date(), custom
 
         // Draw image in a rounded rectangle / frame
         const imgX = PADDING;
-        const imgY = PADDING + 120;
+        const imgY = PADDING + 130; // Spacing for header
         const imgW = CANVAS_WIDTH - PADDING * 2;
-        const imgH = 600; // Fixed height for image area
+        const imgH = imgW * 5 / 4; // Adjusted to 4:5 ratio
+        const imageAreaH = imgH; // Use the calculated height for 4:5
 
         ctx.save();
-        roundRect(ctx, imgX, imgY, imgW, imgH, 40);
+        roundRect(ctx, imgX, imgY, imgW, imageAreaH, 24);
         ctx.clip();
 
         // Cover fit
         const imgAspect = mainImg.width / mainImg.height;
-        const targetAspect = imgW / imgH;
+        const targetAspect = imgW / imageAreaH;
         let drawW, drawH, drawX, drawY;
 
         if (imgAspect > targetAspect) {
-            drawH = imgH;
-            drawW = imgH * imgAspect;
+            drawH = imageAreaH;
+            drawW = imageAreaH * imgAspect;
             drawX = imgX - (drawW - imgW) / 2;
             drawY = imgY;
         } else {
             drawW = imgW;
             drawH = imgW / imgAspect;
             drawX = imgX;
-            drawY = imgY - (drawH - imgH) / 2;
+            drawY = imgY - (drawH - imageAreaH) / 2;
         }
 
         ctx.drawImage(mainImg, drawX, drawY, drawW, drawH);
         ctx.restore();
 
-        // 3. Draw Brand & Header
+        // 3. Draw Brand & Header (Optimized)
         ctx.fillStyle = '#3c3b36';
-        ctx.font = 'bold 36px "Songti SC", serif';
+        ctx.font = 'bold 42px "Songti SC", serif';
         ctx.textAlign = 'left';
-        ctx.fillText('MoodMix | 心绪调饮', PADDING, PADDING + 60);
+        ctx.fillText('MoodMix | 心绪调饮', PADDING, PADDING + 50);
+
+        ctx.fillStyle = '#a09382';
+        ctx.font = '22px "Songti SC", serif';
+        ctx.fillText('ORIENTAL ALCHEMY', PADDING, PADDING + 85);
+
+        const dateStr = date.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '.');
+        ctx.textAlign = 'right';
+        ctx.font = '32px "FZYouSong", serif';
+        ctx.fillText(dateStr, CANVAS_WIDTH - PADDING, PADDING + 60);
 
         // 4. Draw Drink Name
-        ctx.fillStyle = '#1a1a1a';
-        ctx.font = 'bold 72px "Songti SC", serif';
-        ctx.fillText(drink.name_cn || drink.name, PADDING, imgY + imgH + 110);
-
-        // 5. Draw "Symphony" / AI Reason
-        if (drink.reason) {
-            ctx.fillStyle = '#5c5b56';
-            ctx.font = 'italic 34px "Songti SC", serif';
-            const reasonText = `「${drink.reason}」`;
-            wrapText(ctx, reasonText, PADDING, imgY + imgH + 200, CANVAS_WIDTH - PADDING * 2, 54);
-        }
-
-        // 6. Draw User Note (if exists)
-        const noteYStart = imgY + imgH + 340;
-        if (note) {
-            ctx.fillStyle = '#2c2b26';
-            ctx.font = '40px "STKaiti", serif';
-            ctx.fillText('此刻心迹：', PADDING, noteYStart);
-
-            ctx.fillStyle = '#4c4b46';
-            ctx.font = '38px "STKaiti", serif';
-            wrapText(ctx, note, PADDING, noteYStart + 60, CANVAS_WIDTH - PADDING * 2, 60);
-        }
-
-        // 7. Draw Date & Red Seal
-        const footerY = CANVAS_HEIGHT - PADDING;
-        ctx.fillStyle = '#8c8b86';
-        ctx.font = '32px "Songti SC", serif';
+        const contentY = imgY + imageAreaH + 100;
         ctx.textAlign = 'left';
-        const dateStr = date.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' });
-        ctx.fillText(dateStr, PADDING, footerY);
+        ctx.fillStyle = '#1a1a1a';
+        ctx.font = 'bold 84px "Songti SC", serif';
+        ctx.fillText(drink.name_cn || drink.name, PADDING, contentY);
 
-        // Red Seal (Simple Circle with Text)
-        const sealX = CANVAS_WIDTH - PADDING - 100;
-        const sealY = footerY - 50;
+        // 5. Emotion & Wuxing (Removed "此刻心迹")
+        const tagY = contentY + 65;
+        const emotion = drink.dimensions?.mood || '悠然';
+        const wuxing = drink.dimensions?.wuxing ? `五行属${drink.dimensions.wuxing}` : '五行调和';
 
-        ctx.fillStyle = '#b91c1c'; // Chinese Red
+        ctx.fillStyle = '#5c5b56';
+        ctx.font = '36px "STKaiti", serif';
+        ctx.fillText(`${emotion}  |  ${wuxing}`, PADDING, tagY);
+
+        // Divider
+        ctx.strokeStyle = 'rgba(209, 205, 194, 0.5)';
+        ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.arc(sealX, sealY, 60, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.moveTo(PADDING, tagY + 50);
+        ctx.lineTo(PADDING + 100, tagY + 50);
+        ctx.stroke();
 
-        ctx.fillStyle = '#F7F6F2';
-        ctx.textAlign = 'center';
-        ctx.font = 'bold 24px "Songti SC", serif';
-        ctx.fillText('Mood', sealX, sealY - 5);
-        ctx.fillText('Mix', sealX, sealY + 25);
+        // 6. Draw "Symphony" / AI Reason / Quote
+        const quoteY = tagY + 140;
+        const quoteText = note || drink.reason || '岁序更迭，此情可待';
 
+        // Gallery style left border
+        ctx.strokeStyle = '#d1cdc2';
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(PADDING - 20, quoteY - 40);
+        ctx.lineTo(PADDING - 20, quoteY + 120);
+        ctx.stroke();
+
+        ctx.fillStyle = '#4c4b46';
+        ctx.font = 'italic 38px "STKaiti", serif';
+        wrapText(ctx, quoteText, PADDING + 10, quoteY, CANVAS_WIDTH - PADDING * 2 - 40, 60);
+
+        // 7. Footer & QR Area
+        const footerY = CANVAS_HEIGHT - PADDING - 40;
+        ctx.fillStyle = '#a09382';
+        ctx.font = '12px "Songti SC", serif'; // CTAs
+        ctx.fillText('扫码试试你的情绪饮品', PADDING, footerY);
+        ctx.fillText('SCAN FOR YOUR MOOD MIX', PADDING, footerY + 40);
+
+        // Simulating QR box if needed, but usually generated separately
         return canvas.toDataURL('image/png', 1.0);
     } catch (error) {
         console.error('Failed to generate share card:', error);

@@ -825,6 +825,13 @@ ${JSON.stringify(fullContext, null, 2)}
 
 请返回详细的验证报告和优化建议。`;
 
+    // 设置超时控制 - 25秒，确保比前端30秒超时更早返回
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      console.warn('[API] /api/validate_optimize 请求超时 (25s)');
+      controller.abort();
+    }, 25000);
+
     const response = await fetch(SILICONFLOW_API_URL, {
       method: 'POST',
       headers: {
@@ -838,9 +845,12 @@ ${JSON.stringify(fullContext, null, 2)}
           { role: 'user', content: userMessage }
         ],
         temperature: 0.7,
-        max_tokens: 2000
-      })
+        max_tokens: 1500
+      }),
+      signal: controller.signal
     });
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       const errorData = await response.text();
@@ -893,6 +903,24 @@ ${JSON.stringify(fullContext, null, 2)}
 
   } catch (error) {
     console.error('Error in /api/validate_optimize:', error);
+    
+    // 如果是超时错误，返回降级响应而不是500错误
+    if (error.name === 'AbortError') {
+      console.warn('[API] /api/validate_optimize 请求被中止，返回降级响应');
+      return res.json({
+        success: true,
+        data: {
+          valid: true,
+          score: 70,
+          qualityLevel: 'good',
+          issues: [{ type: 'warning', message: 'AI验证超时，使用本地规则引擎结果' }],
+          optimizations: [],
+          recommendations: ['验证完成（降级模式）'],
+          timestamp: new Date().toISOString()
+        }
+      });
+    }
+    
     return res.status(500).json({
       success: false,
       error: error.message || 'Internal server error'

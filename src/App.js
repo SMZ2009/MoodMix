@@ -5,8 +5,9 @@ import {
   Martini, User, Settings2, Maximize2,
   Wine, Droplets, ThermometerSnowflake,
   Sparkles, Lightbulb, GlassWater,
-  Users, HeartOff, Loader2, Camera, X, Menu, ArrowLeft, Download, CheckCircle
+  Users, HeartOff, Loader2, Camera, X, Menu, ArrowLeft, Download, CheckCircle, Share2
 } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 
 import { inventoryStorage, favoriteStorage, collectionStorage, customDrinkStorage } from './store/localStorageAdapter';
 import HelperModal from './components/HelperModal';
@@ -1129,10 +1130,54 @@ const BulbIcon = ({ isDaka }) => (
 );
 
 const DrinkDetailSection = ({ drink, checkedIngredients, onToggleIngredient, onBack, onMore, onFocusMode, currentStep, cardFeedback, isLiked, onLikeDrink, isDaka, onDakaDrink, onHelp }) => {
+  const [shareCardUrl, setShareCardUrl] = useState(null);
+  const [isGeneratingShare, setIsGeneratingShare] = useState(false);
+
   if (!drink) return null;
 
   const drinkIngredients = drink.ingredients || [];
   const drinkSteps = drink.steps || [{ title: '第一步', desc: drink.reason || '开始享用' }];
+
+  const handleShare = async () => {
+    setIsGeneratingShare(true);
+    try {
+      const cardUrl = await generateShareCard({
+        drink,
+        note: drink.reason || '',
+        date: new Date()
+      });
+      setShareCardUrl(cardUrl);
+    } catch (error) {
+      console.error('Failed to generate share card:', error);
+      alert('生成分享卡片失败，请稍后重试');
+    } finally {
+      setIsGeneratingShare(false);
+    }
+  };
+
+  const getShareLink = () => {
+    const baseUrl = window.location.origin;
+    return `${baseUrl}?drink=${encodeURIComponent(drink.name)}`;
+  };
+
+  const handleCopyLink = () => {
+    const link = getShareLink();
+    navigator.clipboard.writeText(link).then(() => {
+      alert('分享链接已复制到剪贴板！');
+    }).catch(() => {
+      alert('复制失败，请手动复制链接');
+    });
+  };
+
+  const handleDownloadImage = () => {
+    if (!shareCardUrl) return;
+    const link = document.createElement('a');
+    link.href = shareCardUrl;
+    link.download = `MoodMix_${drink.name}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   // 辅助函数：将数字索引转为中文步骤名
   const getChineseStep = (idx) => {
@@ -1324,8 +1369,108 @@ const DrinkDetailSection = ({ drink, checkedIngredients, onToggleIngredient, onB
             <BulbIcon isDaka={isDaka} />
             <span className="ml-2.5">记禅</span>
           </InteractiveButton>
+          <div className="w-px h-8 bg-gray-200/50 self-center" />
+          <InteractiveButton
+            variant="secondary"
+            fullWidth
+            onClick={handleShare}
+            disabled={isGeneratingShare}
+            className="flex-1 jade-action-btn flex items-center justify-center h-[56px]"
+          >
+            {isGeneratingShare ? <Loader2 size={20} className="animate-spin" /> : <Share2 size={20} />}
+            <span className="ml-2.5">分享</span>
+          </InteractiveButton>
         </div>
       </div>
+
+      {/* 分享卡片预览弹窗 */}
+      {shareCardUrl && (
+        <Modal isOpen={true} onClose={() => setShareCardUrl(null)} position="center">
+          <div style={{ background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(40px) saturate(1.2)', WebkitBackdropFilter: 'blur(40px) saturate(1.2)', border: '1px solid rgba(255,255,255,0.15)', boxShadow: '0 8px 32px rgba(0,0,0,0.08)' }} className="rounded-2xl p-6 w-full max-w-sm mx-auto text-center">
+            <div className="flex justify-center mb-4">
+              <div className="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center text-blue-400 mb-2">
+                <CheckCircle size={24} />
+              </div>
+            </div>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem', fontFamily: '"Songti SC",serif', color: 'white' }}>分享卡片已生成</h2>
+            <p style={{ color: 'rgba(255,255,255,0.6)', marginBottom: '1.5rem', fontSize: '0.875rem' }}>长按保存图片或扫描二维码分享</p>
+
+            <div className="relative aspect-[3/4] w-full rounded-xl overflow-hidden mb-4 shadow-2xl border border-white/10 bg-black/20">
+              <img src={shareCardUrl} alt="Share Card" className="w-full h-full object-contain" />
+            </div>
+
+            {/* 二维码区域 */}
+            <div className="mb-4 flex flex-col items-center">
+              <div className="bg-white p-4 rounded-xl shadow-lg mb-2">
+                <QRCodeSVG 
+                  value={getShareLink()}
+                  size={180}
+                  level="H"
+                  includeMargin={false}
+                  bgColor="#ffffff"
+                  fgColor="#000000"
+                />
+              </div>
+              <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.75rem', fontFamily: '"Songti SC", serif' }}>
+                扫描二维码访问饮品详情
+              </p>
+            </div>
+
+            <div className="mb-4">
+              <input
+                type="text"
+                readOnly
+                value={getShareLink()}
+                className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white/90 text-sm text-center"
+                onClick={(e) => e.target.select()}
+              />
+            </div>
+
+            <div className="flex flex-col gap-3">
+              <InteractiveButton
+                variant="primary"
+                onClick={handleCopyLink}
+                fullWidth
+                style={{
+                  background: 'linear-gradient(135deg, #3c3b36 0%, #1a1a1a 100%)',
+                  color: '#f7f0e4',
+                  fontFamily: '"Songti SC", serif',
+                  letterSpacing: '0.15em',
+                  fontWeight: 'bold'
+                }}
+                className="flex items-center justify-center gap-2"
+              >
+                <Download size={18} />
+                复制分享链接
+              </InteractiveButton>
+              <InteractiveButton
+                variant="primary"
+                onClick={handleDownloadImage}
+                fullWidth
+                style={{
+                  background: 'linear-gradient(135deg, #3c3b36 0%, #1a1a1a 100%)',
+                  color: '#f7f0e4',
+                  fontFamily: '"Songti SC", serif',
+                  letterSpacing: '0.15em',
+                  fontWeight: 'bold'
+                }}
+                className="flex items-center justify-center gap-2"
+              >
+                <Download size={18} />
+                保存图片
+              </InteractiveButton>
+              <InteractiveButton
+                variant="text"
+                onClick={() => setShareCardUrl(null)}
+                fullWidth
+                style={{ fontFamily: '"Songti SC", serif', color: 'rgba(255,255,255,0.5)', letterSpacing: '0.1em' }}
+              >
+                返回
+              </InteractiveButton>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 };
@@ -1484,6 +1629,33 @@ const App = () => {
       setApiInitialized(true);
     }
   }, [apiInitialized, apiLoadCategories, apiLoadAll]);
+
+  // 处理分享链接：检查 URL 参数并自动打开对应饮品
+  useEffect(() => {
+    const handleSharedDrink = () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const drinkName = urlParams.get('drink');
+      
+      if (drinkName && apiDrinks.length > 0) {
+        const decodedName = decodeURIComponent(drinkName);
+        const foundDrink = apiDrinks.find(d => 
+          d.name === decodedName || 
+          d.name_cn === decodedName || 
+          d.nameEn === decodedName ||
+          d.name.toLowerCase() === decodedName.toLowerCase()
+        );
+        
+        if (foundDrink) {
+          setCurrentDrink(foundDrink);
+          setActiveTab('explore');
+        }
+      }
+    };
+
+    if (apiDrinks.length > 0) {
+      handleSharedDrink();
+    }
+  }, [apiDrinks]);
 
   // Sync session ingredients with inventory ONLY ONCE at start
   useEffect(() => {

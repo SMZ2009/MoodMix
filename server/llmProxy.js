@@ -127,6 +127,11 @@ app.get('/api/cocktail_image/:imageName', async (req, res) => {
 // SiliconFlow API 配置
 const SILICONFLOW_API_URL = 'https://api.siliconflow.cn/v1/chat/completions';
 const MODEL_8B = process.env.SILICONFLOW_MODEL_8B || 'Qwen/Qwen2.5-7B-Instruct';
+const MODEL_30B = process.env.SILICONFLOW_MODEL_30B || 'Qwen/Qwen2.5-32B-Instruct';
+
+// 按照 Agent 职责分类使用的模型
+const MODEL_CORE = process.env.SILICONFLOW_MODEL_CORE || MODEL_8B; // 核心提取 (7B)
+const MODEL_CREATIVE = process.env.SILICONFLOW_MODEL_CREATIVE || MODEL_30B; // 创意文案 (32B)
 
 // 优先使用原生 fetch (Node 18+)，否则回退到 node-fetch
 const getFetch = async () => {
@@ -188,7 +193,7 @@ app.post('/api/analyze_mood', async (req, res) => {
           'Authorization': `Bearer ${apiKey}`
         },
         body: JSON.stringify({
-          model: MODEL_8B,
+          model: MODEL_CORE,
           messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userMessage }
@@ -300,7 +305,7 @@ app.post('/api/analyze_mood_stream', async (req, res) => {
           'Authorization': `Bearer ${apiKey}`
         },
         body: JSON.stringify({
-          model: MODEL_8B,
+          model: MODEL_CORE,
           messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userMessage }
@@ -499,7 +504,7 @@ app.post('/api/generate_quotes', async (req, res) => {
           'Authorization': `Bearer ${apiKey}`
         },
         body: JSON.stringify({
-          model: MODEL_8B,
+          model: MODEL_CREATIVE,
           messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userContent }
@@ -698,7 +703,7 @@ app.post('/api/comprehensive_analyze', async (req, res) => {
   const userMessage = `用户心境: "${user_input}"\n当前环境时间: ${timeInfo}`;
 
   try {
-    const model = MODEL_8B;
+    const model = MODEL_CORE;
     console.log(`[ComprehensiveAnalyze] >>> 开始聚合推理 (MODEL: ${model})...`);
     const startTime = Date.now();
 
@@ -836,7 +841,7 @@ app.post('/api/pattern_analyze', async (req, res) => {
 }`;
 
   try {
-    const data = await callLLM(systemPrompt, JSON.stringify(moodData), { model: MODEL_8B });
+    const data = await callLLM(systemPrompt, JSON.stringify(moodData), { model: MODEL_CORE });
     res.json({ success: true, data });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -865,7 +870,7 @@ app.post('/api/vector_translate', async (req, res) => {
 }`;
 
   try {
-    const data = await callLLM(systemPrompt, JSON.stringify({ moodData, patternAnalysis }), { model: MODEL_8B });
+    const data = await callLLM(systemPrompt, JSON.stringify({ moodData, patternAnalysis }), { model: MODEL_CORE });
     res.json({ success: true, data });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -1159,7 +1164,7 @@ app.post('/api/social-card-copy', async (req, res) => {
         'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: MODEL_8B,
+        model: MODEL_CREATIVE,
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }

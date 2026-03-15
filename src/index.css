@@ -2069,9 +2069,10 @@ body {
   background: linear-gradient(180deg, rgba(60, 59, 54, 0.9), rgba(40, 39, 34, 0.95));
   color: #ebdfc8;
   border-radius: 1.25rem;
-  font-family: "Songti SC", "STKaiti", "KaiTi", serif;
-  letter-spacing: 0.2em;
-  font-weight: 700;
+  font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  letter-spacing: 0.15em;
+  font-weight: 600;
+  font-size: 15px;
   transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
   box-shadow: 0 8px 24px rgba(60, 50, 40, 0.2);
 }

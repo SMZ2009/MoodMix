@@ -9,26 +9,8 @@
 - **文案意境感**: 负面情绪引导不应仅停留在功能性词汇（如“抱抱”），应上升至哲学高度（如“万般心绪，皆是过客”），能显著提升产品的品牌质感。
 
 - **东方红色系运用**: 在酒类或热情主题中，使用“赭石”或“茶褐”代替高饱和度的纯红（Red-500），能更好地融入禅意背景，同时保持深邃感。
-- **字态重构 (Typography)**: 对于传统韵味的 UI，使用 `serif`（宋体/楷体）类字体并辅以较宽的 `letterSpacing` (0.05em)，能瞬间拔高视觉的“历史感”与“庄重感”。
-- **沉浸式详情页 (Immersive Detail Refactoring)**: 
-  - **分层视差**: 使用毛玻璃容器 (`backdrop-filter`) 覆盖在带有“水墨蒙版” (`mask-image`) 的大幅饮品图片上，创造出极强的纵深感。
-  - **汉字逻辑化**: 在具备东方美学的应用中，将步骤编号（一、二、三）进行汉字重构，比阿拉伯数字更能传达品牌调性。
-  - **悬浮交互岛 (Floating Action Bar)**: 对于全屏详情，底部应采用悬浮式玻璃岛设计，并利用 `env(safe-area-inset-bottom)` 实现跨设备高端适配。
-### 3. 数据一致性规范 (Data Consistency)
-- **多处计数统一**: 涉及原料总数统计时，**必须**统一采用 `new Set()` 结合 `name_cn || name` 进行去重。严禁在不同组件中使用不一致的过滤/统计逻辑（如某一处去重而另一处不去重）。
-
-### 4. 全链路 AI 协作与异步错误降级 (Agent Resilience)
-**背景**：在将 `PatternAnalyzer` 等核心逻辑 Agent 从本地升级为 LLM 驱动时，必须严格执行“二阶段执行”与“超时熔断”机制。
-**经验**：
-- **Prompt 原子化**：通过在后端 `llmProxy.js` 预设结构化 JSON Schema，确保不同 Agent 的输出能无缝衔接。
-- **降级稳定性**：每个 Agent 的 `process` 方法都应包裹在 `try-catch` 中。AI 解析失败时，必须原地触发 `processLocal` 补位。
-- **性能平衡**：将智能体超时统一放宽至 15s (针对 72B 级别大模型)，但在 UI 层应通过实时 Log 或进度条。
-- **变量重构原子性**：在后端进行全局变量重构（如模型 ID）时，务必全文搜索并同步更新日志输出。漏掉 `console.log` 中的引用会导致后端启动失败（Report: ReferenceError）。
-
-### 5. 东方美学视觉规范 (Oriental Aesthetics)
-- **字体应用**: 核心文本（标题、饮品名、副标题、标签、语录）应全量覆盖宋体/楷体 (`"Songti SC", "STKaiti", "KaiTi", serif`)。
-- **强制翻译策略**: 针对外部 API 数据，必须在前端展示层强制通过 `translateDrinkName` 或 `translateIngredient` 字典进行中文化。即使 API 返回英文，也需优先匹配本地字典或 `name_cn` 字段。
-- **版式限制**: 侧重横向滚动 (`flex-nowrap`) 的单行版式，通过 `overflow-x-auto` 保持界面的呼吸感，避免传统的列表堆叠。英文残留（如 VODKA, GIN）会极大破坏禅意 UI 的协调性。
+- **字态提升**: 将推荐语从 `text-xs` (12px) 提升至 `text-[14px]`，配合 `font-medium` 和 `leading-relaxed`。在 14px 这个临界点上，系统字体的“渲染质感”通常优于 12px，能显著提升文案的“说服力”与醒目度。
+- **高级动效：液态融合 (Gooey Fluid Effect)**: 在类似“加载中”或“炼金”等动态过程，避免使用枯燥的进度条或简单的轮播。利用 SVG `feGaussianBlur` 与 `feColorMatrix` 构建的“液态融合”动效，配合大气磅礴的网格渐变 (Mesh Gradient) 和汉字书法字体，可以创造出极具仪式感的等待体验。
 
 ### 6. 性能监控与透明度 (Performance & Transparency)
 - **流程时间线 (Timeline)**: 针对长链路逻辑（如多 Agent 联合推荐），必须在控制台输出带时间戳 (`performance.now()`) 的结构化日志。

@@ -1,183 +1,103 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 
-const LOADING_PAGES = [
+const PHASES = [
   {
-    id: 'emotion',
-    title: '心绪感知',
-    subtitle: '正在解读你的心境...',
-    icon: 'emotion',
-    bgColor: 'from-indigo-900/90 via-purple-900/80 to-slate-900/90',
-    accentColor: 'rgba(167, 139, 250, 0.6)',
-    particles: 'ripple'
+    id: 'perceive',
+    title: '心境感知',
+    subtitle: 'Perceiving Soul',
+    description: '正在解读你的心间波澜...',
+    colorRange: 'from-indigo-950 via-purple-900 to-slate-950',
+    accent: '#a78bfa',
+    liquidType: 'single'
   },
   {
-    id: 'wuxing',
-    title: '五行推演',
-    subtitle: '金木水火土，相生相克...',
-    icon: 'wuxing',
-    bgColor: 'from-emerald-900/90 via-teal-900/80 to-slate-900/90',
-    accentColor: 'rgba(52, 211, 153, 0.6)',
-    particles: 'orbit'
+    id: 'harmony',
+    title: '五行共鸣',
+    subtitle: 'Universal Harmony',
+    description: '金木水火土，相生相息...',
+    colorRange: 'from-emerald-950 via-teal-900 to-slate-950',
+    accent: '#34d399',
+    liquidType: 'split'
   },
   {
-    id: 'blend',
-    title: '味觉调和',
-    subtitle: '正在为你调制专属饮品...',
-    icon: 'blend',
-    bgColor: 'from-amber-900/90 via-orange-900/80 to-slate-900/90',
-    accentColor: 'rgba(251, 191, 36, 0.6)',
-    particles: 'bubble'
+    id: 'symphony',
+    title: '味觉交响',
+    subtitle: 'Crafting Symphony',
+    description: '正在为你调制专属灵感...',
+    colorRange: 'from-amber-950 via-orange-900 to-slate-950',
+    accent: '#fbbf24',
+    liquidType: 'merge'
   }
 ];
 
-const EmotionIcon = ({ isActive }) => (
-  <svg viewBox="0 0 100 100" className="w-20 h-20 sm:w-24 sm:h-24">
-    <defs>
-      <radialGradient id="emotionGlow" cx="50%" cy="50%" r="50%">
-        <stop offset="0%" stopColor="rgba(167, 139, 250, 0.8)" />
-        <stop offset="100%" stopColor="rgba(167, 139, 250, 0)" />
-      </radialGradient>
-    </defs>
-    <circle cx="50" cy="50" r="45" fill="url(#emotionGlow)" className={isActive ? 'animate-pulse' : ''} />
-    <circle cx="50" cy="50" r="20" fill="none" stroke="rgba(255,255,255,0.8)" strokeWidth="2" className={isActive ? 'animate-ping' : ''} style={{ animationDuration: '2s' }} />
-    <circle cx="35" cy="40" r="4" fill="rgba(255,255,255,0.9)" />
-    <circle cx="65" cy="40" r="4" fill="rgba(255,255,255,0.9)" />
-    <path d="M35 60 Q50 75 65 60" fill="none" stroke="rgba(255,255,255,0.9)" strokeWidth="2" strokeLinecap="round" />
-  </svg>
-);
-
-const WuxingIcon = ({ isActive }) => {
-  const elements = [
-    { name: '木', angle: -90, color: 'rgba(74, 222, 128, 0.9)' },
-    { name: '火', angle: -18, color: 'rgba(248, 113, 113, 0.9)' },
-    { name: '土', angle: 54, color: 'rgba(251, 191, 36, 0.9)' },
-    { name: '金', angle: 126, color: 'rgba(148, 163, 184, 0.9)' },
-    { name: '水', angle: 198, color: 'rgba(96, 165, 250, 0.9)' }
-  ];
+const AlchemyLiquid = ({ phase, isActive }) => {
+  const currentPhase = PHASES[phase];
 
   return (
-    <svg viewBox="0 0 100 100" className="w-20 h-20 sm:w-24 sm:h-24">
-      <circle cx="50" cy="50" r="35" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="1" strokeDasharray="4 4" />
-      {elements.map((el, i) => {
-        const rad = (el.angle * Math.PI) / 180;
-        const x = 50 + 28 * Math.cos(rad);
-        const y = 50 + 28 * Math.sin(rad);
-        return (
-          <g key={el.name}>
-            <circle
-              cx={x}
-              cy={y}
-              r="10"
-              fill={el.color}
-              className={isActive ? 'animate-pulse' : ''}
-              style={{ animationDelay: `${i * 0.2}s` }}
-            />
-            <text
-              x={x}
-              y={y}
-              textAnchor="middle"
-              dominantBaseline="central"
-              fill="white"
-              fontSize="10"
-              fontWeight="bold"
-              style={{ fontFamily: '"Songti SC", serif' }}
-            >
-              {el.name}
-            </text>
-          </g>
-        );
-      })}
-      <circle cx="50" cy="50" r="8" fill="rgba(255,255,255,0.3)" />
-    </svg>
+    <div className="relative w-64 h-64 flex items-center justify-center">
+      <svg viewBox="0 0 200 200" className="w-full h-full filter drop-shadow-[0_0_20px_rgba(255,255,255,0.2)]">
+        <defs>
+          <filter id="goo">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="10" result="blur" />
+            <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 18 -7" result="goo" />
+          </filter>
+          <linearGradient id="liquidGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor={currentPhase.accent} stopOpacity="0.9" />
+            <stop offset="100%" stopColor="#ffffff" stopOpacity="0.4" />
+          </linearGradient>
+        </defs>
+
+        <g filter="url(#goo)">
+          {/* Phase 1: Single Pulsing Orb */}
+          {currentPhase.liquidType === 'single' && (
+            <circle cx="100" cy="100" r="40" fill="url(#liquidGrad)">
+              <animate attributeName="r" values="38;42;38" dur="3s" repeatCount="indefinite" />
+              <animate attributeName="cy" values="98;102;98" dur="4s" repeatCount="indefinite" />
+            </circle>
+          )}
+
+          {/* Phase 2: Split Swirling Droplets */}
+          {currentPhase.liquidType === 'split' && (
+            <g>
+              {[0, 72, 144, 216, 288].map((angle, i) => (
+                <circle key={i} r="18" fill="url(#liquidGrad)">
+                  <animateTransform
+                    attributeName="transform"
+                    type="rotate"
+                    from={`${angle} 100 100`}
+                    to={`${angle + 360} 100 100`}
+                    dur={`${4 + i * 0.5}s`}
+                    repeatCount="indefinite"
+                  />
+                  <animate attributeName="cx" values="100;140;100" dur="2s" repeatCount="indefinite" begin={`${i * 0.2}s`} />
+                </circle>
+              ))}
+              <circle cx="100" cy="100" r="25" fill="url(#liquidGrad)" opacity="0.6" />
+            </g>
+          )}
+
+          {/* Phase 3: Merged Symphony silhouette */}
+          {currentPhase.liquidType === 'merge' && (
+            <g className="animate-pulse">
+              <path
+                d="M70 60 Q100 50 130 60 L120 140 Q100 155 80 140 Z"
+                fill="url(#liquidGrad)"
+              >
+                <animate attributeName="d"
+                  values="M70 60 Q100 50 130 60 L120 140 Q100 155 80 140 Z;M72 62 Q100 48 128 62 L118 138 Q100 157 82 138 Z;M70 60 Q100 50 130 60 L120 140 Q100 155 80 140 Z"
+                  dur="4s" repeatCount="indefinite" />
+              </path>
+              <circle cx="100" cy="80" r="15" fill="rgba(255,255,255,0.2)">
+                <animate attributeName="cy" values="80;60;80" dur="3s" repeatCount="indefinite" />
+                <animate attributeName="opacity" values="0.2;0.5;0.2" dur="3s" repeatCount="indefinite" />
+              </circle>
+            </g>
+          )}
+        </g>
+      </svg>
+    </div>
   );
 };
-
-const BlendIcon = ({ isActive }) => (
-  <svg viewBox="0 0 100 100" className="w-20 h-20 sm:w-24 sm:h-24">
-    <defs>
-      <linearGradient id="liquidGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" stopColor="rgba(251, 191, 36, 0.8)" />
-        <stop offset="100%" stopColor="rgba(234, 88, 12, 0.9)" />
-      </linearGradient>
-    </defs>
-    <path
-      d="M30 30 L35 80 Q50 90 65 80 L70 30 Q50 25 30 30"
-      fill="rgba(255,255,255,0.1)"
-      stroke="rgba(255,255,255,0.4)"
-      strokeWidth="1.5"
-    />
-    <path
-      d="M35 45 Q50 42 65 45 L63 75 Q50 82 37 75 Z"
-      fill="url(#liquidGrad)"
-      className={isActive ? 'animate-pulse' : ''}
-    />
-    {isActive && (
-      <>
-        <circle cx="42" cy="55" r="3" fill="rgba(255,255,255,0.6)" className="animate-bounce" style={{ animationDuration: '1s' }} />
-        <circle cx="55" cy="60" r="2" fill="rgba(255,255,255,0.5)" className="animate-bounce" style={{ animationDuration: '1.5s', animationDelay: '0.3s' }} />
-        <circle cx="48" cy="65" r="2.5" fill="rgba(255,255,255,0.4)" className="animate-bounce" style={{ animationDuration: '1.2s', animationDelay: '0.5s' }} />
-      </>
-    )}
-    <ellipse cx="50" cy="30" rx="20" ry="5" fill="rgba(255,255,255,0.2)" />
-  </svg>
-);
-
-const RippleParticles = ({ accentColor }) => (
-  <div className="absolute inset-0 overflow-hidden pointer-events-none">
-    {[...Array(4)].map((_, i) => (
-      <div
-        key={i}
-        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 animate-ripple"
-        style={{
-          width: `${60 + i * 80}px`,
-          height: `${60 + i * 80}px`,
-          borderColor: accentColor,
-          animationDelay: `${i * 0.8}s`,
-          animationDuration: '3s'
-        }}
-      />
-    ))}
-  </div>
-);
-
-const OrbitParticles = ({ accentColor }) => (
-  <div className="absolute inset-0 overflow-hidden pointer-events-none">
-    {[...Array(6)].map((_, i) => (
-      <div
-        key={i}
-        className="absolute w-2 h-2 rounded-full animate-orbit"
-        style={{
-          background: accentColor,
-          top: '50%',
-          left: '50%',
-          transformOrigin: `${20 + i * 15}px center`,
-          animationDelay: `${i * 0.5}s`,
-          animationDuration: `${3 + i * 0.5}s`
-        }}
-      />
-    ))}
-  </div>
-);
-
-const BubbleParticles = ({ accentColor }) => (
-  <div className="absolute inset-0 overflow-hidden pointer-events-none">
-    {[...Array(12)].map((_, i) => (
-      <div
-        key={i}
-        className="absolute rounded-full animate-float-up"
-        style={{
-          width: `${4 + Math.random() * 8}px`,
-          height: `${4 + Math.random() * 8}px`,
-          background: accentColor,
-          left: `${10 + Math.random() * 80}%`,
-          bottom: '-20px',
-          animationDelay: `${Math.random() * 3}s`,
-          animationDuration: `${2 + Math.random() * 2}s`
-        }}
-      />
-    ))}
-  </div>
-);
 
 const LoadingTransition = ({ isLoading, loadingText }) => {
   const [currentPage, setCurrentPage] = useState(0);
@@ -192,88 +112,76 @@ const LoadingTransition = ({ isLoading, loadingText }) => {
     const pageInterval = setInterval(() => {
       setIsTransitioning(true);
       setTimeout(() => {
-        setCurrentPage((prev) => (prev + 1) % LOADING_PAGES.length);
+        setCurrentPage((prev) => (prev + 1) % PHASES.length);
         setIsTransitioning(false);
-      }, 300);
-    }, 3000);
+      }, 800);
+    }, 4000);
 
     return () => clearInterval(pageInterval);
   }, [isLoading]);
 
-  const page = LOADING_PAGES[currentPage];
-
-  const renderIcon = useCallback(() => {
-    switch (page.icon) {
-      case 'emotion':
-        return <EmotionIcon isActive={isLoading && !isTransitioning} />;
-      case 'wuxing':
-        return <WuxingIcon isActive={isLoading && !isTransitioning} />;
-      case 'blend':
-        return <BlendIcon isActive={isLoading && !isTransitioning} />;
-      default:
-        return null;
-    }
-  }, [page.icon, isLoading, isTransitioning]);
-
-  const renderParticles = useCallback(() => {
-    switch (page.particles) {
-      case 'ripple':
-        return <RippleParticles accentColor={page.accentColor} />;
-      case 'orbit':
-        return <OrbitParticles accentColor={page.accentColor} />;
-      case 'bubble':
-        return <BubbleParticles accentColor={page.accentColor} />;
-      default:
-        return null;
-    }
-  }, [page.particles, page.accentColor]);
-
   if (!isLoading) return null;
 
+  const phase = PHASES[currentPage];
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden">
+      {/* Dynamic Mesh Background */}
       <div
-        className={`absolute inset-0 bg-gradient-to-br ${page.bgColor} transition-all duration-500`}
-      />
-      {renderParticles()}
-
-      <div
-        className={`relative z-10 flex flex-col items-center justify-center px-6 transition-all duration-300 ${
-          isTransitioning ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
-        }`}
+        className={`absolute inset-0 bg-gradient-to-br ${phase.colorRange} transition-all duration-1000 ease-in-out`}
       >
-        <div className="mb-6 sm:mb-8">{renderIcon()}</div>
+        <div className="absolute inset-0 opacity-30 transform scale-150 animate-pulse">
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full blur-[120px]" style={{ backgroundColor: phase.accent }} />
+          <div className="absolute bottom-1/4 right-1/4 w-80 h-80 rounded-full blur-[100px]" style={{ backgroundColor: '#ffffff20' }} />
+        </div>
+      </div>
 
-        <h2
-          className="text-2xl sm:text-3xl font-bold text-white mb-3 sm:mb-4 tracking-wider"
-          style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif' }}
-        >
-          {page.title}
-        </h2>
+      <div className={`relative z-10 flex flex-col items-center justify-center px-8 transition-all duration-700 ${isTransitioning ? 'opacity-0 scale-95 blur-md' : 'opacity-100 scale-100 blur-0'
+        }`}>
 
-        <p
-          className="text-base sm:text-lg text-white/70 mb-6 sm:mb-8 text-center max-w-xs"
-          style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif' }}
-        >
-          {loadingText || page.subtitle}
-        </p>
+        {/* Central Alchemy Element */}
+        <AlchemyLiquid phase={currentPage} isActive={!isTransitioning} />
 
-        <div className="flex gap-2">
-          {LOADING_PAGES.map((_, i) => (
+        {/* Textual Content */}
+        <div className="mt-12 text-center">
+          <p className="text-white/40 text-xs sm:text-sm tracking-[0.3em] uppercase mb-2" style={{ fontFamily: 'Inter, sans-serif' }}>
+            {phase.subtitle}
+          </p>
+          <h2
+            className="text-3xl sm:text-4xl font-bold text-white mb-4 tracking-[0.15em]"
+            style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif' }}
+          >
+            {phase.title}
+          </h2>
+          <p
+            className="text-white/60 text-base sm:text-lg font-light italic max-w-xs mx-auto"
+            style={{ fontFamily: '"FZYouSong", "Songti SC", serif' }}
+          >
+            {loadingText || phase.description}
+          </p>
+        </div>
+
+        {/* Phase Indicator */}
+        <div className="mt-12 flex gap-3">
+          {PHASES.map((_, i) => (
             <div
               key={i}
-              className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                i === currentPage ? 'bg-white w-6' : 'bg-white/40'
-              }`}
+              className={`h-1 rounded-full transition-all duration-700 ${i === currentPage
+                  ? 'w-12 bg-white shadow-[0_0_10px_rgba(255,255,255,0.5)]'
+                  : 'w-4 bg-white/20'
+                }`}
             />
           ))}
         </div>
       </div>
 
-      <div className="absolute bottom-8 left-0 right-0 flex justify-center">
-        <div className="flex items-center gap-2 text-white/50 text-xs">
-          <div className="w-4 h-4 border-2 border-white/50 border-t-white rounded-full animate-spin" />
-          <span style={{ fontFamily: '"Songti SC", serif' }}>正在调酒中</span>
+      {/* Persistent Status Footer */}
+      <div className="absolute bottom-12 left-0 right-0 flex flex-col items-center gap-4">
+        <div className="flex items-center gap-3 px-6 py-2 rounded-full bg-white/5 backdrop-blur-md border border-white/10 shadow-2xl">
+          <div className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
+          <span className="text-white/50 text-[10px] sm:text-xs tracking-[0.2em]" style={{ fontFamily: '"Songti SC", serif' }}>
+            灵感酿造中 / MIXING INSPIRATION
+          </span>
         </div>
       </div>
     </div>

@@ -2222,13 +2222,24 @@ const ConfirmDeleteModal = ({ isOpen, onClose, onConfirm }) => {
         <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem', fontFamily: '"Songti SC",serif', color: 'rgba(255,255,255,0.95)', letterSpacing: '0.1em', textShadow: '0 1px 4px rgba(0,0,0,0.4)' }}>确认删除</h2>
         <p style={{ color: 'rgba(255,255,255,0.65)', marginBottom: '1.5rem', fontSize: '0.875rem', fontFamily: '"Songti SC",serif' }}>确定要删除这条赏味记录吗？此操作无法撤销。</p>
         <div className="flex justify-end space-x-3">
-          <InteractiveButton variant="text" onClick={onClose}>
+          <InteractiveButton
+            variant="text"
+            onClick={onClose}
+            style={{ fontFamily: '"Songti SC", serif', color: 'rgba(255,255,255,0.5)', letterSpacing: '0.05em' }}
+          >
             取消
           </InteractiveButton>
           <InteractiveButton
             variant="primary"
             onClick={onConfirm}
-            style={{ backgroundColor: '#EF4444', color: 'white' }}
+            style={{
+              background: 'linear-gradient(135deg, #991b1b 0%, #7f1d1d 100%)',
+              color: '#f7f0e4',
+              fontFamily: '"Songti SC", serif',
+              letterSpacing: '0.1em',
+              fontWeight: 'bold',
+              boxShadow: '0 4px 12px rgba(153, 27, 27, 0.2)'
+            }}
           >
             确认删除
           </InteractiveButton>
@@ -2322,13 +2333,24 @@ const DakaModal = ({ drink, onClose, onSave }) => {
               variant="primary"
               onClick={downloadImage}
               fullWidth
-              style={{ background: 'linear-gradient(135deg, #a88d5e 0%, #8c734b 100%)' }}
+              style={{
+                background: 'linear-gradient(135deg, #3c3b36 0%, #1a1a1a 100%)',
+                color: '#f7f0e4',
+                fontFamily: '"Songti SC", serif',
+                letterSpacing: '0.15em',
+                fontWeight: 'bold'
+              }}
               className="flex items-center justify-center gap-2"
             >
               <Download size={18} />
               保存到相册
             </InteractiveButton>
-            <InteractiveButton variant="text" onClick={onClose} fullWidth>
+            <InteractiveButton
+              variant="text"
+              onClick={onClose}
+              fullWidth
+              style={{ fontFamily: '"Songti SC", serif', color: 'rgba(255,255,255,0.5)', letterSpacing: '0.1em' }}
+            >
               返回
             </InteractiveButton>
           </div>
@@ -2386,14 +2408,25 @@ const DakaModal = ({ drink, onClose, onSave }) => {
           placeholder="例如：口感非常清爽，柠檬的酸味很突出…"
         />
         <div className="flex justify-end space-x-3">
-          <InteractiveButton variant="text" onClick={onClose} disabled={isGenerating}>
+          <InteractiveButton
+            variant="text"
+            onClick={onClose}
+            disabled={isGenerating}
+            style={{ fontFamily: '"Songti SC", serif', color: 'rgba(255,255,255,0.5)', letterSpacing: '0.05em' }}
+          >
             取消
           </InteractiveButton>
           <InteractiveButton
             variant="primary"
             onClick={handleSave}
             disabled={isGenerating}
-            style={{ background: 'linear-gradient(135deg, rgba(148,120,72,0.8) 0%, rgba(128,108,72,0.75) 40%, rgba(108,124,112,0.7) 100%)' }}
+            style={{
+              background: 'linear-gradient(135deg, #3c3b36 0%, #2c2b26 100%)',
+              color: '#f7f0e4',
+              fontFamily: '"Songti SC", serif',
+              letterSpacing: '0.1em',
+              fontWeight: 'bold'
+            }}
             className="flex items-center gap-2"
           >
             {isGenerating ? (

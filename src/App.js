@@ -85,9 +85,9 @@ const ShareCardImage = ({ src }) => {
   return (
     <div style={{
       width: '100%',
-      aspectRatio: '4 / 5', // Adjusted from 3:4 for better balance
+      aspectRatio: '1 / 1', // Aligned with detail page
       overflow: 'hidden',
-      borderRadius: '12px',
+      borderRadius: '40px', // Matches detail page's 2.5rem
       background: '#f0ebe3'
     }}>
       <img

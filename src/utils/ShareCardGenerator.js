@@ -38,11 +38,11 @@ export const generateShareCard = async ({ drink, note, date = new Date(), custom
         const imgX = PADDING;
         const imgY = PADDING + 130; // Spacing for header
         const imgW = CANVAS_WIDTH - PADDING * 2;
-        const imgH = imgW * 5 / 4; // Adjusted to 4:5 ratio
-        const imageAreaH = imgH; // Use the calculated height for 4:5
+        const imgH = imgW; // Adjusted to 1:1 ratio
+        const imageAreaH = imgH; // Square area
 
         ctx.save();
-        roundRect(ctx, imgX, imgY, imgW, imageAreaH, 24);
+        roundRect(ctx, imgX, imgY, imgW, imageAreaH, 40); // Larger radius to match detail page
         ctx.clip();
 
         // Cover fit

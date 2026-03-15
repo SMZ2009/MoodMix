@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useRef, useMemo, useEffect } from 'react';
+import html2canvas from 'html2canvas';
 import {
   ChevronLeft, Heart, HelpCircle, Flame, Search, Plus,
   Martini, User, Settings2, Maximize2,
@@ -46,6 +47,109 @@ const iconMap = {
   GlassWater,
   Flame
 };
+
+/**
+ * 核心思路：根据图片实际宽高比决定渲染策略
+ */
+function getImageDisplayStyle(imgWidth, imgHeight) {
+  const ratio = imgWidth / imgHeight;
+
+  if (ratio > 1.4) {
+    // 极宽横图：裁切为 16:10，避免卡片太扁
+    return { aspectRatio: '16/10', objectFit: 'cover' };
+  } else if (ratio > 0.9) {
+    // 接近正方形或普通横图：裁切为 4:3
+    return { aspectRatio: '4/3', objectFit: 'cover' };
+  } else if (ratio > 0.55) {
+    // 普通竖图：保留原比例，限制最大高度
+    return { maxHeight: '420px', objectFit: 'cover' };
+  } else {
+    // 极窄竖图：裁切为 9:16 上限
+    return { aspectRatio: '9/16', objectFit: 'cover', maxHeight: '450px' };
+  }
+}
+
+/**
+ * 分享卡片图片组件 - 自适应比例
+ */
+const ShareCardImage = ({ src }) => {
+  const [style, setStyle] = useState({ aspectRatio: '4/3', objectFit: 'cover' });
+
+  const handleLoad = (e) => {
+    const { naturalWidth, naturalHeight } = e.target;
+    setStyle(getImageDisplayStyle(naturalWidth, naturalHeight));
+  };
+
+  return (
+    <div className="card-img-wrapper">
+      <img
+        src={src}
+        onLoad={handleLoad}
+        style={{
+          width: '100%',
+          display: 'block',
+          ...style,
+        }}
+        alt="drink"
+      />
+    </div>
+  );
+};
+
+/**
+ * Redesigned Share Card Component (DOM-based)
+ */
+const ShareCard = React.forwardRef(({ drinkName, emotion, wuxing, imageSrc, llmCopy, qrCodeSrc }, ref) => {
+  const today = new Date().toLocaleDateString('zh-CN', {
+    year: 'numeric', month: 'long', day: 'numeric'
+  });
+
+  return (
+    <div ref={ref} className="share-card">
+      {/* 顶部品牌栏 */}
+      <div className="card-header">
+        <span className="brand">MoodMix | 心绪调饮</span>
+        <span className="date">{today}</span>
+      </div>
+
+      {/* 图片区域 - 自适应比例 */}
+      <ShareCardImage src={imageSrc} />
+
+      {/* 内容区域 */}
+      <div className="card-body">
+        <h2 className="drink-name">{drinkName}</h2>
+        <span className="emotion-tag">此刻心迹 · {emotion}</span>
+        <div className="card-divider" />
+        <p className="llm-copy">{llmCopy}</p>
+        <p className="wuxing-line">{wuxing}</p>
+      </div>
+
+      {/* 底部引流区 */}
+      <div className="card-footer">
+        <span className="cta">扫码试试你的情绪饮品</span>
+        <div className="qr-code-placeholder">
+          {qrCodeSrc ? <img src={qrCodeSrc} alt="QC" className="w-full h-full p-1" /> : <Sparkles size={16} className="text-[#a09382]/40" />}
+        </div>
+      </div>
+    </div>
+  );
+});
+
+async function exportShareCard(cardElement) {
+  if (!cardElement) return null;
+  const canvas = await html2canvas(cardElement, {
+    scale: 2,                    // 2倍分辨率，分享到社交平台不模糊
+    backgroundColor: '#faf8f5',  // 卡片底色
+    useCORS: true,               // 允许跨域图片
+    logging: false
+  });
+
+  return new Promise((resolve) => {
+    canvas.toBlob((blob) => {
+      resolve(blob);
+    }, 'image/png');
+  });
+}
 
 // 默认分类（API 加载后会被替换）
 const DEFAULT_EXPLORE_CATEGORIES = [
@@ -2292,7 +2396,9 @@ const DakaModal = ({ drink, onClose, onSave }) => {
   const [customImage, setCustomImage] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [shareCardUrl, setShareCardUrl] = useState(null);
+  const [llmCopy, setLlmCopy] = useState('');
   const fileInputRef = useRef(null);
+  const cardRef = useRef(null);
 
   const handleImageUpload = (e) => {
     const file = e.target.files?.[0];
@@ -2318,16 +2424,52 @@ const DakaModal = ({ drink, onClose, onSave }) => {
   const handleSave = async () => {
     setIsGenerating(true);
     try {
-      // 1. 生成分享卡片
-      const cardUrl = await generateShareCard({
-        drink,
-        note,
-        customImage: customImage || null
-      });
+      // 1. 获取 LLM 文案
+      const prompt = `你是 MoodMix 的文案诗人。请为分享卡片生成一段情绪文案。
 
-      setShareCardUrl(cardUrl);
+要求：
+- 2-3 句话，总字数控制在 30-50 字
+- 东方诗意的克制感，像朋友间的低语
+- 结合饮品的具体感官细节（颜色、温度、口感、气味）
+- 温柔地回应用户当下的情绪，给予认可或鼓励
+- 不要说教，不要鸡汤，不要感叹号
+- 可以用比喻，但要自然不刻意
 
-      // 2. 持久化存储
+输入信息：
+- 饮品名：${drink.name}
+- 用户情绪：根据饮品属性推测
+- 五行属性：${drink.dimensions?.wuxing || '未知'}
+- 用户备注：${note || '无'}
+
+请直接输出文案，不要任何前缀或解释。`;
+
+      // 使用专用的 SOCIAL_CARD 任务类型
+      const agentResult = await executeMixologyTask('SOCIAL_CARD', { drink, prompt });
+
+      // 安全提取文案 (如果是 object 说明 Agent 可能报错返回了错误信息对象)
+      let poeticalCopy = '岁序更迭，此情可待';
+      if (agentResult && agentResult.success && agentResult.data && typeof agentResult.data.copy === 'string') {
+        poeticalCopy = agentResult.data.copy;
+      } else if (typeof agentResult === 'string') {
+        poeticalCopy = agentResult;
+      } else if (agentResult && agentResult.userMessage) {
+        console.warn('Agent returned error message:', agentResult.userMessage);
+      }
+
+      setLlmCopy(poeticalCopy);
+
+      // Wait for state to update and images to load
+      // We'll use a small timeout to ensure DOM is ready
+      await new Promise(resolve => setTimeout(resolve, 800));
+
+      // 2. 将 DOM 生成图片
+      if (cardRef.current) {
+        const blob = await exportShareCard(cardRef.current);
+        const imageUrl = URL.createObjectURL(blob);
+        setShareCardUrl(imageUrl);
+      }
+
+      // 3. 持久化存储
       onSave(drink.id, note, customImage || null);
     } catch (err) {
       console.error('Failed to save or generate:', err);
@@ -2359,11 +2501,11 @@ const DakaModal = ({ drink, onClose, onSave }) => {
               <CheckCircle size={24} />
             </div>
           </div>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem', fontFamily: '"Songti SC",serif', color: 'white' }}>记录已珍存</h2>
-          <p style={{ color: 'rgba(255,255,255,0.6)', marginBottom: '1.5rem', fontSize: '0.875rem' }}>分享卡片已自动为您调成</p>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.2rem', fontFamily: '"Songti SC",serif', color: 'white' }}>记录已珍存</h2>
+          <p style={{ color: 'rgba(255,255,255,0.6)', marginBottom: '1.2rem', fontSize: '0.8rem' }}>分享卡片已为您调成，岁序更迭，此情可待</p>
 
-          <div className="relative aspect-[3/4] w-full rounded-xl overflow-hidden mb-6 shadow-2xl border border-white/10 bg-black/20">
-            <img src={shareCardUrl} alt="Share Card" className="w-full h-full object-contain" />
+          <div className="relative w-full rounded-xl overflow-hidden mb-6 shadow-2xl border border-white/10 bg-black/20" style={{ maxHeight: '60vh', overflowY: 'auto' }}>
+            <img src={shareCardUrl} alt="Share Card" className="w-full h-auto object-contain" />
           </div>
 
           <div className="flex flex-col gap-3">
@@ -2474,6 +2616,18 @@ const DakaModal = ({ drink, onClose, onSave }) => {
               </>
             ) : '保存记录'}
           </InteractiveButton>
+        </div>
+
+        {/* Hidden Share Card for generating image */}
+        <div style={{ position: 'fixed', left: '-2000px', top: '0', pointerEvents: 'none', zIndex: -1 }}>
+          <ShareCard
+            ref={cardRef}
+            drinkName={drink.name}
+            emotion={drink.dimensions?.mood || '悠然'}
+            wuxing={drink.dimensions?.wuxing ? `五行属${drink.dimensions.wuxing}` : '五行调和'}
+            imageSrc={customImage || drink.image}
+            llmCopy={llmCopy}
+          />
         </div>
       </div>
     </Modal>

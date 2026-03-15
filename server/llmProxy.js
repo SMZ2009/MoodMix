@@ -896,7 +896,8 @@ async function callLLM(systemPrompt, userContent, options = {}) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
+          'Authorization': `Bearer ${apiKey}`,
+          'User-Agent': 'MoodMix/1.0 (Node.js)'
         },
         body: JSON.stringify({
           model: model,

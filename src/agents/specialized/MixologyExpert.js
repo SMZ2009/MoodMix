@@ -46,9 +46,6 @@ export class MixologyExpert extends BaseAgent {
             return { valid: false, reason: 'MISSING_ASSIST_PARAMS', userMessage: '助手任务缺少饮品信息或问题' };
         }
 
-        if (taskType === 'SOCIAL_CARD' && (!data.drink || !data.prompt)) {
-            return { valid: false, reason: 'MISSING_SOCIAL_CARD_PARAMS', userMessage: '分享卡片任务缺少饮品信息或提示词' };
-        }
 
         return { valid: true };
     }
@@ -66,8 +63,6 @@ export class MixologyExpert extends BaseAgent {
             return await this.fetchAnalysis(data);
         } else if (taskType === 'ASSIST') {
             return await this.fetchAssistance(data);
-        } else if (taskType === 'SOCIAL_CARD') {
-            return await this.fetchSocialCardCopy(data);
         }
 
         throw new Error(`Unknown task type: ${taskType}`);
@@ -120,30 +115,6 @@ export class MixologyExpert extends BaseAgent {
         };
     }
 
-    /**
-     * 调用社交卡片文案 API
-     */
-    async fetchSocialCardCopy(data) {
-        const response = await fetch('/api/social-card-copy', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
-        });
-
-        if (!response.ok) {
-            throw new Error(`分享文案服务响应异常: ${response.status}`);
-        }
-
-        const result = await response.json();
-        if (!result.success) {
-            throw new Error(result.error || '获取文案失败');
-        }
-
-        return {
-            copy: result.copy,
-            timestamp: new Date().toISOString()
-        };
-    }
 
     /**
      * 错误处理与降级

@@ -4,7 +4,7 @@ import {
   Martini, User, Settings2, Maximize2,
   Wine, Droplets, ThermometerSnowflake,
   Sparkles, Lightbulb, GlassWater,
-  Users, HeartOff, Loader2, Camera, X, Menu, ArrowLeft
+  Users, HeartOff, Loader2, Camera, X, Menu, ArrowLeft, Download, CheckCircle
 } from 'lucide-react';
 
 import { inventoryStorage, favoriteStorage, collectionStorage, customDrinkStorage } from './store/localStorageAdapter';
@@ -21,6 +21,7 @@ import { generatePhilosophyTags } from './engine/philosophyTags';
 import { fetchLiveQuotes } from './api/quoteGenerator';
 import { translateDrinkName, translateIngredient } from './data/translations';
 import { validateInput } from './utils/inputValidator';
+import { generateShareCard } from './utils/ShareCardGenerator';
 import MineSection from './components/MineSection';
 import IngredientManager from './components/IngredientManager';
 import { useTouchFeedback, useKeyboardNavigation, useCocktailApi, useSwipeGesture } from './hooks';
@@ -374,8 +375,8 @@ const MoodInputSection = ({
               type="button"
               onClick={isListening ? stopListening : handleVoiceInput}
               className={`w-10 h-10 flex items-center justify-center rounded-full mr-3 flex-shrink-0 transition-all duration-200 ${isListening ? '' : 'hover:bg-gray-100 active:scale-95'}`}
-              style={{ 
-                boxShadow: isListening 
+              style={{
+                boxShadow: isListening
                   ? '0 0 0 2px rgba(239, 68, 68, 0.5), 0 0 12px rgba(239, 68, 68, 0.4), 0 0 24px rgba(239, 68, 68, 0.2)'
                   : 'rgba(0, 0, 0, 0.06) 0px 2px 8px',
                 backgroundColor: 'rgba(255, 255, 255, 0.8)',
@@ -2382,6 +2383,8 @@ const ConfirmDeleteModal = ({ isOpen, onClose, onConfirm }) => {
 const DakaModal = ({ drink, onClose, onSave }) => {
   const [note, setNote] = useState('');
   const [customImage, setCustomImage] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [shareCardUrl, setShareCardUrl] = useState(null);
   const fileInputRef = useRef(null);
 
   const handleImageUpload = (e) => {
@@ -2405,7 +2408,76 @@ const DakaModal = ({ drink, onClose, onSave }) => {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
+  const handleSave = async () => {
+    setIsGenerating(true);
+    try {
+      // 1. 生成分享卡片
+      const cardUrl = await generateShareCard({
+        drink,
+        note,
+        customImage: customImage || null
+      });
+
+      setShareCardUrl(cardUrl);
+
+      // 2. 持久化存储
+      onSave(drink.id, note, customImage || null);
+    } catch (err) {
+      console.error('Failed to save or generate:', err);
+      alert('保存失败，请稍后重试');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const downloadImage = () => {
+    if (!shareCardUrl) return;
+    const link = document.createElement('a');
+    link.href = shareCardUrl;
+    link.download = `MoodMix_Daka_${drink.name}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   if (!drink) return null;
+
+  // 如果已经生成过卡片，展示预览与下载页
+  if (shareCardUrl) {
+    return (
+      <Modal isOpen={true} onClose={onClose} position="center">
+        <div style={{ background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(40px) saturate(1.2)', WebkitBackdropFilter: 'blur(40px) saturate(1.2)', border: '1px solid rgba(255,255,255,0.15)', boxShadow: '0 8px 32px rgba(0,0,0,0.08)' }} className="rounded-2xl p-6 w-full max-w-sm mx-auto text-center">
+          <div className="flex justify-center mb-4">
+            <div className="w-12 h-12 bg-green-500/20 rounded-full flex items-center justify-center text-green-400 mb-2">
+              <CheckCircle size={24} />
+            </div>
+          </div>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem', fontFamily: '"Songti SC",serif', color: 'white' }}>记录已珍存</h2>
+          <p style={{ color: 'rgba(255,255,255,0.6)', marginBottom: '1.5rem', fontSize: '0.875rem' }}>分享卡片已自动为您调成</p>
+
+          <div className="relative aspect-[3/4] w-full rounded-xl overflow-hidden mb-6 shadow-2xl border border-white/10 bg-black/20">
+            <img src={shareCardUrl} alt="Share Card" className="w-full h-full object-contain" />
+          </div>
+
+          <div className="flex flex-col gap-3">
+            <InteractiveButton
+              variant="primary"
+              onClick={downloadImage}
+              fullWidth
+              style={{ background: 'linear-gradient(135deg, #a88d5e 0%, #8c734b 100%)' }}
+              className="flex items-center justify-center gap-2"
+            >
+              <Download size={18} />
+              保存到相册
+            </InteractiveButton>
+            <InteractiveButton variant="text" onClick={onClose} fullWidth>
+              返回
+            </InteractiveButton>
+          </div>
+        </div>
+      </Modal>
+    );
+  }
 
   return (
     <Modal isOpen={true} onClose={onClose} position="center">
@@ -2456,15 +2528,22 @@ const DakaModal = ({ drink, onClose, onSave }) => {
           placeholder="例如：口感非常清爽，柠檬的酸味很突出…"
         />
         <div className="flex justify-end space-x-3">
-          <InteractiveButton variant="text" onClick={onClose}>
+          <InteractiveButton variant="text" onClick={onClose} disabled={isGenerating}>
             取消
           </InteractiveButton>
           <InteractiveButton
             variant="primary"
-            onClick={() => onSave(drink.id, note, customImage || null)}
+            onClick={handleSave}
+            disabled={isGenerating}
             style={{ background: 'linear-gradient(135deg, rgba(148,120,72,0.8) 0%, rgba(128,108,72,0.75) 40%, rgba(108,124,112,0.7) 100%)' }}
+            className="flex items-center gap-2"
           >
-            保存记录
+            {isGenerating ? (
+              <>
+                <Loader2 size={16} className="animate-spin" />
+                生成中...
+              </>
+            ) : '保存记录'}
           </InteractiveButton>
         </div>
       </div>

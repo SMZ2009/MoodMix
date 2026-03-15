@@ -329,14 +329,6 @@ const MoodInputSection = ({
   ingredientCount, onEditIngredients, onNavigate, activeTab, showFriendlyNotice
 }) => {
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
-  const [storedText, setStoredText] = useState('');
-
-  useEffect(() => {
-    const stored = localStorage.getItem('moodmix_user_text');
-    if (stored) {
-      setStoredText(stored);
-    }
-  }, []);
 
   useEffect(() => {
     const intervalId = window.setInterval(() => {
@@ -353,11 +345,6 @@ const MoodInputSection = ({
       <div className="absolute top-0 left-1/4 w-96 h-96 bg-purple-200/40 rounded-full blur-[120px] pointer-events-none mix-blend-multiply"></div>
       <div className="absolute top-1/4 right-0 w-80 h-80 bg-blue-200/40 rounded-full blur-[100px] pointer-events-none mix-blend-multiply"></div>
       <div className="absolute bottom-1/3 left-0 w-72 h-72 bg-pink-200/40 rounded-full blur-[100px] pointer-events-none mix-blend-multiply"></div>
-      {storedText && (
-        <div className="absolute bottom-8 left-8 z-20">
-          <h1 className="text-lg font-bold text-[#111813]">{storedText}</h1>
-        </div>
-      )}
       <div className="text-center mt-12 sm:mt-16 mb-4 sm:mb-6 z-10">
         <h2 className="text-2xl xs:text-[24px] sm:text-[28px] font-extrabold text-gray-800 mb-2 sm:mb-3 tracking-wide mx-auto text-center" style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif' }}>此刻，心境如何？</h2>
         <p
@@ -2208,8 +2195,6 @@ const App = () => {
       return;
     }
 
-    // 存储用户输入到 LocalStorage
-    localStorage.setItem('moodmix_user_text', combinedInput);
 
     // 如果有自定义原料，附加到 Prompt
     let finalInputForAI = combinedInput;

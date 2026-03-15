@@ -1197,14 +1197,25 @@ const DrinkDetailSection = ({ drink, checkedIngredients, onToggleIngredient, onB
         >
           <ChevronLeft size={22} strokeWidth={2.2} />
         </button>
-        <button
-          type="button"
-          onClick={() => onHelp && onHelp(drink)}
-          aria-label="饮品帮助"
-          className="flex items-center justify-center bg-white/50 backdrop-blur-md border border-gray-200/50 text-gray-800 w-10 h-10 rounded-full shadow-sm hover:bg-white/80 transition-all active:scale-95"
-        >
-          <HelpCircle size={21} strokeWidth={2.2} />
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleShare}
+            disabled={isGeneratingShare}
+            aria-label="分享"
+            className="flex items-center justify-center bg-white/50 backdrop-blur-md border border-gray-200/50 text-gray-800 w-10 h-10 rounded-full shadow-sm hover:bg-white/80 transition-all active:scale-95 disabled:opacity-50"
+          >
+            {isGeneratingShare ? <Loader2 size={20} className="animate-spin" /> : <Share2 size={20} />}
+          </button>
+          <button
+            type="button"
+            onClick={() => onHelp && onHelp(drink)}
+            aria-label="饮品帮助"
+            className="flex items-center justify-center bg-white/50 backdrop-blur-md border border-gray-200/50 text-gray-800 w-10 h-10 rounded-full shadow-sm hover:bg-white/80 transition-all active:scale-95"
+          >
+            <HelpCircle size={21} strokeWidth={2.2} />
+          </button>
+        </div>
       </div>
 
       <div className="max-w-6xl mx-auto px-4 sm:px-8 py-4">
@@ -1368,17 +1379,6 @@ const DrinkDetailSection = ({ drink, checkedIngredients, onToggleIngredient, onB
           >
             <BulbIcon isDaka={isDaka} />
             <span className="ml-2.5">记禅</span>
-          </InteractiveButton>
-          <div className="w-px h-8 bg-gray-200/50 self-center" />
-          <InteractiveButton
-            variant="secondary"
-            fullWidth
-            onClick={handleShare}
-            disabled={isGeneratingShare}
-            className="flex-1 jade-action-btn flex items-center justify-center h-[56px]"
-          >
-            {isGeneratingShare ? <Loader2 size={20} className="animate-spin" /> : <Share2 size={20} />}
-            <span className="ml-2.5">分享</span>
           </InteractiveButton>
         </div>
       </div>

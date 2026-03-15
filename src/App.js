@@ -2718,14 +2718,30 @@ const DakaModal = ({ drink, onClose, onSave }) => {
     }
   };
 
-  const downloadImage = () => {
+  const downloadImage = async () => {
     if (!shareCardUrl) return;
-    const link = document.createElement('a');
-    link.href = shareCardUrl;
-    link.download = `MoodMix_Daka_${drink.name}.png`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    try {
+      // 对于移动设备，尝试使用更可靠的下载方法
+      if ('download' in document.createElement('a')) {
+        const link = document.createElement('a');
+        link.href = shareCardUrl;
+        link.download = `MoodMix_Daka_${drink.name}.png`;
+        document.body.appendChild(link);
+        // 在移动设备上，需要触发真实的点击事件
+        link.dispatchEvent(new MouseEvent('click', {
+          bubbles: true,
+          cancelable: true,
+          view: window
+        }));
+        document.body.removeChild(link);
+      } else {
+        // 降级方案：在新窗口打开图片，让用户手动保存
+        window.open(shareCardUrl, '_blank');
+      }
+    } catch (error) {
+      console.error('下载失败:', error);
+      alert('保存失败，请稍后重试');
+    }
   };
 
   if (!drink) return null;

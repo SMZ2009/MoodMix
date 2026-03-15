@@ -127,7 +127,6 @@ app.get('/api/cocktail_image/:imageName', async (req, res) => {
 // SiliconFlow API 配置
 const SILICONFLOW_API_URL = 'https://api.siliconflow.cn/v1/chat/completions';
 const MODEL_8B = process.env.SILICONFLOW_MODEL_8B || 'Qwen/Qwen2.5-7B-Instruct';
-const MODEL_30B = process.env.SILICONFLOW_MODEL_30B || 'Qwen/Qwen2.5-32B-Instruct';
 
 // 优先使用原生 fetch (Node 18+)，否则回退到 node-fetch
 const getFetch = async () => {
@@ -492,7 +491,7 @@ app.post('/api/generate_quotes', async (req, res) => {
 
     let response;
     try {
-      console.log(`[QuoteGenerator] Requesting batch quotes from ${MODEL_30B}...`);
+      console.log(`[QuoteGenerator] Requesting batch quotes from ${MODEL_8B}...`);
       response = await currentFetch(SILICONFLOW_API_URL, {
         method: 'POST',
         headers: {
@@ -507,7 +506,7 @@ app.post('/api/generate_quotes', async (req, res) => {
           ],
           temperature: 0.7,
           max_tokens: 1000
-        }, { model: MODEL_30B }), // 调优使用 30B 模型追求美感
+        }),
         signal: controller.signal
       });
     } finally {
@@ -1127,13 +1126,109 @@ ${question}
   }
 });
 
+// ═══════════════════════════════════════════
+// 端点：语音转文字 (Speech-to-Text)
+// 使用 Qwen-2.5-7B-Instruct 模型
+// ═══════════════════════════════════════════
+/**
+ * POST /api/speech-to-text
+ * Body: { audio: string (base64 encoded audio) }
+ * Response: { success: boolean, text?: string, error?: string }
+ */
+app.post('/api/speech-to-text', async (req, res) => {
+  const apiKey = process.env.SILICONFLOW_API_KEY;
+
+  if (!apiKey || apiKey === 'your_key_here') {
+    return res.status(500).json({
+      success: false,
+      error: 'SILICONFLOW_API_KEY 未配置'
+    });
+  }
+
+  const { audio } = req.body;
+
+  if (!audio || typeof audio !== 'string') {
+    return res.status(400).json({
+      success: false,
+      error: '缺少 audio 参数（需要 base64 编码的音频数据）'
+    });
+  }
+
+  try {
+    const currentFetch = await getFetch();
+    if (!currentFetch) throw new Error('Fetch implementation not found');
+
+    const systemPrompt = `你是一个专业的语音识别助手。你的任务是将用户提供的音频数据转录为文字。
+
+要求：
+1. 准确识别音频中的中文语音内容
+2. 只返回识别到的文字内容，不要添加任何解释、标点或格式
+3. 如果无法识别或音频不清晰，返回空字符串
+4. 去除语气词和重复词，保持语句通顺`;
+
+    const userMessage = `请将以下 base64 编码的音频数据转录为文字：\n\n${audio.substring(0, 1000)}...`;
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      controller.abort();
+    }, 30000);
+
+    let response;
+    try {
+      response = await currentFetch(SILICONFLOW_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          model: MODEL_8B,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userMessage }
+          ],
+          temperature: 0.3,
+          max_tokens: 500
+        }),
+        signal: controller.signal
+      });
+    } finally {
+      clearTimeout(timeoutId);
+    }
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`[Speech-to-Text] API error [${response.status}]:`, errorText);
+      return res.status(response.status).json({
+        success: false,
+        error: `API 返回错误: ${response.status}`
+      });
+    }
+
+    const result = await response.json();
+    const text = result.choices?.[0]?.message?.content?.trim() || '';
+
+    console.log(`[Speech-to-Text] 识别完成，结果: "${text.substring(0, 50)}..."`);
+
+    res.json({ success: true, text });
+
+  } catch (error) {
+    console.error('[Speech-to-Text] Error:', error.message);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 // ─── 启动服务器 ───
 app.listen(PORT, () => {
   const hasKey = process.env.SILICONFLOW_API_KEY && process.env.SILICONFLOW_API_KEY !== 'your_key_here';
   console.log(`\n🍹 MoodMix SiliconFlow 代理服务已启动`);
   console.log(`   端口: ${PORT}`);
-  console.log(`   Core 模型: ${MODEL_8B}`);
-  console.log(`   Creative 模型: ${MODEL_30B}`);
+  console.log(`   模型: ${MODEL_8B}`);
   console.log(`   API Key: ${hasKey ? '✅ 已配置' : '❌ 未配置 — 请在 .env 中设置 SILICONFLOW_API_KEY'}`);
-  console.log(`   端点: POST http://localhost:${PORT}/api/analyze_mood\n`);
+  console.log(`   端点:`);
+  console.log(`     - POST http://localhost:${PORT}/api/analyze_mood`);
+  console.log(`     - POST http://localhost:${PORT}/api/speech-to-text\n`);
 });

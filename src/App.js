@@ -106,15 +106,15 @@ function detectNegativeIntent(input) {
 
 const MoodInputSection = ({
   moodInput, setMoodInput, selectedMood, setSelectedMood, onGenerate, buttonFeedback, isMixing,
-  ingredientCount, onEditIngredients, onNavigate, activeTab
+  ingredientCount, onEditIngredients, onNavigate, activeTab, showFriendlyNotice
 }) => {
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const [isListening, setIsListening] = useState(false);
   const [storedText, setStoredText] = useState('');
-  const recognitionRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
 
   useEffect(() => {
-    // 从 LocalStorage 读取存储的内容
     const stored = localStorage.getItem('moodmix_user_text');
     if (stored) {
       setStoredText(stored);
@@ -131,45 +131,111 @@ const MoodInputSection = ({
     };
   }, []);
 
-  const handleVoiceInput = () => {
-    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-      alert('您的浏览器不支持语音输入功能');
+  const handleVoiceInput = async () => {
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+
+    if (isMobile || isTouchDevice) {
+      showFriendlyNotice('语音提示', '手机端语音识别体验不佳\n建议使用键盘输入，体验更稳定', 'default');
       return;
     }
 
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    const recognition = new SpeechRecognition();
-    recognitionRef.current = recognition;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          sampleRate: 16000
+        }
+      });
 
-    recognition.lang = 'zh-CN';
-    recognition.continuous = false;
-    recognition.interimResults = false;
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+        ? 'audio/webm;codecs=opus'
+        : 'audio/webm';
 
-    recognition.onstart = () => {
+      const mediaRecorder = new MediaRecorder(stream, { mimeType });
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        stream.getTracks().forEach(track => track.stop());
+        setIsListening(false);
+
+        if (audioChunksRef.current.length === 0) {
+          showFriendlyNotice('语音提示', '未检测到语音，请重试', 'warning');
+          return;
+        }
+
+        const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
+
+        try {
+          showFriendlyNotice('正在识别', '语音处理中...', 'default');
+
+          // 将音频转换为 base64
+          const arrayBuffer = await audioBlob.arrayBuffer();
+          const base64Audio = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+
+          // 调用后端 API 进行语音识别
+          const response = await fetch('/api/speech-to-text', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ audio: base64Audio }),
+          });
+
+          const result = await response.json();
+
+          if (result.success && result.text && result.text.trim()) {
+            const cleanText = result.text.replace(/\[.*?\]/g, '').trim();
+            setMoodInput(cleanText);
+          } else {
+            showFriendlyNotice('识别失败', '未识别到有效语音，请重试', 'warning');
+          }
+        } catch (err) {
+          console.error('语音识别失败:', err);
+          showFriendlyNotice('识别失败', '语音识别出错，请重试', 'warning');
+        }
+      };
+
+      mediaRecorder.onerror = (event) => {
+        console.error('录音错误:', event.error);
+        stream.getTracks().forEach(track => track.stop());
+        setIsListening(false);
+        showFriendlyNotice('录音错误', '麦克风录音失败', 'warning');
+      };
+
+      mediaRecorder.start();
       setIsListening(true);
-    };
 
-    recognition.onresult = (event) => {
-      const transcript = event.results[0][0].transcript;
-      setMoodInput(transcript);
-    };
+      setTimeout(() => {
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+          mediaRecorderRef.current.stop();
+        }
+      }, 10000);
 
-    recognition.onerror = (event) => {
-      console.error('语音识别错误:', event.error);
-      setIsListening(false);
-    };
+    } catch (err) {
+      console.error('麦克风访问失败:', err);
 
-    recognition.onend = () => {
-      setIsListening(false);
-    };
-
-    recognition.start();
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        showFriendlyNotice('权限被拒绝', '请在浏览器设置中允许麦克风访问', 'warning');
+      } else if (err.name === 'NotFoundError') {
+        showFriendlyNotice('未找到麦克风', '请确保设备已连接麦克风', 'warning');
+      } else {
+        showFriendlyNotice('麦克风错误', '无法访问麦克风，请检查设备', 'warning');
+      }
+    }
   };
 
   const stopListening = () => {
-    if (recognitionRef.current) {
-      recognitionRef.current.stop();
-      setIsListening(false);
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.stop();
     }
   };
 
@@ -307,8 +373,14 @@ const MoodInputSection = ({
             <button
               type="button"
               onClick={isListening ? stopListening : handleVoiceInput}
-              className="w-10 h-10 flex items-center justify-center rounded-full mr-3 flex-shrink-0 hover:bg-gray-100 active:scale-95 transition-all duration-200"
-              style={{ boxShadow: 'rgba(0, 0, 0, 0.06) 0px 2px 8px', backgroundColor: 'rgba(255, 255, 255, 0.8)' }}
+              className={`w-10 h-10 flex items-center justify-center rounded-full mr-3 flex-shrink-0 transition-all duration-200 ${isListening ? '' : 'hover:bg-gray-100 active:scale-95'}`}
+              style={{ 
+                boxShadow: isListening 
+                  ? '0 0 0 2px rgba(239, 68, 68, 0.5), 0 0 12px rgba(239, 68, 68, 0.4), 0 0 24px rgba(239, 68, 68, 0.2)'
+                  : 'rgba(0, 0, 0, 0.06) 0px 2px 8px',
+                backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                animation: isListening ? 'pulse-glow 1.5s ease-in-out infinite' : 'none'
+              }}
               aria-label={isListening ? '停止语音输入' : '切换到语音输入'}
             >
               <svg
@@ -2069,6 +2141,7 @@ const App = () => {
                 onEditIngredients={() => setShowIngredientModal(true)}
                 onNavigate={handleNavClick}
                 activeTab={activeTab}
+                showFriendlyNotice={showFriendlyNotice}
               />
             )}
 

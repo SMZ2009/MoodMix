@@ -703,17 +703,19 @@ app.post('/api/comprehensive_analyze', async (req, res) => {
   const userMessage = `用户心境: "${user_input}"\n当前环境时间: ${timeInfo}`;
 
   try {
-    const model = MODEL_CREATIVE; // 聚合推理逻辑复杂，使用 32B 模型提升成功率
+    // 🚀 性能优化：使用 7B 模型 + 低温度，配合后端验证兜底，实现快速响应
+    const model = MODEL_CORE;
     console.log(`[ComprehensiveAnalyze] >>> 开始全链路聚合推理 (MODEL: ${model})...`);
     console.log(`[ComprehensiveAnalyze] 用户输入: "${user_input}"`);
     const startTime = Date.now();
 
-    // 增加超时保护，防止请求挂死
+    // 7B 模型响应更快，超时设为 25s
     const data = await callLLM(systemPrompt, userMessage, {
       model: model,
-      temperature: 0.4,
+      temperature: 0.3,  // 低温度 = 更快、更稳定的 JSON 输出
       jsonMode: true,
-      timeout: 50000 // 50s 超时
+      timeout: 25000,
+      maxRetries: 1      // 减少重试次数，配合验证兜底
     });
 
     const duration = Date.now() - startTime;

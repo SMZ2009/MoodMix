@@ -1401,7 +1401,25 @@ const DrinkDetailSection = ({ drink, checkedIngredients, onToggleIngredient, onB
 
             {/* 二维码区域 */}
             <div className="mb-4 flex flex-col items-center">
-              <div className="bg-white p-4 rounded-xl shadow-lg mb-2">
+              <div 
+                className="bg-white p-4 rounded-xl shadow-lg mb-2 cursor-pointer select-none"
+                onTouchStart={() => {
+                  const timer = setTimeout(() => {
+                    handleCopyLink();
+                  }, 500);
+                  const clearTimer = () => clearTimeout(timer);
+                  document.addEventListener('touchend', clearTimer, { once: true });
+                  document.addEventListener('touchmove', clearTimer, { once: true });
+                }}
+                onMouseDown={() => {
+                  const timer = setTimeout(() => {
+                    handleCopyLink();
+                  }, 500);
+                  const clearTimer = () => clearTimeout(timer);
+                  document.addEventListener('mouseup', clearTimer, { once: true });
+                  document.addEventListener('mousemove', clearTimer, { once: true });
+                }}
+              >
                 <QRCodeSVG 
                   value={getShareLink()}
                   size={180}
@@ -1412,18 +1430,8 @@ const DrinkDetailSection = ({ drink, checkedIngredients, onToggleIngredient, onB
                 />
               </div>
               <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.75rem', fontFamily: '"Songti SC", serif' }}>
-                扫描二维码访问饮品详情
+                长按二维码复制链接
               </p>
-            </div>
-
-            <div className="mb-4">
-              <input
-                type="text"
-                readOnly
-                value={getShareLink()}
-                className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white/90 text-sm text-center"
-                onClick={(e) => e.target.select()}
-              />
             </div>
 
             <div className="flex flex-col gap-3">

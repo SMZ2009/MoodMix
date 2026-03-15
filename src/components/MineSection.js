@@ -19,6 +19,16 @@ const MineSection = ({ favorites, onSelectDrink, cardFeedback, initialTab = 'col
     const fileInputRef = useRef(null);
     const nicknameInputRef = useRef(null);
 
+    // 随机排序收藏饮品
+    const shuffledFavorites = useMemo(() => {
+        const array = [...favorites];
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
+    }, [favorites]);
+
     // 从 LocalStorage 加载用户资料
     useEffect(() => {
         try {
@@ -213,7 +223,7 @@ const MineSection = ({ favorites, onSelectDrink, cardFeedback, initialTab = 'col
             <div className="px-6 py-4 pb-32 w-full">
                 {mineTab === 'favorites' && (
                     <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                        {favorites.map((drink) => (
+                        {shuffledFavorites.map((drink) => (
                             <SwipeableCard
                                 key={drink.id}
                                 onTap={() => onSelectDrink(drink)}

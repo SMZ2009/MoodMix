@@ -1429,28 +1429,13 @@ const DrinkDetailSection = ({ drink, checkedIngredients, onToggleIngredient, onB
                   fgColor="#000000"
                 />
               </div>
-              <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.75rem', fontFamily: '"Songti SC", serif' }}>
+              <p style={{ color: '#000000', fontSize: '0.75rem', fontFamily: '"Songti SC", serif' }}>
                 长按二维码复制链接
               </p>
             </div>
 
             <div className="flex flex-col gap-3">
-              <InteractiveButton
-                variant="primary"
-                onClick={handleCopyLink}
-                fullWidth
-                style={{
-                  background: 'linear-gradient(135deg, #3c3b36 0%, #1a1a1a 100%)',
-                  color: '#f7f0e4',
-                  fontFamily: '"Songti SC", serif',
-                  letterSpacing: '0.15em',
-                  fontWeight: 'bold'
-                }}
-                className="flex items-center justify-center gap-2"
-              >
-                <Download size={18} />
-                复制分享链接
-              </InteractiveButton>
+
               <InteractiveButton
                 variant="primary"
                 onClick={handleDownloadImage}

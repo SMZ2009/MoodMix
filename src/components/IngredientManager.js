@@ -7,12 +7,16 @@ const DEFAULT_CATEGORIES = [
     '乳制品/蛋类', '香草/香料', '装饰', '其他'
 ];
 
-const IngredientManager = ({ userInventory, onUpdate }) => {
+const IngredientManager = ({ userInventory, onUpdate, showCustomForm, setShowCustomForm }) => {
     const standardIngredients = ingredientCategories;
     const [activeCategory, setActiveCategory] = useState(null);
     const [customName, setCustomName] = useState('');
     const [customCategory, setCustomCategory] = useState('');
-    const [showCustomForm, setShowCustomForm] = useState(false);
+
+    // Internal state fallback if props not provided
+    const [internalShowForm, setInternalShowForm] = useState(false);
+    const isFormVisible = showCustomForm !== undefined ? showCustomForm : internalShowForm;
+    const triggerShowForm = setShowCustomForm || setInternalShowForm;
 
     const handleToggle = async (ing_id, is_active) => {
         try {
@@ -30,7 +34,7 @@ const IngredientManager = ({ userInventory, onUpdate }) => {
             await inventoryStorage.addCustomIngredient(customName.trim(), customCategory.trim());
             setCustomName('');
             setCustomCategory('');
-            setShowCustomForm(false);
+            triggerShowForm(false);
             onUpdate();
         } catch (error) {
             console.error("Add custom failed", error);
@@ -41,7 +45,7 @@ const IngredientManager = ({ userInventory, onUpdate }) => {
     const handleCancelCustom = () => {
         setCustomName('');
         setCustomCategory('');
-        setShowCustomForm(false);
+        triggerShowForm(false);
     };
 
     const categories = useMemo(() => {
@@ -91,30 +95,11 @@ const IngredientManager = ({ userInventory, onUpdate }) => {
     };
 
     return (
-        <div className="im-container">
-            <div className="im-header-row">
-                <div>
-                    <h2 className="im-storage-title">我的存储</h2>
-                    <p className="im-storage-count">
-                        {new Set([
-                            ...(userInventory.standard || []).filter(i => i.in_stock).map(i => i.name_cn || i.name),
-                            ...(userInventory.custom || []).filter(i => i.in_stock).map(i => i.name_cn || i.name)
-                        ].filter(Boolean)).size} 味原料
-                    </p>
-                </div>
-                {!showCustomForm && (
-                    <button
-                        onClick={() => setShowCustomForm(true)}
-                        className="im-custom-btn"
-                    >
-                        <Plus size={14} />
-                        自定义
-                    </button>
-                )}
-            </div>
+        <div className="im-container no-scrollbar">
+            {/* Redundent header removed, handled by parent App.js */}
 
             {/* Custom Ingredient Form */}
-            {showCustomForm && (
+            {isFormVisible && (
                 <div className="im-custom-form">
                     <h3 className="im-custom-form-title">添加自定义原料</h3>
                     <input

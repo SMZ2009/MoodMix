@@ -257,7 +257,7 @@ const MoodInputSection = ({
         {/* 输入框 */}
         <div className="w-full max-w-[28rem] relative mx-auto z-10">
           <div
-            className="flex items-center h-14 bg-white/95 backdrop-blur-2xl rounded-full border border-gray-200/70 shadow-xl pl-5 pr-3 focus-within:border-amber-400/60 focus-within:shadow-amber-100/60 transition-all duration-300"
+            className="flex items-center h-14 bg-white/95 backdrop-blur-2xl rounded-full border border-gray-200/70 shadow-xl pl-5 pr-3 focus-within:border-[#3c3b36]/40 focus-within:shadow-lg focus-within:shadow-black/5 transition-all duration-300"
             style={{ boxShadow: 'rgba(0, 0, 0, 0.08) 0px 6px 24px, rgba(255, 255, 255, 0.9) 0px 1px 0px inset', borderRadius: '32px' }}
           >
             <div className="flex-1 relative">
@@ -283,7 +283,7 @@ const MoodInputSection = ({
               onClick={onGenerate}
               disabled={!moodInput.trim() || isMixing}
               className={`w-10 h-10 flex items-center justify-center rounded-full ml-2 transition-all duration-300 flex-shrink-0 ${moodInput.trim() && !isMixing
-                ? 'bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-lg hover:shadow-xl hover:scale-105 active:scale-95'
+                ? 'bg-gradient-to-br from-[#3c3b36] to-[#1a1a1a] text-[#f7f0e4] shadow-lg hover:shadow-xl hover:scale-105 active:scale-95'
                 : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                 }`}
               style={{ boxShadow: 'rgba(0, 0, 0, 0.05) 0px 2px 6px' }}
@@ -296,10 +296,10 @@ const MoodInputSection = ({
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
-                strokeWidth="2"
+                strokeWidth="2.5"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className={moodInput.trim() && !isMixing ? 'text-white' : 'text-gray-400'}
+                className={moodInput.trim() && !isMixing ? 'text-[#f7f0e4]' : 'text-gray-400'}
                 aria-hidden="true"
               >
                 <path d="m5 12 7-7 7 7" />
@@ -1259,6 +1259,7 @@ const App = () => {
   });
   const [isSideNavOpen, setIsSideNavOpen] = useState(false);
   const [showIngredientLibrary, setShowIngredientLibrary] = useState(false);
+  const [showIngredientCustomForm, setShowIngredientCustomForm] = useState(false);
 
   // Track if session ingredients have been initialized from inventory
   const isSessionInitialized = useRef(false);
@@ -2184,8 +2185,9 @@ const App = () => {
           }}
           className="fixed inset-0 z-[150] flex flex-col bg-dreamy-gradient w-full h-[100vh] overflow-hidden"
         >
-          <div className="im-page-header">
-            <div className="flex items-center">
+          {/* Redesigned Minimal Header */}
+          <div className="flex items-center justify-between px-6 pt-8 pb-4">
+            <div className="flex items-center gap-4">
               <button
                 onClick={() => {
                   fetchInventory();
@@ -2195,15 +2197,51 @@ const App = () => {
                   setShowRecommendationGallery(false);
                   setMixMode('home');
                 }}
-                className="im-back-btn"
+                className="w-10 h-10 flex items-center justify-center rounded-full bg-black/5 text-gray-800 hover:bg-black/10 transition-colors"
               >
                 <ChevronLeft size={20} />
               </button>
-              <h1 className="im-page-title">原料库</h1>
+              <div>
+                <h1 className="text-xl font-bold tracking-tight text-gray-800" style={{ fontFamily: '"Songti SC", serif' }}>原料</h1>
+                <p className="text-[10px] text-gray-400 mt-0.5 tracking-[0.2em] font-medium" style={{ fontFamily: '"Songti SC", serif' }}>
+                  {new Set([
+                    ...(userInventory.standard || []).filter(i => i.in_stock).map(i => i.name_cn || i.name),
+                    ...(userInventory.custom || []).filter(i => i.in_stock).map(i => i.name_cn || i.name)
+                  ].filter(Boolean)).size} 味存货
+                </p>
+              </div>
             </div>
+
+            {!showIngredientCustomForm && (
+              <InteractiveButton
+                variant="primary"
+                onClick={() => setShowIngredientCustomForm(true)}
+                style={{
+                  background: 'linear-gradient(135deg, #3c3b36 0%, #2c2b26 100%)',
+                  color: '#f7f0e4',
+                  fontFamily: '"Songti SC", serif',
+                  fontSize: '0.875rem',
+                  paddingLeft: '1.25rem',
+                  paddingRight: '1.25rem',
+                  letterSpacing: '0.1em',
+                  fontWeight: 'bold',
+                  height: '2.5rem'
+                }}
+                className="flex items-center gap-2"
+              >
+                <Plus size={14} />
+                自定义
+              </InteractiveButton>
+            )}
           </div>
-          <div className="flex-1 overflow-hidden p-6">
-            <IngredientManager userInventory={userInventory} onUpdate={fetchInventory} />
+
+          <div className="flex-1 overflow-hidden px-6 pb-2">
+            <IngredientManager
+              userInventory={userInventory}
+              onUpdate={fetchInventory}
+              showCustomForm={showIngredientCustomForm}
+              setShowCustomForm={setShowIngredientCustomForm}
+            />
           </div>
         </div>
       )}

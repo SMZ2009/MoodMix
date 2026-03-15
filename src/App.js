@@ -7,7 +7,7 @@ import {
   Sparkles, Lightbulb, GlassWater,
   Users, HeartOff, Loader2, Camera, X, Menu, ArrowLeft, Download, CheckCircle, Share2
 } from 'lucide-react';
-import { QRCodeSVG } from 'qrcode.react';
+import { QRCodeSVG, QRCodeCanvas } from 'qrcode.react';
 
 import { inventoryStorage, favoriteStorage, collectionStorage, customDrinkStorage } from './store/localStorageAdapter';
 import HelperModal from './components/HelperModal';
@@ -72,13 +72,32 @@ function getImageDisplayStyle(imgWidth, imgHeight) {
 
 /**
  * 分享卡片图片组件 - 自适应比例
+ * 图片 onLoad 时读取 naturalWidth/naturalHeight：
+ * - 宽高比 >1.4：aspect-ratio 16/10
+ * - 宽高比 0.9-1.4：aspect-ratio 4/3
+ * - 宽高比 0.55-0.9：保留原比例，max-height 420px
+ * - 宽高比 <0.55：aspect-ratio 9/16，max-height 450px
  */
 const ShareCardImage = ({ src }) => {
   const [style, setStyle] = useState({ aspectRatio: '4/3', objectFit: 'cover' });
 
   const handleLoad = (e) => {
     const { naturalWidth, naturalHeight } = e.target;
-    setStyle(getImageDisplayStyle(naturalWidth, naturalHeight));
+    const ratio = naturalWidth / naturalHeight;
+    
+    if (ratio > 1.4) {
+      // 极宽横图：裁切为 16:10
+      setStyle({ aspectRatio: '16/10', objectFit: 'cover' });
+    } else if (ratio >= 0.9) {
+      // 普通横图或方图：裁切为 4:3
+      setStyle({ aspectRatio: '4/3', objectFit: 'cover' });
+    } else if (ratio >= 0.55) {
+      // 普通竖图：保留原比例，限制最大高度
+      setStyle({ maxHeight: '420px', objectFit: 'cover' });
+    } else {
+      // 极窄竖图：裁切为 9:16 上限
+      setStyle({ aspectRatio: '9/16', objectFit: 'cover', maxHeight: '450px' });
+    }
   };
 
   return (
@@ -92,6 +111,7 @@ const ShareCardImage = ({ src }) => {
           ...style,
         }}
         alt="drink"
+        crossOrigin="anonymous"
       />
     </div>
   );
@@ -99,18 +119,19 @@ const ShareCardImage = ({ src }) => {
 
 /**
  * Redesigned Share Card Component (DOM-based)
+ * 完整卡片布局，二维码包含在卡片内部
  */
 const ShareCard = React.forwardRef(({ drinkName, emotion, wuxing, imageSrc, llmCopy, qrCodeSrc }, ref) => {
-  const today = new Date().toLocaleDateString('zh-CN', {
-    year: 'numeric', month: 'long', day: 'numeric'
-  });
+  // 日期格式：2026.03.15
+  const today = new Date();
+  const formattedDate = `${today.getFullYear()}.${String(today.getMonth() + 1).padStart(2, '0')}.${String(today.getDate()).padStart(2, '0')}`;
 
   return (
     <div ref={ref} className="share-card">
       {/* 顶部品牌栏 */}
       <div className="card-header">
         <span className="brand">MoodMix | 心绪调饮</span>
-        <span className="date">{today}</span>
+        <span className="date">{formattedDate}</span>
       </div>
 
       {/* 图片区域 - 自适应比例 */}
@@ -125,11 +146,15 @@ const ShareCard = React.forwardRef(({ drinkName, emotion, wuxing, imageSrc, llmC
         <p className="wuxing-line">{wuxing}</p>
       </div>
 
-      {/* 底部引流区 */}
+      {/* 底部引流区（卡片内部，border-top 分隔） */}
       <div className="card-footer">
         <span className="cta">扫码试试你的情绪饮品</span>
-        <div className="qr-code-placeholder">
-          {qrCodeSrc ? <img src={qrCodeSrc} alt="QC" className="w-full h-full p-1" /> : <Sparkles size={16} className="text-[#a09382]/40" />}
+        <div className="qr-code-box">
+          {qrCodeSrc ? (
+            <img src={qrCodeSrc} alt="QR Code" className="qr-code-img" />
+          ) : (
+            <Sparkles size={18} className="text-[#a09382]/50" />
+          )}
         </div>
       </div>
     </div>
@@ -1132,32 +1157,90 @@ const BulbIcon = ({ isDaka }) => (
 const DrinkDetailSection = ({ drink, checkedIngredients, onToggleIngredient, onBack, onMore, onFocusMode, currentStep, cardFeedback, isLiked, onLikeDrink, isDaka, onDakaDrink, onHelp }) => {
   const [shareCardUrl, setShareCardUrl] = useState(null);
   const [isGeneratingShare, setIsGeneratingShare] = useState(false);
+  const [llmCopy, setLlmCopy] = useState('');
+  const [qrCodeDataUrl, setQrCodeDataUrl] = useState(null);
+  const cardRef = useRef(null);
+  const qrCanvasRef = useRef(null);
 
   if (!drink) return null;
 
   const drinkIngredients = drink.ingredients || [];
   const drinkSteps = drink.steps || [{ title: '第一步', desc: drink.reason || '开始享用' }];
 
+  // 生成分享链接
+  const getShareLink = () => {
+    const baseUrl = window.location.origin;
+    return `${baseUrl}?drink=${encodeURIComponent(drink.name)}`;
+  };
+
   const handleShare = async () => {
     setIsGeneratingShare(true);
     try {
-      const cardUrl = await generateShareCard({
-        drink,
-        note: drink.reason || '',
-        date: new Date()
-      });
-      setShareCardUrl(cardUrl);
+      // 0. 生成二维码数据 URL
+      if (qrCanvasRef.current) {
+        const qrCanvas = qrCanvasRef.current.querySelector('canvas');
+        if (qrCanvas) {
+          const qrUrl = qrCanvas.toDataURL('image/png');
+          setQrCodeDataUrl(qrUrl);
+        }
+      }
+
+      // 1. 获取 LLM 文案
+      const prompt = `你是 MoodMix 的文案诗人。请为分享卡片生成一段情绪文案。
+
+要求：
+- 2-3 句话，总字数控制在 30-50 字
+- 东方诗意的克制感，像朋友间的低语
+- 结合饮品的具体感官细节（颜色、温度、口感、气味）
+- 温柔地回应用户当下的情绪，给予认可或鼓励
+- 不要说教，不要鸡汤，不要感叹号
+
+输入信息：
+- 饮品名：${drink.name}
+- 推荐理由：${drink.reason || '无'}
+- 五行属性：${drink.dimensions?.wuxing || '未知'}
+
+请直接输出文案，不要任何前缀或解释。`;
+
+      // 使用专用的 SOCIAL_CARD 任务类型
+      const agentResult = await executeMixologyTask('SOCIAL_CARD', { drink, prompt });
+
+      // 安全提取文案
+      let poeticalCopy = '岁序更迭，此情可待';
+      if (agentResult && agentResult.success && agentResult.data && typeof agentResult.data.copy === 'string') {
+        poeticalCopy = agentResult.data.copy;
+      } else if (typeof agentResult === 'string') {
+        poeticalCopy = agentResult;
+      }
+
+      setLlmCopy(poeticalCopy);
+
+      // Wait for state to update
+      await new Promise(resolve => setTimeout(resolve, 800));
+
+      // 再次获取二维码（确保状态已更新）
+      if (qrCanvasRef.current) {
+        const qrCanvas = qrCanvasRef.current.querySelector('canvas');
+        if (qrCanvas) {
+          const qrUrl = qrCanvas.toDataURL('image/png');
+          setQrCodeDataUrl(qrUrl);
+        }
+      }
+
+      await new Promise(resolve => setTimeout(resolve, 200));
+
+      // 2. 将 DOM 生成图片
+      if (cardRef.current) {
+        const blob = await exportShareCard(cardRef.current);
+        const imageUrl = URL.createObjectURL(blob);
+        setShareCardUrl(imageUrl);
+      }
     } catch (error) {
       console.error('Failed to generate share card:', error);
       alert('生成分享卡片失败，请稍后重试');
     } finally {
       setIsGeneratingShare(false);
     }
-  };
-
-  const getShareLink = () => {
-    const baseUrl = window.location.origin;
-    return `${baseUrl}?drink=${encodeURIComponent(drink.name)}`;
   };
 
   const handleCopyLink = () => {
@@ -1393,51 +1476,65 @@ const DrinkDetailSection = ({ drink, checkedIngredients, onToggleIngredient, onB
               </div>
             </div>
             <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem', fontFamily: '"Songti SC",serif', color: 'white' }}>分享卡片已生成</h2>
-            <p style={{ color: 'rgba(255,255,255,0.6)', marginBottom: '1.5rem', fontSize: '0.875rem' }}>长按保存图片或扫描二维码分享</p>
+            <p style={{ color: 'rgba(255,255,255,0.6)', marginBottom: '1.5rem', fontSize: '0.875rem' }}>长按保存图片或扫码分享</p>
 
-            <div className="relative w-full rounded-xl overflow-hidden mb-4 shadow-2xl border border-white/10 bg-black/20 flex items-center justify-center">
-              <img src={shareCardUrl} alt="Share Card" className="max-w-full max-h-[70vh] object-contain" />
+            <div className="relative w-full rounded-xl overflow-hidden mb-4 shadow-2xl border border-white/10 bg-black/20" style={{ maxHeight: '60vh', overflowY: 'auto' }}>
+              <img src={shareCardUrl} alt="Share Card" className="w-full h-auto object-contain" />
             </div>
 
-            {/* 二维码区域 */}
-            <div className="mb-4 flex flex-col items-center">
-              <div 
-                className="bg-white p-4 rounded-xl shadow-lg mb-2 cursor-pointer select-none"
-                onTouchStart={() => {
-                  const timer = setTimeout(() => {
-                    handleCopyLink();
-                  }, 500);
-                  const clearTimer = () => clearTimeout(timer);
-                  document.addEventListener('touchend', clearTimer, { once: true });
-                  document.addEventListener('touchmove', clearTimer, { once: true });
+            <div className="flex flex-col gap-3">
+              <InteractiveButton
+                variant="primary"
+                onClick={handleDownloadImage}
+                fullWidth
+                style={{
+                  background: 'linear-gradient(135deg, #3c3b36 0%, #1a1a1a 100%)',
+                  color: '#f7f0e4',
+                  fontFamily: '"Songti SC", serif',
+                  letterSpacing: '0.15em',
+                  fontWeight: 'bold'
                 }}
-                onMouseDown={() => {
-                  const timer = setTimeout(() => {
-                    handleCopyLink();
-                  }, 500);
-                  const clearTimer = () => clearTimeout(timer);
-                  document.addEventListener('mouseup', clearTimer, { once: true });
-                  document.addEventListener('mousemove', clearTimer, { once: true });
-                }}
+                className="flex items-center justify-center gap-2"
               >
-                <QRCodeSVG 
-                  value={getShareLink()}
-                  size={180}
-                  level="H"
-                  includeMargin={false}
-                  bgColor="#ffffff"
-                  fgColor="#000000"
-                />
-              </div>
-              <p style={{ color: '#000000', fontSize: '0.75rem', fontFamily: '"Songti SC", serif' }}>
-                长按二维码复制链接
-              </p>
+                <Download size={18} />
+                保存图片
+              </InteractiveButton>
+              <InteractiveButton
+                variant="text"
+                onClick={() => setShareCardUrl(null)}
+                fullWidth
+                style={{ fontFamily: '"Songti SC", serif', color: 'rgba(255,255,255,0.5)', letterSpacing: '0.1em' }}
+              >
+                返回
+              </InteractiveButton>
             </div>
-
-
           </div>
         </Modal>
       )}
+
+      {/* Hidden Share Card for generating image */}
+      <div style={{ position: 'fixed', left: '-2000px', top: '0', pointerEvents: 'none', zIndex: -1 }}>
+        {/* Hidden QR Code Canvas */}
+        <div ref={qrCanvasRef} style={{ width: '88px', height: '88px' }}>
+          <QRCodeCanvas
+            value={getShareLink()}
+            size={88}
+            level="M"
+            includeMargin={false}
+            bgColor="#ffffff"
+            fgColor="#3a3226"
+          />
+        </div>
+        <ShareCard
+          ref={cardRef}
+          drinkName={drink.name}
+          emotion={drink.dimensions?.mood || '悠然'}
+          wuxing={drink.dimensions?.wuxing ? `五行属${drink.dimensions.wuxing}` : '五行调和'}
+          imageSrc={drink.image}
+          llmCopy={llmCopy}
+          qrCodeSrc={qrCodeDataUrl}
+        />
+      </div>
     </div>
   );
 };
@@ -2536,8 +2633,16 @@ const DakaModal = ({ drink, onClose, onSave }) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [shareCardUrl, setShareCardUrl] = useState(null);
   const [llmCopy, setLlmCopy] = useState('');
+  const [qrCodeDataUrl, setQrCodeDataUrl] = useState(null);
   const fileInputRef = useRef(null);
   const cardRef = useRef(null);
+  const qrCanvasRef = useRef(null);
+
+  // 生成分享链接
+  const getShareLink = () => {
+    const baseUrl = window.location.origin;
+    return `${baseUrl}?drink=${encodeURIComponent(drink.name)}`;
+  };
 
   const handleImageUpload = (e) => {
     const file = e.target.files?.[0];
@@ -2563,6 +2668,15 @@ const DakaModal = ({ drink, onClose, onSave }) => {
   const handleSave = async () => {
     setIsGenerating(true);
     try {
+      // 0. 生成二维码数据 URL
+      if (qrCanvasRef.current) {
+        const qrCanvas = qrCanvasRef.current.querySelector('canvas');
+        if (qrCanvas) {
+          const qrUrl = qrCanvas.toDataURL('image/png');
+          setQrCodeDataUrl(qrUrl);
+        }
+      }
+
       // 1. 获取 LLM 文案
       const prompt = `你是 MoodMix 的文案诗人。请为分享卡片生成一段情绪文案。
 
@@ -2600,6 +2714,19 @@ const DakaModal = ({ drink, onClose, onSave }) => {
       // Wait for state to update and images to load
       // We'll use a small timeout to ensure DOM is ready
       await new Promise(resolve => setTimeout(resolve, 800));
+
+      // 再次获取二维码（确保状态已更新）
+      let finalQrUrl = qrCodeDataUrl;
+      if (qrCanvasRef.current) {
+        const qrCanvas = qrCanvasRef.current.querySelector('canvas');
+        if (qrCanvas) {
+          finalQrUrl = qrCanvas.toDataURL('image/png');
+          setQrCodeDataUrl(finalQrUrl);
+        }
+      }
+
+      // Wait a bit more for QR code to update in ShareCard
+      await new Promise(resolve => setTimeout(resolve, 200));
 
       // 2. 将 DOM 生成图片
       if (cardRef.current) {
@@ -2759,6 +2886,17 @@ const DakaModal = ({ drink, onClose, onSave }) => {
 
         {/* Hidden Share Card for generating image */}
         <div style={{ position: 'fixed', left: '-2000px', top: '0', pointerEvents: 'none', zIndex: -1 }}>
+          {/* Hidden QR Code Canvas for generating data URL */}
+          <div ref={qrCanvasRef} style={{ width: '88px', height: '88px' }}>
+            <QRCodeCanvas
+              value={getShareLink()}
+              size={88}
+              level="M"
+              includeMargin={false}
+              bgColor="#ffffff"
+              fgColor="#3a3226"
+            />
+          </div>
           <ShareCard
             ref={cardRef}
             drinkName={drink.name}
@@ -2766,6 +2904,7 @@ const DakaModal = ({ drink, onClose, onSave }) => {
             wuxing={drink.dimensions?.wuxing ? `五行属${drink.dimensions.wuxing}` : '五行调和'}
             imageSrc={customImage || drink.image}
             llmCopy={llmCopy}
+            qrCodeSrc={qrCodeDataUrl}
           />
         </div>
       </div>

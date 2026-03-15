@@ -1583,7 +1583,7 @@ const App = () => {
 
   // 右滑显示侧边导航栏
   const swipeGesture = useSwipeGesture({
-    enabled: !currentDrink && !isFocusMode,
+    enabled: !currentDrink && !isFocusMode && !showRecommendationGallery,
     onSwipeRight: () => {
       console.log('右滑 detected, opening side nav');
       setIsSideNavOpen(true);

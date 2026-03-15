@@ -18,6 +18,17 @@ require('dotenv').config({ path: path.resolve(__dirname, '..', '.env') });
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const buildPath = path.join(__dirname, '..', 'build');
+
+// 优先使用原生 fetch (Node 18+)，否则回退到 node-fetch
+const getFetch = async () => {
+  if (typeof global !== 'undefined' && global.fetch) return global.fetch;
+  try {
+    return (await import('node-fetch')).default;
+  } catch (e) {
+    return null;
+  }
+};
 
 // 信任代理（用于 Render.com 等云平台）
 app.set('trust proxy', 1);
@@ -42,19 +53,20 @@ const COCKTAILDB_BASE = 'https://www.thecocktaildb.com/api/json/v1/1';
 app.use('/api/cocktaildb', async (req, res) => {
   const path = req.originalUrl.replace('/api/cocktaildb', '') || '/';
   const targetUrl = `${COCKTAILDB_BASE}${path}`;
-  
+
   console.log('[CocktailDB Proxy]', req.method, targetUrl);
-  
+
   try {
+    const fetch = await getFetch();
     const response = await fetch(targetUrl);
     const status = response.status;
     const text = await response.text();
     console.log('[CocktailDB] Status:', status, 'Body:', text.substring(0, 200));
-    
+
     if (status !== 200) {
       return res.status(status).json({ error: 'CocktailDB API error', status, body: text });
     }
-    
+
     const data = JSON.parse(text);
     res.json(data);
   } catch (error) {
@@ -111,6 +123,7 @@ app.post('/api/analyze_mood', async (req, res) => {
     console.log('[API] Calling SiliconFlow API, model:', SILICONFLOW_MODEL);
 
     // 调用 SiliconFlow API
+    const fetch = await getFetch();
     const response = await fetch(SILICONFLOW_API_URL, {
       method: 'POST',
       headers: {
@@ -404,7 +417,7 @@ app.post('/api/analyze_mood_stream', async (req, res) => {
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
-      
+
       const chunkText = decoder.decode(value, { stream: true });
       const shouldContinue = processChunk(chunkText);
       if (!shouldContinue) break;
@@ -498,6 +511,7 @@ ${user_input.trim()}
 3. vectorResult: 八维特征向量`;
 
     // 调用 SiliconFlow API
+    const fetch = await getFetch();
     const response = await fetch(SILICONFLOW_API_URL, {
       method: 'POST',
       headers: {
@@ -529,7 +543,7 @@ ${user_input.trim()}
 
     // 解析 AI 响应，提取三个部分
     let moodData, patternAnalysis, vectorResult;
-    
+
     try {
       const jsonMatch = aiMessage.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
@@ -624,6 +638,7 @@ app.post('/api/generate-drink-dimensions', async (req, res) => {
 请根据以上信息，结合你的专业知识推断合理的风味向量。`;
 
     console.log(`[DrinkDimensions] Requesting analysis for "${name}"...`);
+    const fetch = await getFetch();
     const response = await fetch(SILICONFLOW_API_URL, {
       method: 'POST',
       headers: {
@@ -738,6 +753,7 @@ ${question}
 
 请给出实用建议。`;
 
+    const fetch = await getFetch();
     const response = await fetch(SILICONFLOW_API_URL, {
       method: 'POST',
       headers: {
@@ -832,6 +848,7 @@ ${JSON.stringify(fullContext, null, 2)}
       controller.abort();
     }, 25000);
 
+    const fetch = await getFetch();
     const response = await fetch(SILICONFLOW_API_URL, {
       method: 'POST',
       headers: {
@@ -903,7 +920,7 @@ ${JSON.stringify(fullContext, null, 2)}
 
   } catch (error) {
     console.error('Error in /api/validate_optimize:', error);
-    
+
     // 如果是超时错误，返回降级响应而不是500错误
     if (error.name === 'AbortError') {
       console.warn('[API] /api/validate_optimize 请求被中止，返回降级响应');
@@ -920,7 +937,7 @@ ${JSON.stringify(fullContext, null, 2)}
         }
       });
     }
-    
+
     return res.status(500).json({
       success: false,
       error: error.message || 'Internal server error'
@@ -983,7 +1000,7 @@ function parseAIResponse(aiMessage) {
 function generateDefaultPatternAnalysis(moodData) {
   const wuxing = moodData?.emotion?.philosophy?.wuxing || '土';
   const emotion = moodData?.emotion?.physical?.state || '平静';
-  
+
   const wuxingPatterns = {
     '木': { pattern: '肝气郁结', element: '木', recommendation: '疏肝理气' },
     '火': { pattern: '心火偏旺', element: '火', recommendation: '清心降火' },
@@ -991,9 +1008,9 @@ function generateDefaultPatternAnalysis(moodData) {
     '金': { pattern: '肺气不足', element: '金', recommendation: '润肺益气' },
     '水': { pattern: '肾阴亏虚', element: '水', recommendation: '滋阴补肾' }
   };
-  
+
   const pattern = wuxingPatterns[wuxing] || wuxingPatterns['土'];
-  
+
   return {
     diagnosis: pattern.pattern,
     element: pattern.element,
@@ -1006,7 +1023,7 @@ function generateDefaultPatternAnalysis(moodData) {
 // 生成默认的八维特征向量
 function generateDefaultVectorResult(moodData) {
   const wuxing = moodData?.emotion?.philosophy?.wuxing || '土';
-  
+
   const wuxingVectors = {
     '木': [0.8, 0.3, 0.4, 0.2, 0.5, 0.3, 0.6, 0.4],
     '火': [0.3, 0.9, 0.5, 0.3, 0.6, 0.4, 0.5, 0.3],
@@ -1014,7 +1031,7 @@ function generateDefaultVectorResult(moodData) {
     '金': [0.2, 0.4, 0.3, 0.8, 0.3, 0.5, 0.7, 0.4],
     '水': [0.3, 0.2, 0.4, 0.3, 0.8, 0.4, 0.3, 0.7]
   };
-  
+
   return {
     vector: wuxingVectors[wuxing] || wuxingVectors['土'],
     dimensions: ['情绪', '体感', '时间', '季节', '颜色', '味道', '温度', '强度'],
@@ -1027,7 +1044,6 @@ function generateDefaultVectorResult(moodData) {
 // ═══════════════════════════════════════════
 
 // 提供静态文件
-const buildPath = path.join(__dirname, '..', 'build');
 app.use(express.static(buildPath));
 
 // SPA 重定向：所有非 API 请求都返回 index.html

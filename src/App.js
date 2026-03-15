@@ -1327,7 +1327,7 @@ const App = () => {
     tone: 'default'
   });
   const [isSideNavOpen, setIsSideNavOpen] = useState(false);
-    const [showIngredientLibrary, setShowIngredientLibrary] = useState(false);
+  const [showIngredientLibrary, setShowIngredientLibrary] = useState(false);
 
   // Track if session ingredients have been initialized from inventory
   const isSessionInitialized = useRef(false);
@@ -2003,8 +2003,8 @@ const App = () => {
       className={`min-h-screen font-sans w-full relative shadow-2xl overflow-x-hidden flex flex-col transition-colors duration-700 ${getBackgroundClass()}`}
       tabIndex={-1}
     >
-      <LoadingTransition 
-        isLoading={mixMode === 'generating'} 
+      <LoadingTransition
+        isLoading={mixMode === 'generating'}
         loadingText={buttonLoadingText}
       />
       <SideNavigation
@@ -2020,7 +2020,7 @@ const App = () => {
           onClick={() => setIsSideNavOpen(false)}
         />
       )}
-      
+
       {/* Menu button to open sidebar */}
       {!isSideNavOpen && activeTab !== 'mine' && (
         <button
@@ -2246,7 +2246,7 @@ const App = () => {
 
       {/* Ingredient Library Fullscreen */}
       {showIngredientLibrary && (
-        <div 
+        <div
           ref={(el) => {
             ingredientLibrarySwipeGesture.setElementRef(el);
           }}

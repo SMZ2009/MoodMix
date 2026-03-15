@@ -215,18 +215,55 @@ const ShareCard = React.forwardRef(({ drinkName, emotion, wuxing, imageSrc, llmC
 
 async function exportShareCard(cardElement) {
   if (!cardElement) return null;
-  const canvas = await html2canvas(cardElement, {
-    scale: 2,                    // 2倍分辨率，分享到社交平台不模糊
-    backgroundColor: '#faf8f5',  // 卡片底色
-    useCORS: true,               // 允许跨域图片
-    logging: false
-  });
+  
+  try {
+    // 为移动设备添加更兼容的配置
+    const canvas = await html2canvas(cardElement, {
+      scale: 1.5,                  // 降低分辨率以提高移动设备性能
+      backgroundColor: '#faf8f5',  // 卡片底色
+      useCORS: true,               // 允许跨域图片
+      logging: false,
+      // 移动设备兼容性配置
+      allowTaint: true,            // 允许可能的污染
+      letterRendering: true,        // 改善文字渲染
+      // 增加超时设置
+      timeout: 10000               // 10秒超时
+    });
 
-  return new Promise((resolve) => {
-    canvas.toBlob((blob) => {
-      resolve(blob);
-    }, 'image/png');
-  });
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error('Canvas to blob conversion timeout'));
+      }, 5000);
+
+      canvas.toBlob((blob) => {
+        clearTimeout(timeout);
+        if (blob) {
+          resolve(blob);
+        } else {
+          reject(new Error('Failed to create blob from canvas'));
+        }
+      }, 'image/png', 0.9); // 添加质量参数
+    });
+  } catch (error) {
+    console.error('Export share card failed:', error);
+    // 降级方案：返回一个简单的错误占位图片
+    const canvas = document.createElement('canvas');
+    canvas.width = 600;
+    canvas.height = 800;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#faf8f5';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#4c4b46';
+    ctx.font = '16px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('分享卡片生成失败', canvas.width / 2, canvas.height / 2);
+    
+    return new Promise((resolve) => {
+      canvas.toBlob((blob) => {
+        resolve(blob);
+      }, 'image/png');
+    });
+  }
 }
 
 // 默认分类（API 加载后会被替换）
@@ -1310,33 +1347,33 @@ const DrinkDetailSection = ({ drink, checkedIngredients, onToggleIngredient, onB
     try {
       // 直接使用 html2canvas 生成 canvas
       const canvas = await html2canvas(cardRef.current, {
-        scale: 2,
-        backgroundColor: '#faf8f5',
-        useCORS: true,
-        logging: false
+        scale: 1.5,                  // 降低分辨率以提高移动设备性能
+        backgroundColor: '#faf8f5',  // 卡片底色
+        useCORS: true,               // 允许跨域图片
+        logging: false,
+        // 移动设备兼容性配置
+        allowTaint: true,            // 允许可能的污染
+        letterRendering: true,        // 改善文字渲染
+        timeout: 10000               // 10秒超时
       });
 
-      // 将 canvas 转为 blob 并下载
-      canvas.toBlob((blob) => {
-        if (!blob) {
-          console.error('生成 blob 失败');
-          return;
-        }
-
-        // 创建下载链接
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `MoodMix_${drink.name}.png`;
-        document.body.appendChild(link);
-        link.click();
-
-        // 清理
-        setTimeout(() => {
-          document.body.removeChild(link);
-          URL.revokeObjectURL(url);
-        }, 100);
-      }, 'image/png');
+      // 使用 toDataURL 直接获取 PNG 数据
+      const dataURL = canvas.toDataURL('image/png', 0.9);
+      
+      // 创建下载链接
+      const link = document.createElement('a');
+      link.href = dataURL;
+      link.download = `MoodMix_${drink.name}.png`;
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      
+      // 触发下载
+      link.click();
+      
+      // 清理
+      setTimeout(() => {
+        document.body.removeChild(link);
+      }, 100);
     } catch (error) {
       console.error('下载失败:', error);
       alert('保存失败，请稍后重试');
@@ -2840,25 +2877,37 @@ const DakaModal = ({ drink, onClose, onSave }) => {
   };
 
   const downloadImage = async () => {
-    if (!shareCardUrl) return;
+    if (!cardRef.current) return;
     try {
-      // 对于移动设备，尝试使用更可靠的下载方法
-      if ('download' in document.createElement('a')) {
-        const link = document.createElement('a');
-        link.href = shareCardUrl;
-        link.download = `MoodMix_Daka_${drink.name}.png`;
-        document.body.appendChild(link);
-        // 在移动设备上，需要触发真实的点击事件
-        link.dispatchEvent(new MouseEvent('click', {
-          bubbles: true,
-          cancelable: true,
-          view: window
-        }));
+      // 直接使用 html2canvas 生成 canvas
+      const canvas = await html2canvas(cardRef.current, {
+        scale: 1.5,                  // 降低分辨率以提高移动设备性能
+        backgroundColor: '#faf8f5',  // 卡片底色
+        useCORS: true,               // 允许跨域图片
+        logging: false,
+        // 移动设备兼容性配置
+        allowTaint: true,            // 允许可能的污染
+        letterRendering: true,        // 改善文字渲染
+        timeout: 10000               // 10秒超时
+      });
+
+      // 使用 toDataURL 直接获取 PNG 数据
+      const dataURL = canvas.toDataURL('image/png', 0.9);
+      
+      // 创建下载链接
+      const link = document.createElement('a');
+      link.href = dataURL;
+      link.download = `MoodMix_Daka_${drink.name}.png`;
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      
+      // 触发下载
+      link.click();
+      
+      // 清理
+      setTimeout(() => {
         document.body.removeChild(link);
-      } else {
-        // 降级方案：在新窗口打开图片，让用户手动保存
-        window.open(shareCardUrl, '_blank');
-      }
+      }, 100);
     } catch (error) {
       console.error('下载失败:', error);
       alert('保存失败，请稍后重试');

@@ -2750,7 +2750,11 @@ const DakaModal = ({ drink, onClose, onSave }) => {
   if (shareCardUrl) {
     return (
       <Modal isOpen={true} onClose={onClose} position="center">
-        <div style={{ background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(40px) saturate(1.2)', WebkitBackdropFilter: 'blur(40px) saturate(1.2)', border: '1px solid rgba(255,255,255,0.15)', boxShadow: '0 8px 32px rgba(0,0,0,0.08)' }} className="rounded-2xl p-6 w-full max-w-sm mx-auto text-center">
+        <div
+          style={{ background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(40px) saturate(1.2)', WebkitBackdropFilter: 'blur(40px) saturate(1.2)', border: '1px solid rgba(255,255,255,0.15)', boxShadow: '0 8px 32px rgba(0,0,0,0.08)' }}
+          className="rounded-2xl p-6 w-full max-w-sm mx-auto text-center"
+          onClick={(e) => e.stopPropagation()}
+        >
           <div className="flex justify-center mb-4">
             <div className="w-12 h-12 bg-green-500/20 rounded-full flex items-center justify-center text-green-400 mb-2">
               <CheckCircle size={24} />

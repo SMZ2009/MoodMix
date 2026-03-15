@@ -170,8 +170,9 @@ app.post('/api/analyze_mood', async (req, res) => {
   }
 
   try {
-    // 动态 import node-fetch (ESM)
-    const fetch = (await import('node-fetch')).default;
+    // 动态获取 fetch 实现
+    const fetch = await getFetch();
+    if (!fetch) throw new Error('Fetch implementation not found');
 
     const timeInfo = current_time || new Date().toISOString();
 
@@ -1419,12 +1420,13 @@ app.post('/api/speech-to-text', async (req, res) => {
 });
 
 // ─── 启动服务器 ───
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   const hasKey = process.env.SILICONFLOW_API_KEY && process.env.SILICONFLOW_API_KEY !== 'your_key_here';
   console.log(`\n🍹 MoodMix SiliconFlow 代理服务已启动`);
   console.log(`   端口: ${PORT}`);
   console.log(`   模型: ${MODEL_8B}`);
   console.log(`   API Key: ${hasKey ? '✅ 已配置' : '❌ 未配置 — 请在 .env 中设置 SILICONFLOW_API_KEY'}`);
+  console.log(`   网络: 已绑定到 0.0.0.0，允许局域网访问`);
   console.log(`   端点:`);
   console.log(`     - POST http://localhost:${PORT}/api/analyze_mood`);
   console.log(`     - POST http://localhost:${PORT}/api/speech-to-text\n`);

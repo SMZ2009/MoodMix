@@ -1318,7 +1318,7 @@ const App = () => {
       const updatedDakaDrinks = collectionStorage.getDakaNotes();
       setDakaDrinks(updatedDakaDrinks);
     }
-    handleCloseDakaModal();
+    // handleCloseDakaModal(); // Removed to allow DakaModal to show share card preview
   };
 
   const handleRequestDeleteNote = (drinkId) => {

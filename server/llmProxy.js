@@ -714,7 +714,7 @@ app.post('/api/comprehensive_analyze', async (req, res) => {
       model: model,
       temperature: 0.3,  // 低温度 = 更快、更稳定的 JSON 输出
       jsonMode: true,
-      timeout: 25000,
+      timeout: 45000,
       maxRetries: 1      // 减少重试次数，配合验证兜底
     });
 
@@ -723,7 +723,7 @@ app.post('/api/comprehensive_analyze', async (req, res) => {
 
     // 验证并补全响应数据
     const validatedData = validateAndCompleteComprehensiveData(data, user_input);
-    
+
     res.json({ success: true, data: validatedData });
   } catch (error) {
     console.error('[ComprehensiveAnalyze Error] 聚合流程中断:', error.message);
@@ -744,13 +744,13 @@ app.post('/api/comprehensive_analyze', async (req, res) => {
  */
 function validateAndCompleteComprehensiveData(data, userInput) {
   const result = { ...data };
-  
+
   // 检测情绪倾向 (简单规则)
   const positiveKeywords = ['开心', '高兴', '快乐', '幸福', '兴奋', '愉快', '喜悦', '舒畅', '满足', '美好', '棒', '好'];
   const negativeKeywords = ['难过', '伤心', '沮丧', '焦虑', '烦躁', '疲惫', '累', '压力', '郁闷', '生气', '愤怒', '失落'];
   const isPositive = positiveKeywords.some(k => userInput.includes(k));
   const isNegative = negativeKeywords.some(k => userInput.includes(k));
-  
+
   // 1. 确保 moodData 存在且完整
   if (!result.moodData || typeof result.moodData !== 'object') {
     console.warn('[ComprehensiveAnalyze] moodData 缺失，使用降级默认值');
@@ -762,7 +762,7 @@ function validateAndCompleteComprehensiveData(data, userInput) {
       ...result.moodData
     };
   }
-  
+
   // 2. 确保 patternAnalysis 存在且完整
   if (!result.patternAnalysis || typeof result.patternAnalysis !== 'object') {
     console.warn('[ComprehensiveAnalyze] patternAnalysis 缺失，使用降级默认值');
@@ -773,7 +773,7 @@ function validateAndCompleteComprehensiveData(data, userInput) {
       ...result.patternAnalysis
     };
   }
-  
+
   // 3. 确保 vectorResult 存在且完整
   if (!result.vectorResult || typeof result.vectorResult !== 'object') {
     console.warn('[ComprehensiveAnalyze] vectorResult 缺失，使用降级默认值');
@@ -791,7 +791,7 @@ function validateAndCompleteComprehensiveData(data, userInput) {
       result.vectorResult.priorities = ['emotion', 'temperature', 'aroma'];
     }
   }
-  
+
   console.log('[ComprehensiveAnalyze] 数据验证完成，所有模块已就绪');
   return result;
 }

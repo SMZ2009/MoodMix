@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 
 const PHASES = [
   {
@@ -33,31 +33,84 @@ const PHASES = [
 const AlchemyLiquid = ({ phase, isActive }) => {
   const currentPhase = PHASES[phase];
 
+  // Generative "Soul Seeds" / Spiritual Particles - Increased density
+  const particles = useMemo(() => {
+    return Array.from({ length: 70 }).map((_, i) => ({
+      id: i,
+      x: Math.random() * 200,
+      y: Math.random() * 200,
+      size: Math.random() * 1.2 + 0.3, // Tiny, dust-like
+      dur: 8 + Math.random() * 10, // Slower, more ethereal
+      delay: Math.random() * -20,
+      tx: (Math.random() - 0.5) * 80,
+      ty: (Math.random() - 0.5) * 80,
+    }));
+  }, []);
+
   return (
-    <div className="relative w-72 h-72 flex items-center justify-center">
-      <svg viewBox="0 0 200 200" className="w-full h-full ink-svg">
+    <div className="relative w-80 h-80 flex items-center justify-center">
+      {/* Background nebulous glow */}
+      <div
+        className="absolute inset-x-8 inset-y-8 rounded-full blur-[60px] animate-[nebulous-pulse_8s_infinite_ease-in-out]"
+        style={{ background: `radial-gradient(circle, ${currentPhase.accent}40 0%, transparent 70%)` }}
+      />
+
+      <svg viewBox="0 0 200 200" className="w-full h-full ink-svg relative z-10">
         <defs>
-          <filter id="goo">
-            <feGaussianBlur in="SourceGraphic" stdDeviation="12" result="blur" />
-            <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 20 -9" result="goo" />
+          {/* Advanced Organic Filter */}
+          <filter id="organic-goo" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="10" result="blur" />
+            <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 19 -9" result="goo" />
+
+            {/* Organic displacement mapping for dreaming texture */}
+            <feTurbulence type="fractalNoise" baseFrequency="0.015" numOctaves="4" seed={phase} result="noise">
+              <animate attributeName="baseFrequency" values="0.015;0.025;0.015" dur="12s" repeatCount="indefinite" />
+            </feTurbulence>
+            <feDisplacementMap in="goo" in2="noise" scale="25" xChannelSelector="R" yChannelSelector="G" />
           </filter>
+
+          <radialGradient id="soulGrad" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor={currentPhase.accent} stopOpacity="0.8" />
+            <stop offset="40%" stopColor={currentPhase.accent} stopOpacity="0.4" />
+            <stop offset="100%" stopColor={currentPhase.accent} stopOpacity="0" />
+          </radialGradient>
         </defs>
 
-        <g filter="url(#goo)">
-          {/* Phase 1: Ink Drop / Bleeding */}
+        {/* Spiritual Particles Group */}
+        <g className="particles">
+          {particles.map((p) => (
+            <circle
+              key={p.id}
+              cx={p.x}
+              cy={p.y}
+              r={p.size}
+              fill={currentPhase.accent}
+              opacity="0"
+              style={{
+                animation: `spiritual-float ${p.dur}s infinite linear`,
+                animationDelay: `${p.delay}s`,
+                '--tw-translate-x': `${p.tx}px`,
+                '--tw-translate-y': `${p.ty}px`,
+              }}
+            />
+          ))}
+        </g>
+
+        <g filter="url(#organic-goo)" className="transition-opacity duration-1500 ease-in-out">
+          {/* Phase 1: Ink Drop / Organic Expansion */}
           {currentPhase.type === 'ink-drop' && (
-            <g className="animate-[ink-bleed_6s_infinite_ease-in-out]">
-              <circle cx="100" cy="100" r="45" fill={currentPhase.accent} opacity="0.6" />
-              <circle cx="90" cy="95" r="30" fill={currentPhase.accent} opacity="0.4">
-                <animate attributeName="cx" values="90;110;90" dur="4s" repeatCount="indefinite" />
+            <g className="animate-[ink-bleed_10s_infinite_ease-in-out]">
+              <circle cx="100" cy="100" r="48" fill="url(#soulGrad)" />
+              <circle cx="85" cy="90" r="35" fill="url(#soulGrad)">
+                <animate attributeName="cx" values="85;115;85" dur="8s" repeatCount="indefinite" />
               </circle>
-              <circle cx="110" cy="110" r="25" fill={currentPhase.accent} opacity="0.3">
-                <animate attributeName="cy" values="110;90;110" dur="5s" repeatCount="indefinite" />
+              <circle cx="115" cy="115" r="30" fill="url(#soulGrad)">
+                <animate attributeName="cy" values="115;85;115" dur="10s" repeatCount="indefinite" />
               </circle>
             </g>
           )}
 
-          {/* Phase 2: Resonance / Ripple waves */}
+          {/* Phase 2: Resonance / Fluid Rings */}
           {currentPhase.type === 'resonance' && (
             <g>
               {[1, 2, 3].map((i) => (
@@ -65,23 +118,24 @@ const AlchemyLiquid = ({ phase, isActive }) => {
                   key={i}
                   cx="100"
                   cy="100"
-                  r="30"
+                  r="35"
                   fill="none"
                   stroke={currentPhase.accent}
-                  strokeWidth="8"
+                  strokeWidth="12"
                   opacity="0.3"
                 >
-                  <animate attributeName="r" values="30;70" dur={`${3 + i}s`} repeatCount="indefinite" />
-                  <animate attributeName="opacity" values="0.3;0" dur={`${3 + i}s`} repeatCount="indefinite" />
+                  <animate attributeName="r" values="35;85" dur={`${5 + i * 1.2}s`} repeatCount="indefinite" />
+                  <animate attributeName="opacity" values="0.3;0" dur={`${5 + i * 1.2}s`} repeatCount="indefinite" />
+                  <animate attributeName="strokeWidth" values="12;1" dur={`${5 + i * 1.2}s`} repeatCount="indefinite" />
                 </circle>
               ))}
-              <circle cx="100" cy="100" r="40" fill={currentPhase.accent} opacity="0.5">
-                <animate attributeName="r" values="38;42;38" dur="3s" repeatCount="indefinite" />
+              <circle cx="100" cy="100" r="45" fill="url(#soulGrad)">
+                <animate attributeName="r" values="42;48;42" dur="5s" repeatCount="indefinite" />
               </circle>
             </g>
           )}
 
-          {/* Phase 3: Smoke / Ascending vapor */}
+          {/* Phase 3: Smoke / Living Aura */}
           {currentPhase.type === 'smoke' && (
             <g>
               {[0, 1, 2].map((i) => (
@@ -90,22 +144,22 @@ const AlchemyLiquid = ({ phase, isActive }) => {
                   d={`M${80 + i * 20} 140 Q${70 + i * 30} 100 ${90 + i * 10} 60 T${100 + i * 15} 20`}
                   fill="none"
                   stroke={currentPhase.accent}
-                  strokeWidth="15"
+                  strokeWidth="20"
                   strokeLinecap="round"
                   opacity="0.2"
                 >
                   <animate
                     attributeName="d"
-                    values={`M${80 + i * 20} 140 Q${70 + i * 30} 100 ${90 + i * 10} 60 T${100 + i * 15} 20;
-                             M${85 + i * 20} 140 Q${75 + i * 30} 110 ${95 + i * 10} 70 T${105 + i * 15} 30;
-                             M${80 + i * 20} 140 Q${70 + i * 30} 100 ${90 + i * 10} 60 T${100 + i * 15} 20`}
-                    dur={`${4 + i}s`}
+                    values={`M${80 + i * 20} 145 Q${70 + i * 30} 105 ${90 + i * 10} 65 T${100 + i * 15} 25;
+                             M${85 + i * 25} 135 Q${75 + i * 35} 95 ${95 + i * 15} 55 T${105 + i * 20} 15;
+                             M${80 + i * 20} 145 Q${70 + i * 30} 105 ${90 + i * 10} 65 T${100 + i * 15} 25`}
+                    dur={`${6 + i * 2}s`}
                     repeatCount="indefinite"
                   />
-                  <animate attributeName="opacity" values="0;0.3;0" dur={`${4 + i}s`} repeatCount="indefinite" />
+                  <animate attributeName="opacity" values="0;0.4;0" dur={`${6 + i * 2}s`} repeatCount="indefinite" />
                 </path>
               ))}
-              <ellipse cx="100" cy="140" rx="50" ry="20" fill={currentPhase.accent} opacity="0.4" />
+              <ellipse cx="100" cy="140" rx="55" ry="25" fill="url(#soulGrad)" />
             </g>
           )}
         </g>
@@ -126,11 +180,12 @@ const LoadingTransition = ({ isLoading, loadingText }) => {
 
     const pageInterval = setInterval(() => {
       setIsTransitioning(true);
+      // Increased delay to allow for deep fade out before state change
       setTimeout(() => {
         setCurrentPage((prev) => (prev + 1) % PHASES.length);
         setIsTransitioning(false);
-      }, 1000); // Slower, smoother transition
-    }, 4500);
+      }, 1500); // Longer transition window for "Dreamy" cross-fade
+    }, 5000); // Slightly longer interval between slides
 
     return () => clearInterval(pageInterval);
   }, [isLoading]);
@@ -184,8 +239,8 @@ const LoadingTransition = ({ isLoading, loadingText }) => {
             <div
               key={i}
               className={`h-1 rounded-full transition-all duration-1000 ${i === currentPage
-                  ? 'w-16 bg-white/80 shadow-[0_0_15px_rgba(255,255,255,0.3)]'
-                  : 'w-4 bg-white/10'
+                ? 'w-16 bg-white/80 shadow-[0_0_15px_rgba(255,255,255,0.3)]'
+                : 'w-4 bg-white/10'
                 }`}
             />
           ))}

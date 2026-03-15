@@ -47,7 +47,14 @@ export class ComprehensiveAnalyzer extends BaseAgent {
             });
 
             if (!response.ok) {
-                throw new Error(`聚合分析服务错误: ${response.status}`);
+                let errorMsg = `HTTP ${response.status}`;
+                try {
+                    const errorData = await response.json();
+                    errorMsg = errorData.error || errorMsg;
+                } catch (e) {
+                    // Fallback if not JSON
+                }
+                throw new Error(`聚合分析服务错误: ${errorMsg}`);
             }
 
             const result = await response.json();

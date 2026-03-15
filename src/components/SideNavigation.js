@@ -11,7 +11,7 @@ const SideNavigation = ({ isOpen, onClose, activeTab, onTabChange, onOpenIngredi
         <div className="mb-8 mt-8">
           <h1 className="text-xl font-bold tracking-tight text-gray-800 leading-none" style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif' }}>喝一杯 MoodMix</h1>
         </div>
-        
+
         <nav className="flex-1 space-y-3">
           <button
             onClick={() => {
@@ -25,7 +25,7 @@ const SideNavigation = ({ isOpen, onClose, activeTab, onTabChange, onOpenIngredi
             </div>
             <span className="text-sm font-medium" style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif' }}>特调</span>
           </button>
-          
+
           <button
             onClick={() => {
               onTabChange('explore');
@@ -38,7 +38,7 @@ const SideNavigation = ({ isOpen, onClose, activeTab, onTabChange, onOpenIngredi
             </div>
             <span className="text-sm font-medium" style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif' }}>灵感</span>
           </button>
-          
+
           <button
             onClick={() => {
               onOpenIngredientLibrary?.();
@@ -47,11 +47,11 @@ const SideNavigation = ({ isOpen, onClose, activeTab, onTabChange, onOpenIngredi
             className="flex items-center gap-3 w-full p-2 rounded-lg transition-colors text-gray-600 hover:bg-gray-50"
           >
             <div className="w-8 h-8 rounded-full flex items-center justify-center">
-              <img src={navIconIngredient} alt="原料库" className="w-5 h-5 object-contain" />
+              <img src={navIconIngredient} alt="原料" className="w-5 h-5 object-contain" />
             </div>
-            <span className="text-sm font-medium" style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif' }}>原料库</span>
+            <span className="text-sm font-medium" style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif' }}>原料</span>
           </button>
-          
+
           <button
             onClick={() => {
               onTabChange('mine');
@@ -65,7 +65,7 @@ const SideNavigation = ({ isOpen, onClose, activeTab, onTabChange, onOpenIngredi
             <span className="text-sm font-medium" style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif' }}>我的</span>
           </button>
         </nav>
-        
+
         <div className="mt-auto pt-6 border-t border-gray-100">
           <div className="text-xs text-gray-400">MoodMix © 2026</div>
         </div>

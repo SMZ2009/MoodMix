@@ -131,9 +131,14 @@ const MineSection = ({ favorites, onSelectDrink, cardFeedback, initialTab = 'col
                         <Edit3 size={10} className="text-gray-500" />
                     </button>
                 </div>
-                <p className="text-[#608a6e] text-[11px] font-medium bg-white/60 px-3 py-1 rounded-full backdrop-blur-sm mt-1">
-                    {favorites.length} 喜欢
-                </p>
+                <div className="flex items-center gap-2 mt-1">
+                    <p className="text-[#798fa7] text-[11px] font-medium bg-white/60 px-3 py-1 rounded-full backdrop-blur-sm">
+                        {dakaNotes.length} 札记
+                    </p>
+                    <p className="text-[#608a6e] text-[11px] font-medium bg-white/60 px-3 py-1 rounded-full backdrop-blur-sm">
+                        {favorites.length} 喜欢
+                    </p>
+                </div>
             </div>
 
             {/* Tab 切换栏 - 更贴合整体水墨氛围 */}

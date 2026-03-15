@@ -2799,77 +2799,10 @@ const DakaModal = ({ drink, onClose, onSave }) => {
   const handleSave = async () => {
     setIsGenerating(true);
     try {
-      // 0. 生成二维码数据 URL
-      if (qrCanvasRef.current) {
-        const qrCanvas = qrCanvasRef.current.querySelector('canvas');
-        if (qrCanvas) {
-          const qrUrl = qrCanvas.toDataURL('image/png');
-          setQrCodeDataUrl(qrUrl);
-        }
-      }
-
-      // 1. 获取 LLM 文案
-      const prompt = `你是 MoodMix 的文案诗人。请为分享卡片生成一段情绪文案。
-
-要求：
-- 2-3 句话，总字数控制在 30-50 字
-- 东方诗意的克制感，像朋友间的低语
-- 结合饮品的具体感官细节（颜色、温度、口感、气味）
-- 温柔地回应用户当下的情绪，给予认可或鼓励
-- 不要说教，不要鸡汤，不要感叹号
-- 可以用比喻，但要自然不刻意
-
-输入信息：
-- 饮品名：${drink.name}
-- 用户情绪：根据饮品属性推测
-- 五行属性：${drink.dimensions?.wuxing || '未知'}
-- 用户备注：${note || '无'}
-
-请直接输出文案，不要任何前缀或解释。`;
-
-      // 使用专用的 SOCIAL_CARD 任务类型
-      const agentResult = await executeMixologyTask('SOCIAL_CARD', { drink, prompt });
-
-      // 安全提取文案 (如果是 object 说明 Agent 可能报错返回了错误信息对象)
-      let poeticalCopy = '岁序更迭，此情可待';
-      if (agentResult && agentResult.success && agentResult.data && typeof agentResult.data.copy === 'string') {
-        poeticalCopy = agentResult.data.copy;
-      } else if (typeof agentResult === 'string') {
-        poeticalCopy = agentResult;
-      } else if (agentResult && agentResult.userMessage) {
-        console.warn('Agent returned error message:', agentResult.userMessage);
-      }
-
-      setLlmCopy(poeticalCopy);
-
-      // Wait for state to update and images to load
-      // We'll use a small timeout to ensure DOM is ready
-      await new Promise(resolve => setTimeout(resolve, 800));
-
-      // 再次获取二维码（确保状态已更新）
-      let finalQrUrl = qrCodeDataUrl;
-      if (qrCanvasRef.current) {
-        const qrCanvas = qrCanvasRef.current.querySelector('canvas');
-        if (qrCanvas) {
-          finalQrUrl = qrCanvas.toDataURL('image/png');
-          setQrCodeDataUrl(finalQrUrl);
-        }
-      }
-
-      // Wait a bit more for QR code to update in ShareCard
-      await new Promise(resolve => setTimeout(resolve, 200));
-
-      // 2. 将 DOM 生成图片
-      if (cardRef.current) {
-        const blob = await exportShareCard(cardRef.current);
-        const imageUrl = URL.createObjectURL(blob);
-        setShareCardUrl(imageUrl);
-      }
-
-      // 3. 持久化存储
+      // 持久化存储
       onSave(drink.id, note, customImage || null);
     } catch (err) {
-      console.error('Failed to save or generate:', err);
+      console.error('Failed to save:', err);
       alert('保存失败，请稍后重试');
     } finally {
       setIsGenerating(false);

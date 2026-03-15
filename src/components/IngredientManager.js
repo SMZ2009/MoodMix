@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, Check, ChevronDown } from 'lucide-react';
+import { Plus, Check, ChevronDown, X } from 'lucide-react';
 import { inventoryStorage, ingredientCategories } from '../store/localStorageAdapter';
 
 const DEFAULT_CATEGORIES = [
@@ -30,8 +30,23 @@ const IngredientManager = ({ userInventory, onUpdate, showCustomForm, setShowCus
     const handleAddCustom = async () => {
         if (!customName.trim() || !customCategory.trim()) return;
 
+        const name = customName.trim();
+
+        // Check for duplicates in standard library
+        const isStandardDuplicate = Object.values(standardIngredients).some(catItems =>
+            catItems.some(item => item.name_cn === name || item.name_en === name)
+        );
+
+        // Check for duplicates in custom library
+        const isCustomDuplicate = userInventory.custom.some(item => item.name_cn === name);
+
+        if (isStandardDuplicate || isCustomDuplicate) {
+            alert(`"${name}" 已存在于原料库中，无需重复添加。`);
+            return;
+        }
+
         try {
-            await inventoryStorage.addCustomIngredient(customName.trim(), customCategory.trim());
+            await inventoryStorage.addCustomIngredient(name, customCategory.trim());
             setCustomName('');
             setCustomCategory('');
             triggerShowForm(false);
@@ -39,6 +54,18 @@ const IngredientManager = ({ userInventory, onUpdate, showCustomForm, setShowCus
         } catch (error) {
             console.error("Add custom failed", error);
             alert('添加失败，请重试');
+        }
+    };
+
+    const handleDeleteCustom = async (e, ingId) => {
+        e.stopPropagation();
+        if (window.confirm('确定要彻底删除这个自定义原料吗？')) {
+            try {
+                await inventoryStorage.removeCustomIngredient(ingId);
+                onUpdate();
+            } catch (error) {
+                console.error("Delete custom failed", error);
+            }
         }
     };
 
@@ -59,8 +86,11 @@ const IngredientManager = ({ userInventory, onUpdate, showCustomForm, setShowCus
     }, [standardIngredients]);
 
     const renderCategory = (cat) => {
-        const items = standardIngredients[cat] || [];
-        if (items.length === 0) return null;
+        const standardItems = standardIngredients[cat] || [];
+        // Find custom items that belong to this category
+        const customItems = userInventory.custom.filter(item => item.category === cat);
+
+        if (standardItems.length === 0 && customItems.length === 0) return null;
         const isOpen = activeCategory === cat;
 
         return (
@@ -75,7 +105,8 @@ const IngredientManager = ({ userInventory, onUpdate, showCustomForm, setShowCus
 
                 {isOpen && (
                     <div className="im-tags-container">
-                        {items.map(item => {
+                        {/* Standard Items */}
+                        {standardItems.map(item => {
                             const isOwned = userInventory.standard.some(u => u.ing_id === item.ing_id && u.in_stock);
                             return (
                                 <button
@@ -88,6 +119,26 @@ const IngredientManager = ({ userInventory, onUpdate, showCustomForm, setShowCus
                                 </button>
                             );
                         })}
+
+                        {/* Custom Items for this Category */}
+                        {customItems.map(item => (
+                            <div key={item.id} className="relative group">
+                                <button
+                                    onClick={() => handleToggle(item.ing_id, !item.in_stock)}
+                                    className={`im-tag ${item.in_stock ? 'is-custom' : 'is-unstocked'}`}
+                                >
+                                    {item.name_cn}
+                                    {item.in_stock && <Check size={11} className="im-tag-check" />}
+                                </button>
+                                <button
+                                    onClick={(e) => handleDeleteCustom(e, item.ing_id)}
+                                    className="im-tag-delete-btn"
+                                    title="删除"
+                                >
+                                    <X size={10} />
+                                </button>
+                            </div>
+                        ))}
                     </div>
                 )}
             </div>
@@ -143,21 +194,32 @@ const IngredientManager = ({ userInventory, onUpdate, showCustomForm, setShowCus
             <div className="flex-1 overflow-y-auto pr-2 no-scrollbar">
                 {categories.map(cat => renderCategory(cat))}
 
-                {/* Custom Ingredients Section */}
-                {userInventory.custom.length > 0 && (
+                {/* Uncategorized Custom Ingredients Section */}
+                {userInventory.custom.filter(i => !categories.includes(i.category)).length > 0 && (
                     <div className="mb-4">
-                        <h3 className="im-custom-section-title">自定义原料</h3>
+                        <h3 className="im-custom-section-title">其他自定义</h3>
                         <div className="im-tags-container">
-                            {userInventory.custom.map(item => (
-                                <button
-                                    key={item.id}
-                                    onClick={() => handleToggle(item.ing_id, !item.in_stock)}
-                                    className={`im-tag ${item.in_stock ? 'is-custom' : 'is-unstocked'}`}
-                                >
-                                    {item.name_cn}
-                                    {item.in_stock && <Check size={11} className="im-tag-check" />}
-                                </button>
-                            ))}
+                            {userInventory.custom
+                                .filter(i => !categories.includes(i.category))
+                                .map(item => (
+                                    <div key={item.id} className="relative group">
+                                        <button
+                                            key={item.id}
+                                            onClick={() => handleToggle(item.ing_id, !item.in_stock)}
+                                            className={`im-tag ${item.in_stock ? 'is-custom' : 'is-unstocked'}`}
+                                        >
+                                            {item.name_cn}
+                                            {item.in_stock && <Check size={11} className="im-tag-check" />}
+                                        </button>
+                                        <button
+                                            onClick={(e) => handleDeleteCustom(e, item.ing_id)}
+                                            className="im-tag-delete-btn"
+                                            title="删除"
+                                        >
+                                            <X size={10} />
+                                        </button>
+                                    </div>
+                                ))}
                         </div>
                     </div>
                 )}

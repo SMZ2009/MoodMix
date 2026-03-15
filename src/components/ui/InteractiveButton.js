@@ -67,28 +67,29 @@ const InteractiveButton = forwardRef(({
 
   const variantStyles = {
     primary: {
-      background: 'linear-gradient(135deg, #8B5CF6 0%, #3B82F6 100%)',
-      color: '#FFFFFF',
-      boxShadow: '0 4px 14px rgba(59, 130, 246, 0.4)'
+      background: 'linear-gradient(135deg, #3c3b36 0%, #1a1a1a 100%)',
+      color: '#ebdfc8',
+      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.25)'
     },
     secondary: {
-      background: '#FFFFFF',
-      color: '#1F2937',
-      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)'
+      background: 'rgba(255, 255, 255, 0.85)',
+      color: '#3c3b36',
+      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
+      border: '1px solid rgba(0, 0, 0, 0.05)'
     },
     ghost: {
       background: 'transparent',
-      color: '#1F2937'
+      color: '#3c3b36'
     },
     text: {
       background: 'transparent',
-      color: '#8B5CF6',
+      color: '#8a7e6b',
       padding: '0 16px'
     },
     danger: {
-      background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
-      color: '#FFFFFF',
-      boxShadow: '0 4px 14px rgba(239, 68, 68, 0.4)'
+      background: 'linear-gradient(135deg, #991b1b 0%, #7f1d1d 100%)',
+      color: '#f7f0e4',
+      boxShadow: '0 4px 12px rgba(153, 27, 27, 0.2)'
     },
     icon: {
       background: 'rgba(255, 255, 255, 0.9)',

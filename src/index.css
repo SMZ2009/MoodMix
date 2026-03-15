@@ -1658,6 +1658,89 @@ body {
   padding-right: 2rem;
 }
 
+/* Loading Transition Refinements: Oriental Charm */
+@keyframes ink-bleed {
+  0% {
+    transform: scale(0.9) rotate(0deg) translate(0, 0);
+    opacity: 0.5;
+    filter: blur(2px);
+  }
+
+  50% {
+    transform: scale(1.15) rotate(5deg) translate(5px, -5px);
+    opacity: 0.8;
+    filter: blur(0px);
+  }
+
+  100% {
+    transform: scale(0.9) rotate(0deg) translate(0, 0);
+    opacity: 0.5;
+    filter: blur(2px);
+  }
+}
+
+@keyframes paper-breathe {
+  0% {
+    opacity: 0.02;
+  }
+
+  50% {
+    opacity: 0.05;
+  }
+
+  100% {
+    opacity: 0.02;
+  }
+}
+
+@keyframes spiritual-float {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+    opacity: 0;
+  }
+
+  20% {
+    opacity: 0.4;
+  }
+
+  80% {
+    opacity: 0.4;
+  }
+
+  100% {
+    transform: translate(var(--tw-translate-x, 20px), var(--tw-translate-y, -100px)) rotate(10deg);
+    opacity: 0;
+  }
+}
+
+@keyframes nebulous-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.3;
+  }
+
+  50% {
+    transform: scale(1.4);
+    opacity: 0.6;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 0.3;
+  }
+}
+
+.paper-overlay {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.6' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  pointer-events: none;
+  mix-blend-mode: overlay;
+  animation: paper-breathe 10s infinite ease-in-out;
+}
+
+.ink-svg {
+  filter: drop-shadow(0 0 30px rgba(255, 255, 255, 0.1));
+}
+
 .oriental-select:focus {
   background-color: rgba(255, 255, 255, 0.18);
   border-color: rgba(255, 255, 255, 0.28);

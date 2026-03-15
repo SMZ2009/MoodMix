@@ -705,6 +705,7 @@ app.post('/api/comprehensive_analyze', async (req, res) => {
   try {
     const model = MODEL_CREATIVE; // 聚合推理逻辑复杂，使用 32B 模型提升成功率
     console.log(`[ComprehensiveAnalyze] >>> 开始全链路聚合推理 (MODEL: ${model})...`);
+    console.log(`[ComprehensiveAnalyze] 用户输入: "${user_input}"`);
     const startTime = Date.now();
 
     // 增加超时保护，防止请求挂死
@@ -718,7 +719,10 @@ app.post('/api/comprehensive_analyze', async (req, res) => {
     const duration = Date.now() - startTime;
     console.log(`[ComprehensiveAnalyze] <<< 聚合推理完成, 耗时: ${duration}ms`);
 
-    res.json({ success: true, data });
+    // 验证并补全响应数据
+    const validatedData = validateAndCompleteComprehensiveData(data, user_input);
+    
+    res.json({ success: true, data: validatedData });
   } catch (error) {
     console.error('[ComprehensiveAnalyze Error] 聚合流程中断:', error.message);
     if (error.cause) console.error('  Cause:', error.cause);
@@ -731,6 +735,134 @@ app.post('/api/comprehensive_analyze', async (req, res) => {
     });
   }
 });
+
+/**
+ * 验证并补全聚合分析响应数据
+ * 确保 moodData, patternAnalysis, vectorResult 三大模块完整
+ */
+function validateAndCompleteComprehensiveData(data, userInput) {
+  const result = { ...data };
+  
+  // 检测情绪倾向 (简单规则)
+  const positiveKeywords = ['开心', '高兴', '快乐', '幸福', '兴奋', '愉快', '喜悦', '舒畅', '满足', '美好', '棒', '好'];
+  const negativeKeywords = ['难过', '伤心', '沮丧', '焦虑', '烦躁', '疲惫', '累', '压力', '郁闷', '生气', '愤怒', '失落'];
+  const isPositive = positiveKeywords.some(k => userInput.includes(k));
+  const isNegative = negativeKeywords.some(k => userInput.includes(k));
+  
+  // 1. 确保 moodData 存在且完整
+  if (!result.moodData || typeof result.moodData !== 'object') {
+    console.warn('[ComprehensiveAnalyze] moodData 缺失，使用降级默认值');
+    result.moodData = buildDefaultMoodData(isPositive, isNegative, userInput);
+  } else {
+    // 确保关键字段存在
+    result.moodData = {
+      ...buildDefaultMoodData(isPositive, isNegative, userInput),
+      ...result.moodData
+    };
+  }
+  
+  // 2. 确保 patternAnalysis 存在且完整
+  if (!result.patternAnalysis || typeof result.patternAnalysis !== 'object') {
+    console.warn('[ComprehensiveAnalyze] patternAnalysis 缺失，使用降级默认值');
+    result.patternAnalysis = buildDefaultPatternAnalysis(isPositive, isNegative);
+  } else {
+    result.patternAnalysis = {
+      ...buildDefaultPatternAnalysis(isPositive, isNegative),
+      ...result.patternAnalysis
+    };
+  }
+  
+  // 3. 确保 vectorResult 存在且完整
+  if (!result.vectorResult || typeof result.vectorResult !== 'object') {
+    console.warn('[ComprehensiveAnalyze] vectorResult 缺失，使用降级默认值');
+    result.vectorResult = buildDefaultVectorResult(isPositive);
+  } else {
+    // 确保 targetVector 是有效数组
+    if (!Array.isArray(result.vectorResult.targetVector) || result.vectorResult.targetVector.length !== 8) {
+      result.vectorResult.targetVector = buildDefaultVectorResult(isPositive).targetVector;
+    }
+    // 确保 weights 是有效数组且和为1
+    if (!Array.isArray(result.vectorResult.weights) || result.vectorResult.weights.length !== 8) {
+      result.vectorResult.weights = [0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125];
+    }
+    if (!result.vectorResult.priorities) {
+      result.vectorResult.priorities = ['emotion', 'temperature', 'aroma'];
+    }
+  }
+  
+  console.log('[ComprehensiveAnalyze] 数据验证完成，所有模块已就绪');
+  return result;
+}
+
+function buildDefaultMoodData(isPositive, isNegative, userInput) {
+  const hour = new Date().getHours();
+  return {
+    emotion: {
+      physical: { state: isPositive ? '愉悦' : (isNegative ? '低落' : '平静'), intensity: 0.6 },
+      philosophy: { wuxing: isPositive ? 'fire' : (isNegative ? 'water' : 'earth') },
+      drinkMapping: { tasteScore: 5, colorCode: 3 }
+    },
+    somatic: {
+      physical: { sensation: '正常', intensity: 0.5 },
+      philosophy: { direction: isPositive ? '上升' : '平稳', yinyang: '中性' },
+      drinkMapping: { temperature: 0, textureScore: 0 }
+    },
+    time: { drinkMapping: { temporality: hour } },
+    cognitive: { drinkMapping: { aromaScore: 5 } },
+    demand: {
+      philosophy: { type: isPositive ? '动' : '止' },
+      drinkMapping: { actionScore: isPositive ? 4 : 2 }
+    },
+    socialContext: { drinkMapping: { ratioScore: 15 } },
+    isNegative: isNegative && !isPositive,
+    summary: userInput || '心情平和'
+  };
+}
+
+function buildDefaultPatternAnalysis(isPositive, isNegative) {
+  return {
+    polarity: {
+      type: isPositive ? 'positive' : (isNegative ? 'negative' : 'mixed'),
+      confidence: 0.7
+    },
+    wuxing: {
+      user: isPositive ? 'fire' : (isNegative ? 'water' : 'earth'),
+      scores: { wood: 0.15, fire: isPositive ? 0.4 : 0.15, earth: 0.2, metal: 0.1, water: isNegative ? 0.4 : 0.15 },
+      confidence: 0.7
+    },
+    strategy: {
+      type: isPositive ? 'resonate' : (isNegative ? 'counter' : 'harmonize'),
+      logic: isPositive ? '顺势而为，助其欢畅' : (isNegative ? '以柔克刚，温和化解' : '平衡调和，顺其自然')
+    },
+    diagnosis: {
+      summary: isPositive ? '心情舒畅，宜顺势助兴' : (isNegative ? '情绪低落，需温润调理' : '状态平稳，可随心而饮'),
+      recommendation: isPositive ? '清爽上扬的饮品' : (isNegative ? '温润安神的饮品' : '平衡和谐的饮品')
+    }
+  };
+}
+
+function buildDefaultVectorResult(isPositive) {
+  const hour = new Date().getHours();
+  return {
+    targetVector: [
+      5,                              // taste: 中等甜度
+      isPositive ? 1 : -1,            // texture: 正面上扬，负面下沉
+      isPositive ? -1 : 1,            // temperature: 正面清爽，负面温热
+      3,                              // color: 中性
+      hour,                           // temporality: 当前时间
+      5,                              // aroma: 中等香气
+      15,                             // ratio: 低酒精度
+      isPositive ? 3 : 2              // action: 正面社交，负面独处
+    ],
+    weights: [0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125],
+    priorities: ['emotion', 'temperature', 'aroma'],
+    mappingExplanation: {
+      wuxing: isPositive ? '火' : '水',
+      strategy: isPositive ? '顺势共鸣' : '温和调理',
+      keyDimensions: ['texture', 'temperature', 'aroma']
+    }
+  };
+}
 
 
 

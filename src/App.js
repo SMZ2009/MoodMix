@@ -1461,7 +1461,7 @@ const DrinkDetailSection = ({ drink, checkedIngredients, onToggleIngredient, onB
             className="flex-1 jade-action-btn flex items-center justify-center h-[56px]"
           >
             <BulbIcon isDaka={isDaka} />
-            <span className="ml-2.5">记禅</span>
+            <span className="ml-2.5">打卡</span>
           </InteractiveButton>
         </div>
       </div>
@@ -1475,8 +1475,8 @@ const DrinkDetailSection = ({ drink, checkedIngredients, onToggleIngredient, onB
                 <CheckCircle size={24} />
               </div>
             </div>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem', fontFamily: '"Songti SC",serif', color: 'white' }}>分享卡片已生成</h2>
-            <p style={{ color: 'rgba(255,255,255,0.6)', marginBottom: '1.5rem', fontSize: '0.875rem' }}>长按保存图片或扫码分享</p>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem', fontFamily: '"Noto Sans SC", sans-serif', color: 'white' }}>分享卡片已生成</h2>
+            <p style={{ color: 'rgba(255,255,255,0.6)', marginBottom: '1.5rem', fontSize: '0.875rem', fontFamily: '"Noto Sans SC", sans-serif' }}>长按保存图片或扫码分享</p>
 
             <img src={shareCardUrl} alt="Share Card" className="w-full h-auto object-contain" style={{ position: 'relative', zIndex: 10 }} />
 
@@ -2570,13 +2570,13 @@ const ConfirmDeleteModal = ({ isOpen, onClose, onConfirm }) => {
   return (
     <Modal isOpen={isOpen} onClose={onClose} position="center">
       <div style={{ background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(40px) saturate(1.2)', WebkitBackdropFilter: 'blur(40px) saturate(1.2)', border: '1px solid rgba(255,255,255,0.15)', boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.2)' }} className="rounded-2xl p-6 w-full max-w-sm mx-auto">
-        <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem', fontFamily: '"Songti SC",serif', color: 'rgba(255,255,255,0.95)', letterSpacing: '0.1em', textShadow: '0 1px 4px rgba(0,0,0,0.4)' }}>确认删除</h2>
-        <p style={{ color: 'rgba(255,255,255,0.65)', marginBottom: '1.5rem', fontSize: '0.875rem', fontFamily: '"Songti SC",serif' }}>确定要删除这条赏味记录吗？此操作无法撤销。</p>
+        <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem', fontFamily: '"Noto Sans SC", sans-serif', color: 'rgba(255,255,255,0.95)', letterSpacing: '0.08em', textShadow: '0 1px 4px rgba(0,0,0,0.4)' }}>确认删除</h2>
+        <p style={{ color: 'rgba(255,255,255,0.65)', marginBottom: '1.5rem', fontSize: '0.875rem', fontFamily: '"Noto Sans SC", sans-serif' }}>确定要删除这条赏味记录吗？此操作无法撤销。</p>
         <div className="flex justify-end space-x-3">
           <InteractiveButton
             variant="text"
             onClick={onClose}
-            style={{ fontFamily: '"Songti SC", serif', color: 'rgba(255,255,255,0.5)', letterSpacing: '0.05em' }}
+            style={{ fontFamily: '"Noto Sans SC", sans-serif', color: 'rgba(255,255,255,0.5)', letterSpacing: '0.03em' }}
           >
             取消
           </InteractiveButton>
@@ -2586,9 +2586,9 @@ const ConfirmDeleteModal = ({ isOpen, onClose, onConfirm }) => {
             style={{
               background: 'linear-gradient(135deg, #991b1b 0%, #7f1d1d 100%)',
               color: '#f7f0e4',
-              fontFamily: '"Songti SC", serif',
-              letterSpacing: '0.1em',
-              fontWeight: 'bold',
+              fontFamily: '"Noto Sans SC", sans-serif',
+              letterSpacing: '0.08em',
+              fontWeight: '600',
               boxShadow: '0 4px 12px rgba(153, 27, 27, 0.2)'
             }}
           >
@@ -2740,14 +2740,39 @@ const DakaModal = ({ drink, onClose, onSave }) => {
               <CheckCircle size={24} />
             </div>
           </div>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.2rem', fontFamily: '"Songti SC",serif', color: 'white' }}>记录已珍存</h2>
-          <p style={{ color: 'rgba(255,255,255,0.6)', marginBottom: '1.2rem', fontSize: '0.8rem' }}>分享卡片已为您调成，岁序更迭，此情可待</p>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.2rem', fontFamily: '"Noto Sans SC", sans-serif', color: 'white' }}>记录已珍存</h2>
+          <p style={{ color: 'rgba(255,255,255,0.6)', marginBottom: '1.2rem', fontSize: '0.8rem', fontFamily: '"Noto Sans SC", sans-serif' }}>分享卡片已为您调成，岁序更迭，此情可待</p>
 
           <div className="relative w-full rounded-xl overflow-hidden mb-6 shadow-2xl border border-white/10 bg-black/20">
             <img src={shareCardUrl} alt="Share Card" className="w-full h-auto" />
           </div>
 
-
+          <div className="flex flex-col gap-3">
+            <InteractiveButton
+              variant="primary"
+              onClick={downloadImage}
+              fullWidth
+              style={{
+                background: 'linear-gradient(135deg, #3c3b36 0%, #1a1a1a 100%)',
+                color: '#f7f0e4',
+                fontFamily: '"Noto Sans SC", sans-serif',
+                letterSpacing: '0.1em',
+                fontWeight: '600'
+              }}
+              className="flex items-center justify-center gap-2"
+            >
+              <Download size={18} />
+              保存到相册
+            </InteractiveButton>
+            <InteractiveButton
+              variant="text"
+              onClick={onClose}
+              fullWidth
+              style={{ fontFamily: '"Noto Sans SC", sans-serif', color: 'rgba(255,255,255,0.5)', letterSpacing: '0.05em' }}
+            >
+              返回
+            </InteractiveButton>
+          </div>
         </div>
       </Modal>
     );
@@ -2756,7 +2781,7 @@ const DakaModal = ({ drink, onClose, onSave }) => {
   return (
     <Modal isOpen={true} onClose={onClose} position="center">
       <div style={{ background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(40px) saturate(1.2)', WebkitBackdropFilter: 'blur(40px) saturate(1.2)', border: '1px solid rgba(255,255,255,0.15)', boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.2)' }} className="rounded-2xl p-6 w-full max-w-sm mx-auto">
-        <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '1rem', fontFamily: '"Songti SC",serif', color: 'rgba(255,255,255,0.95)', letterSpacing: '0.1em', textShadow: '0 1px 4px rgba(0,0,0,0.4)' }}>为 {drink.name} 打卡</h2>
+        <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '1rem', fontFamily: '"Noto Sans SC", sans-serif', color: 'rgba(255,255,255,0.95)', letterSpacing: '0.08em', textShadow: '0 1px 4px rgba(0,0,0,0.4)' }}>为 {drink.name} 打卡</h2>
 
         {/* 可选图片上传 */}
         <div
@@ -2793,7 +2818,7 @@ const DakaModal = ({ drink, onClose, onSave }) => {
           />
         </div>
 
-        <p style={{ color: 'rgba(255,255,255,0.65)', marginBottom: '0.5rem', fontSize: '0.875rem', fontFamily: '"Songti SC",serif' }}>记录下此刻的口味、心情或任何想法…</p>
+        <p style={{ color: 'rgba(255,255,255,0.65)', marginBottom: '0.5rem', fontSize: '0.875rem', fontFamily: '"Noto Sans SC", sans-serif' }}>记录下此刻的口味、心情或任何想法…</p>
         <textarea
           value={note}
           onChange={(e) => setNote(e.target.value)}
@@ -2806,7 +2831,7 @@ const DakaModal = ({ drink, onClose, onSave }) => {
             variant="text"
             onClick={onClose}
             disabled={isGenerating}
-            style={{ fontFamily: '"Songti SC", serif', color: 'rgba(255,255,255,0.5)', letterSpacing: '0.05em' }}
+            style={{ fontFamily: '"Noto Sans SC", sans-serif', color: 'rgba(255,255,255,0.5)', letterSpacing: '0.03em' }}
           >
             取消
           </InteractiveButton>
@@ -2817,9 +2842,9 @@ const DakaModal = ({ drink, onClose, onSave }) => {
             style={{
               background: 'linear-gradient(135deg, #3c3b36 0%, #2c2b26 100%)',
               color: '#f7f0e4',
-              fontFamily: '"Songti SC", serif',
-              letterSpacing: '0.1em',
-              fontWeight: 'bold'
+              fontFamily: '"Noto Sans SC", sans-serif',
+              letterSpacing: '0.08em',
+              fontWeight: '600'
             }}
             className="flex items-center gap-2"
           >

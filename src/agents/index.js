@@ -37,16 +37,24 @@ export {
  * 快速执行调饮专家任务（分析或助手）
  */
 export async function executeMixologyTask(taskType, data) {
-  const { MixologyExpert } = await import('./specialized/MixologyExpert');
   const { AgentContext } = await import('./core/AgentContext');
+  let AgentClass;
+
+  if (taskType === 'SOCIAL_CARD') {
+    const { CreativeCopywriter } = await import('./specialized/CreativeCopywriter');
+    AgentClass = CreativeCopywriter;
+  } else {
+    const { MixologyExpert } = await import('./specialized/MixologyExpert');
+    AgentClass = MixologyExpert;
+  }
 
   const context = new AgentContext({
     mixologyTaskType: taskType,
     mixologyData: data
   });
 
-  const expert = new MixologyExpert();
-  const result = await expert.execute(context);
+  const agent = new AgentClass();
+  const result = await agent.execute(context);
 
   return result;
 }

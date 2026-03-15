@@ -703,8 +703,8 @@ app.post('/api/comprehensive_analyze', async (req, res) => {
   const userMessage = `用户心境: "${user_input}"\n当前环境时间: ${timeInfo}`;
 
   try {
-    const model = MODEL_CORE;
-    console.log(`[ComprehensiveAnalyze] >>> 开始聚合推理 (MODEL: ${model})...`);
+    const model = MODEL_CREATIVE; // 聚合推理逻辑复杂，使用 32B 模型提升成功率
+    console.log(`[ComprehensiveAnalyze] >>> 开始全链路聚合推理 (MODEL: ${model})...`);
     const startTime = Date.now();
 
     // 增加超时保护，防止请求挂死
@@ -712,7 +712,7 @@ app.post('/api/comprehensive_analyze', async (req, res) => {
       model: model,
       temperature: 0.4,
       jsonMode: true,
-      timeout: 40000 // 40s 超时
+      timeout: 50000 // 50s 超时
     });
 
     const duration = Date.now() - startTime;

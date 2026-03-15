@@ -17,7 +17,7 @@ export class CreativeCopywriter extends BaseAgent {
   constructor(config = {}) {
     super({
       name: 'CreativeCopywriter',
-      timeout: 5000,
+      timeout: 30000,
       ...config
     });
   }
@@ -26,12 +26,21 @@ export class CreativeCopywriter extends BaseAgent {
    * 输入验证
    */
   validateInput(context) {
+    const taskType = context.getIntermediate('mixologyTaskType');
     const matches = context.getIntermediate('matches');
-    
+    const data = context.getIntermediate('mixologyData');
+
+    if (taskType === 'SOCIAL_CARD') {
+      if (!data || !data.drink || !data.prompt) {
+        return { valid: false, reason: 'Missing social card params' };
+      }
+      return { valid: true };
+    }
+
     if (!matches || matches.length === 0) {
       return { valid: false, reason: 'No matched drinks available' };
     }
-    
+
     return { valid: true };
   }
 
@@ -39,20 +48,27 @@ export class CreativeCopywriter extends BaseAgent {
    * 核心处理：文案生成
    */
   async process(context) {
+    const taskType = context.getIntermediate('mixologyTaskType');
+    const data = context.getIntermediate('mixologyData');
+
+    if (taskType === 'SOCIAL_CARD') {
+      return await this.fetchSocialCardCopy(data);
+    }
+
     const matches = context.getIntermediate('matches');
     const moodData = context.getIntermediate('moodData');
     const analysis = context.getIntermediate('patternAnalysis');
-    
+
     // 获取最佳匹配
     const topMatch = matches[0];
-    
+
     // 生成哲学标签
     const philosophy = generatePhilosophyTags(
       topMatch.drink.dimensions,
       moodData,
       topMatch.drink.name
     );
-    
+
     // 生成个性化文案
     const copy = {
       quote: philosophy.quote,
@@ -61,11 +77,36 @@ export class CreativeCopywriter extends BaseAgent {
       explanation: this.generateExplanation(topMatch, analysis),
       variations: this.generateVariations(topMatch, moodData, analysis)
     };
-    
+
     // 存储到上下文
     context.setIntermediate('creativeCopy', copy);
-    
+
     return copy;
+  }
+
+  /**
+   * 调用社交卡片文案 API
+   */
+  async fetchSocialCardCopy(data) {
+    const response = await fetch('/api/social-card-copy', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+
+    if (!response.ok) {
+      throw new Error(`分享文案服务响应异常: ${response.status}`);
+    }
+
+    const result = await response.json();
+    if (!result.success) {
+      throw new Error(result.error || '获取文案失败');
+    }
+
+    return {
+      copy: result.copy,
+      timestamp: new Date().toISOString()
+    };
   }
 
   /**
@@ -74,7 +115,7 @@ export class CreativeCopywriter extends BaseAgent {
   generateExplanation(match, analysis) {
     const { drink, similarity } = match;
     const { strategy, wuxing } = analysis;
-    
+
     const wuxingNames = {
       wood: '木',
       fire: '火',
@@ -82,7 +123,7 @@ export class CreativeCopywriter extends BaseAgent {
       metal: '金',
       water: '水'
     };
-    
+
     const strategyTexts = {
       counter: '这杯饮品以对冲之力，化解你当下的郁结',
       harmonize: '这杯饮品的温和之力，将抚平你的情绪波澜',
@@ -90,7 +131,7 @@ export class CreativeCopywriter extends BaseAgent {
       resonate: '这杯饮品的共鸣之力，将放大你的愉悦感受',
       balance: '这杯饮品的平衡之道，让你找到内心的宁静'
     };
-    
+
     return {
       strategy: strategyTexts[strategy?.type] || '这杯饮品与你当下的状态相契合',
       wuxing: `${wuxingNames[wuxing?.user] || '土'}气相应`,
@@ -105,7 +146,7 @@ export class CreativeCopywriter extends BaseAgent {
   generateVariations(match, moodData, analysis) {
     const variations = [];
     const { drink } = match;
-    
+
     // 基于饮品特征生成变体
     if (drink.abv > 30) {
       variations.push('烈酒入喉，烦恼皆休');
@@ -120,7 +161,7 @@ export class CreativeCopywriter extends BaseAgent {
       variations.push('无酒之饮，纯粹之味');
       variations.push('清新的滋味，如晨露般纯净');
     }
-    
+
     // 基于温度生成变体
     const temp = drink.dimensions?.temperature?.value || 0;
     if (temp > 2) {
@@ -128,7 +169,7 @@ export class CreativeCopywriter extends BaseAgent {
     } else if (temp < -2) {
       variations.push('冰凉的刺激，唤醒感官');
     }
-    
+
     return variations;
   }
 
@@ -136,14 +177,21 @@ export class CreativeCopywriter extends BaseAgent {
    * 输出验证
    */
   validateOutput(result) {
-    if (!result || !result.quote) {
+    if (!result) return { valid: false, reason: 'Empty result' };
+
+    // 如果是 SOCIAL_CARD 任务
+    if (result.copy !== undefined) {
+      return { valid: true };
+    }
+
+    if (!result.quote) {
       return { valid: false, reason: 'Missing quote in copy' };
     }
-    
+
     if (!result.tags || result.tags.length === 0) {
       return { valid: false, reason: 'Missing tags in copy' };
     }
-    
+
     return { valid: true };
   }
 
@@ -151,23 +199,34 @@ export class CreativeCopywriter extends BaseAgent {
    * 错误处理：使用本地模板
    */
   async handleError(error, context) {
+    const taskType = context.getIntermediate('mixologyTaskType');
+
+    if (taskType === 'SOCIAL_CARD') {
+      console.warn('[CreativeCopywriter] Social card API failed, using fallback:', error.message);
+      return {
+        copy: '岁序更迭，此情可待。在这个瞬间，找到属于你的宁静。',
+        timestamp: new Date().toISOString(),
+        _fallback: true
+      };
+    }
+
     console.warn('[CreativeCopywriter] Using fallback copy:', error.message);
-    
+
     const matches = context.getIntermediate('matches');
     if (!matches || matches.length === 0) {
       return null;
     }
-    
+
     const topMatch = matches[0];
     const moodData = context.getIntermediate('moodData');
-    
+
     // 使用本地哲学标签生成
     const philosophy = generatePhilosophyTags(
       topMatch.drink.dimensions,
       moodData,
       topMatch.drink.name
     );
-    
+
     return {
       quote: philosophy.quote,
       tags: philosophy.tags,

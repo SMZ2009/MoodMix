@@ -85,9 +85,9 @@ const ShareCardImage = ({ src }) => {
   return (
     <div style={{
       width: '100%',
-      aspectRatio: '4 / 5', // Adjusted from 3:4 for better balance
+      aspectRatio: '1 / 1', // Aligned with detail page
       overflow: 'hidden',
-      borderRadius: '12px',
+      borderRadius: '40px', // Matches detail page's 2.5rem
       background: '#f0ebe3'
     }}>
       <img
@@ -1347,33 +1347,33 @@ const DrinkDetailSection = ({ drink, checkedIngredients, onToggleIngredient, onB
     try {
       // 直接使用 html2canvas 生成 canvas
       const canvas = await html2canvas(cardRef.current, {
-        scale: 1.5,                  // 降低分辨率以提高移动设备性能
-        backgroundColor: '#faf8f5',  // 卡片底色
-        useCORS: true,               // 允许跨域图片
-        logging: false,
-        // 移动设备兼容性配置
-        allowTaint: true,            // 允许可能的污染
-        letterRendering: true,        // 改善文字渲染
-        timeout: 10000               // 10秒超时
+        scale: 2,
+        backgroundColor: '#faf8f5',
+        useCORS: true,
+        logging: false
       });
 
-      // 使用 toDataURL 直接获取 PNG 数据
-      const dataURL = canvas.toDataURL('image/png', 0.9);
-      
-      // 创建下载链接
-      const link = document.createElement('a');
-      link.href = dataURL;
-      link.download = `MoodMix_${drink.name}.png`;
-      link.style.display = 'none';
-      document.body.appendChild(link);
-      
-      // 触发下载
-      link.click();
-      
-      // 清理
-      setTimeout(() => {
-        document.body.removeChild(link);
-      }, 100);
+      // 将 canvas 转为 blob 并下载
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          console.error('生成 blob 失败');
+          return;
+        }
+
+        // 创建下载链接
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `MoodMix_${drink.name}.png`;
+        document.body.appendChild(link);
+        link.click();
+
+        // 清理
+        setTimeout(() => {
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+        }, 100);
+      }, 'image/png');
     } catch (error) {
       console.error('下载失败:', error);
       alert('保存失败，请稍后重试');
@@ -2877,37 +2877,25 @@ const DakaModal = ({ drink, onClose, onSave }) => {
   };
 
   const downloadImage = async () => {
-    if (!cardRef.current) return;
+    if (!shareCardUrl) return;
     try {
-      // 直接使用 html2canvas 生成 canvas
-      const canvas = await html2canvas(cardRef.current, {
-        scale: 1.5,                  // 降低分辨率以提高移动设备性能
-        backgroundColor: '#faf8f5',  // 卡片底色
-        useCORS: true,               // 允许跨域图片
-        logging: false,
-        // 移动设备兼容性配置
-        allowTaint: true,            // 允许可能的污染
-        letterRendering: true,        // 改善文字渲染
-        timeout: 10000               // 10秒超时
-      });
-
-      // 使用 toDataURL 直接获取 PNG 数据
-      const dataURL = canvas.toDataURL('image/png', 0.9);
-      
-      // 创建下载链接
-      const link = document.createElement('a');
-      link.href = dataURL;
-      link.download = `MoodMix_Daka_${drink.name}.png`;
-      link.style.display = 'none';
-      document.body.appendChild(link);
-      
-      // 触发下载
-      link.click();
-      
-      // 清理
-      setTimeout(() => {
+      // 对于移动设备，尝试使用更可靠的下载方法
+      if ('download' in document.createElement('a')) {
+        const link = document.createElement('a');
+        link.href = shareCardUrl;
+        link.download = `MoodMix_Daka_${drink.name}.png`;
+        document.body.appendChild(link);
+        // 在移动设备上，需要触发真实的点击事件
+        link.dispatchEvent(new MouseEvent('click', {
+          bubbles: true,
+          cancelable: true,
+          view: window
+        }));
         document.body.removeChild(link);
-      }, 100);
+      } else {
+        // 降级方案：在新窗口打开图片，让用户手动保存
+        window.open(shareCardUrl, '_blank');
+      }
     } catch (error) {
       console.error('下载失败:', error);
       alert('保存失败，请稍后重试');

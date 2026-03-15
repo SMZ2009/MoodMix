@@ -1,121 +1,70 @@
-# MoodMix 项目结构与逻辑架构
+# MoodMix 多智能体驱动架构 (Multi-Agent Architecture)
 
-## 1. 项目概述 (Overview)
-**MoodMix** 是一款创新的 AI 驱动“心境饮品搭配”应用。它能够将用户输入的抽象心情描述，利用大语言模型（LLM）精准解析为结构化的味觉和体感维度数据，进而通过专门的推荐引擎运算，与酒水库（鸡尾酒或无酒精饮品）进行高维度匹配，推荐出最符合用户当下情绪的饮品。
+## 1. 核心架构概述 (Architectural Principles)
+MoodMix 是一款基于**多代理协作 (MAS)** 与 **TCM 辨证哲学** 的 AI 特调引擎。项目核心旨在将人类模糊的主观情感，通过多级 Agent 蒸馏与逻辑重构，映射为高维物理风味空间中的精准坐标。
 
-## 2. 宏观系统架构 (System Architecture)
-项目采用了**前后端分离 + 多智能体协作（Multi-Agent System）**的架构范式：
+### 技术选型原则
+- **高吞吐核心**: 基础处理链路采用 7B/8B 级模型实现毫秒级响应。
+- **高品质内容**: 创意与逻辑质检链路路由至 32B 级中量级模型以确保输出质量。
+- **关注点分离 (SoC)**: 每个 Agent 仅负责单一认知领域，通过统一的 `AgentContext` 互操作。
 
-*   **前端（Frontend / Client）**：基于 React (Create React App + TailwindCSS) 构建，承担富交互、动画特效及核心算法。
-*   **多智能体系统（Multi-Agent System）**：核心推荐与辅助逻辑由 6 个专职 Agent 顺序/动态协作完成。
-*   **微后端（Backend Proxy）**：轻量化 Express 服务，负责大模型 API 转发、Keys 隐藏、图片资源中转（解决外部 CDN 断连问题）及容灾调度。
+---
 
-### 2.1 多智能体矩阵 (The Agent Matrix)
+## 2. 智能体分工与模型矩阵 (Agent Matrix)
 
-| Agent | 名称 | 角色 | 核心职责 | 驱动模型 (LLM) |
-|:-----:|:-----|:-----|:---------|:---------------|
-| 1 | **SemanticDistiller** | NLU传感器 | 非结构化语义识别，提取6维心境数据 | Qwen2.5-7B (Fast) |
-| 2 | **PatternAnalyzer** | 辨证分析师 | 东方哲学归纳，确定调理策略（生克/纠偏） | Qwen2.5-7B (Base) |
-| 3 | **VectorTranslator** | 向量翻译官 | 抽象空间映射，生成 8 维目标匹配向量 | Qwen2.5-7B (Base) |
-| 4 | **CreativeCopywriter** | 创意文案师 | 基于匹配结果生成有温度的诗化推荐语 | Qwen2.5-32B (Creative) |
-| 5 | **MixologyExpert** | 调饮专家 | 提供制作指导、原料替代及风味深度分析 | Qwen2.5-7B (Base) |
-| 6 | **ValidatorOptimizer** | 验证优化师 | 全流程一致性验证与质量评分，确保逻辑自洽 | Qwen2.5-7B (Logical) |
+| 智能体 | 职责角色 | 驱动模型 (SiliconFlow) | 核心任务 |
+| :--- | :--- | :--- | :--- |
+| **SemanticDistiller** | NLU 传感器 | **Janus-Pro-7B** (or Qwen-7B) | 从非结构化文本中提取[情绪/躯体/认知/时间/诉求/社交]六维数据。 |
+| **PatternAnalyzer** | 辨证分析师 | **Janus-Pro-7B** | 依据六维数据判定五行属性 (Wood/Fire/Earth/Metal/Water) 与调理策略。 |
+| **VectorTranslator** | 空间翻译官 | **Janus-Pro-7B** | 将辨证结论转化为 8 维检索向量，动态配置维度权重。 |
+| **CreativeCopywriter**| 意境文案师 | **Qwen2.5-32B-Instruct** | 生成包含 [状态] + [特征] + [动作] 的三段式感性推荐语。 |
+| **MixologyExpert** | 调饮专家 | **Qwen2.5-7B-Instruct** | 负责[ANALYZE]风味分析、[ASSIST]制作指导、[SOCIAL_CARD]诗化卡片生成。 |
+| **ValidatorOptimizer**| 质量质检员 | **Qwen2.5-7B-Instruct** | 审查全流程一致性，预防幻觉，授予“心味相合”等质量勋章。 |
 
-### 2.2 核心逻辑流拓扑 (Logic Topology)
+---
 
-```mermaid
-graph TD
-    A[用户输入/此刻心境] -->|异步双流| B1[ComprehensiveAnalyzer]
-    A -->|全流程备份| B2[原子智能体流水线]
+## 3. 核心执行工作流 (Standard Workflow)
 
-    subgraph "高性能聚合流 (Speed Priority)"
-        B1 -->|MODEL: 7B| C1[一次性完成: 提取+辨证+向量映射]
-    end
+### 3.1 极速聚合路径 (High-Performance Path)
+为了极致的用户响应体验，系统实现了 **Comprehensive Analyze** 端点。
+1. **Agent 1-3 聚合**: 一次性将语义提取、辨证、向量映射封装在一个 LLM Prompt 中，减少 60% 的网络往返 (RTT)。
+2. **本地向量引擎**: 采用加权余弦相似度算法 (Weighted Cosine Similarity) 在毫秒内完成 500+ 饮品库匹配。
+3. **首屏渲染**: 优先展示匹配结果与基础信息，异步注入后续生成的 AI 文案。
 
-    subgraph "原子编排流 (Robustness Priority)"
-        B2 --> D1[SemanticDistiller]
-        D1 --> D2[PatternAnalyzer]
-        D2 --> D3[VectorTranslator]
-    end
+### 3.2 深度创意/质检路径 (Deep Creative Path)
+在首屏展示后，后台异步启动高参数量模型任务：
+1. **创意润色**: `CreativeCopywriter` 启动 (Temperature=0.7)，生成具有画面颗粒度的感性文案。
+2. **逻辑验证**: `ValidatorOptimizer` 交叉对比“辨证结论”与“推荐语”是否冲突（例如：心火旺者不应推荐过于辛热的饮品）。
+3. **反馈勋章**: 验证通过后，前端动态点亮对应的“逻辑契合”勋章。
 
-    C1 & D3 --> E[向量空间检索 - Vector Engine]
-    E --> F[API/本地饮品库匹配]
-    F --> G[CreativeCopywriter]
-    G -->|MODEL: 32B| H[生成感性文案]
-    H --> I[ValidatorOptimizer]
-    I -->|MODEL: 7B| J[质量勋章与结果呈现]
-```
+---
 
-### 2.3 执行时序图 (Sequence Workflow)
+## 4. 目录职能划分 (Directory Concerns)
 
-```mermaid
-sequenceDiagram
-    autonumber
-    participant U as 用户 (User)
-    participant A as 前端 (App UI)
-    participant O as 编排器 (Orchestrator)
-    participant CA as 聚合分析 (7B)
-    participant VE as 向量引擎 (Local)
-    participant CC as 文案润色 (32B)
-    participant VO as 质量质检 (7B)
+- **`src/agents/`**: 智能体核心逻辑。包含 `core/` (父类、上下文、编排器) 与 `specialized/` (具体 Agent 实现)。
+- **`src/engine/`**: 物理引擎。负责 8D 向量搜索、五行生克逻辑计算。
+- **`server/llmProxy.js`**: 智能路由层。负责 API Key 安全隔离，及根据任务性质将请求分发至 7B 或 32B 模型。
+- **`src/store/`**: 持久化层。记录用户的情绪图谱与饮品收藏历史。
 
-    U->>A: 输入心境并点击「启程寻味」
-    A->>O: 启动 handleStartGeneration
-    Note over O, CA: 高性能流：单次 RTT 解决复杂认知链
-    O->>CA: 执行 ComprehensiveAnalyze (语义+辨证+映射)
-    CA-->>O: 返回结构化 JSON (6维数据 + 8D向量)
-    O->>VE: 执行 Weighted Cosine Similarity 计算
-    VE-->>O: 返回 Top N 匹配结果及得分
-    Note over O, CC: 异步流：后台执行重度创意任务
-    par 推荐呈现与文案升华并行
-        O->>A: 立即展示初步匹配结果
-    and 创意文案生成
-        O->>CC: 执行意境润色任务 (Temperature: 0.7)
-        CC-->>O: 返回 25-45 字情感共鸣短句
-    end
-    O->>VO: 执行全流程一致性验证
-    VO-->>O: 返回 质量评分 (0-100) 与勋章标识
-    O->>A: 动态更新 UI (补齐文案与勋章)
-```
+---
 
-## 3. 核心目录职能 (Directory Concerns)
+## 5. 饮品维度说明 (8-Dimension Vector)
 
-```text
-moodmix/
-├── server/
-│   └── llmProxy.js             # 【代理层】对接 LLM 接口，并承载饮品图片流式中转逻辑 (Image Proxy Shield)
-├── scripts/
-│   └── batchGenerate.mjs       # 【工具层】离线向量推导工具
-├── src/                        # 【源码层】
-│   ├── agents/                 # 多智能体核心逻辑 (specialized/)
-│   ├── engine/                 # 算法引擎：向量搜索、五行映射、相似度计算
-│   ├── api/                    # 外部集成：MoodAnalyzer, QuoteGenerator
-│   ├── components/             # UI 原子组件与功能模态框
-│   ├── store/                  # 持久化存储 (localStorageAdapter)
-│   ├── data/                   # 预置知识库、翻译字典
-│   └── assets/                 # 视觉资源 (图片、图标)
-└── AI_EXPERIENCE.md            # 项目开发经验沉淀池
-```
+饮品在系统中被抽象为以下 8 个数值维度：
+1. **Taste (0-10)**: 主味强度（酸甜苦辛）。
+2. **Texture (-3~3)**: 气机感（-3 下沉/静谧，3 上扬/灵动）。
+3. **Temperature (-5~5)**: 阴阳属性（-5 极冰，0 常温，5 极热）。
+4. **Element (1-5)**: 五行映射坐标。
+5. **Time (0-23)**: 最佳适饮时辰映射。
+6. **Aroma (0-10)**: 香气穿透力。
+7. **ABV (0-95)**: 酒精百分比。
+8. **Action (1-5)**: 冥想/社交场景推荐指数。
 
-## 4. 关键业务流路 (Workflows)
+---
 
-### 4.1. 心境解析推荐流 (Detailed Agent Operations)
-
-| 阶段 | 责任 Agent | 核心步骤 | 输入/输出数据 |
-|:---|:---|:---|:---|
-| **1. 语义蒸馏** | `SemanticDistiller` | 1. 文本预处理及分词<br>2. 映射至六维心境模型<br>3. 初始化 drinkMapping 基础分值 | **IN**: raw_text<br>**OUT**: 6-dim JSON |
-| **2. 辨证分析** | `PatternAnalyzer` | 1. 计算六维数据间的张力与冲突点<br>2. 判定五行属性/阴阳态势<br>3. 确定“共鸣/纠偏”调息策略 | **IN**: 6-dim JSON<br>**OUT**: polarity / strategy |
-| **3. 向量翻译** | `VectorTranslator` | 1. 将哲学策略转化为数学约束<br>2. 设置 8 维空间目标坐标<br>3. 动态配置维度权重 (Weights Sum=1.0) | **IN**: mood + strategy<br>**OUT**: 8D Vector |
-| **4. 向量引擎** | `VectorEngine` (Local) | 1. 归一化本地饮品库数据<br>2. 执行加权余弦相似度演算<br>3. 输出相似度排名 Top 3 | **IN**: target_vector<br>**OUT**: matching_list |
-| **5. 意境生成** | `CreativeCopywriter` | 1. 结合用户心境与饮品特性<br>2. 采用“三段式”感性叙事模型<br>3. 剔除古诗词干扰，追求现代口语共鸣 | **IN**: matches<br>**OUT**: quotes (25-45 chars) |
-| **6. 质量质检** | `ValidatorOptimizer` | 1. 检查推荐语与心境的逻辑一致性<br>2. 评估五行生克的合规性<br>3. 生成“心味相合”等品质勋章反馈 | **IN**: full_context<br>**OUT**: score / badge |
-
-### 4.2. 调饮辅助专家流 (Expert Support Flow)
-- **动态替代方案**: `MixologyExpert` 采用“递归检索”算法，当主原料缺失时，自动在用户当前库存 (`inventory.js`) 中搜寻风味最接近的替代品，并重新计算比例。
-- **自定义增强**: 为用户上传的“特调”饮品执行原子化风味还原，将其自动映射入 8 维向量空间，实现特调饮品与心境的无缝匹配。
-
-## 5. 设计原则 (Core Design Principles)
-*   **关注点分离**: Agent 独立负责认知任务，通过 `AgentContext` 互操作。
-*   **低延迟体验**: 两阶段渲染策略（本地预设文案 + 异步 LLM 注入）。
-*   **高可靠性**: `fetchWithRetry` 机制与 `AbortController` 协同，防止请求积压。
-*   **视觉卓越**: 深度集成 TailwindCSS 与原生意境动画，营造“赛博中式”氛围。
+## 6. 开发与演进计划
+- [x] 多智能体框架搭建 (MAS Core)
+- [x] 聚合分析端点优化 (Compression)
+- [x] 东方美学分享卡片重构 (DOM-to-Image)
+- [ ] 离线 RAG 辅助配方搜索
+- [ ] 个人专属 AI 调酒师模型微调 (LoRA)

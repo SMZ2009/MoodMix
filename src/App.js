@@ -215,7 +215,7 @@ const ShareCard = React.forwardRef(({ drinkName, emotion, wuxing, imageSrc, llmC
 
 async function exportShareCard(cardElement) {
   if (!cardElement) return null;
-  
+
   try {
     // 为移动设备添加更兼容的配置
     const canvas = await html2canvas(cardElement, {
@@ -257,7 +257,7 @@ async function exportShareCard(cardElement) {
     ctx.font = '16px Arial';
     ctx.textAlign = 'center';
     ctx.fillText('分享卡片生成失败', canvas.width / 2, canvas.height / 2);
-    
+
     return new Promise((resolve) => {
       canvas.toBlob((blob) => {
         resolve(blob);
@@ -667,6 +667,11 @@ const FriendlyNoticeModal = ({ isOpen, title, message, tone = 'default', onClose
       accent: 'rgba(143, 90, 84, 0.92)',
       glow: 'rgba(194, 136, 126, 0.22)',
       border: 'rgba(171, 110, 103, 0.24)'
+    },
+    success: {
+      accent: 'rgba(52, 116, 84, 0.92)', // Jade / Oriental Green
+      glow: 'rgba(100, 180, 140, 0.22)',
+      border: 'rgba(80, 140, 110, 0.24)'
     }
   };
 
@@ -1740,6 +1745,7 @@ const App = () => {
       // Refresh daka drinks from storage
       const updatedDakaDrinks = collectionStorage.getDakaNotes();
       setDakaDrinks(updatedDakaDrinks);
+      showFriendlyNotice('保存成功', '记录已存入“我的”页面，随时可查。', 'success');
     }
     // handleCloseDakaModal(); // Removed to allow DakaModal to show share card preview
   };
@@ -1777,6 +1783,7 @@ const App = () => {
     // 刷新自定义饮品列表
     const updatedDrinks = customDrinkStorage.getCustomDrinks();
     setCustomDrinks(updatedDrinks);
+    showFriendlyNotice('创建成功', `您的特调“${savedDrink.name}”已存入探索列表。`, 'success');
     console.log('✨ 自定义饮品已保存:', savedDrink.name);
   };
 

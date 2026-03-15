@@ -1345,6 +1345,17 @@ const App = () => {
     resistance: 1.5
   });
 
+  // 原料库页面的右滑手势
+  const ingredientLibrarySwipeGesture = useSwipeGesture({
+    enabled: showIngredientLibrary,
+    onSwipeRight: () => {
+      console.log('原料库右滑 detected, opening side nav');
+      setIsSideNavOpen(true);
+    },
+    threshold: 30,
+    resistance: 1.5
+  });
+
   const showFriendlyNotice = useCallback((title, message, tone = 'default') => {
     setFriendlyNotice({
       isOpen: true,
@@ -2235,13 +2246,22 @@ const App = () => {
 
       {/* Ingredient Library Fullscreen */}
       {showIngredientLibrary && (
-        <div className="fixed inset-0 z-[150] flex flex-col bg-dreamy-gradient w-full h-[100vh] overflow-hidden">
+        <div 
+          ref={(el) => {
+            ingredientLibrarySwipeGesture.setElementRef(el);
+          }}
+          className="fixed inset-0 z-[150] flex flex-col bg-dreamy-gradient w-full h-[100vh] overflow-hidden"
+        >
           <div className="im-page-header">
             <div className="flex items-center">
               <button
                 onClick={() => {
                   fetchInventory();
                   setShowIngredientLibrary(false);
+                  setCurrentDrink(null);
+                  setRecommendationPool([]);
+                  setShowRecommendationGallery(false);
+                  setMixMode('home');
                 }}
                 className="im-back-btn"
               >

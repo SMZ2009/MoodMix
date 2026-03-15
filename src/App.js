@@ -1395,8 +1395,8 @@ const DrinkDetailSection = ({ drink, checkedIngredients, onToggleIngredient, onB
             <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem', fontFamily: '"Songti SC",serif', color: 'white' }}>分享卡片已生成</h2>
             <p style={{ color: 'rgba(255,255,255,0.6)', marginBottom: '1.5rem', fontSize: '0.875rem' }}>长按保存图片或扫描二维码分享</p>
 
-            <div className="relative aspect-[3/4] w-full rounded-xl overflow-hidden mb-4 shadow-2xl border border-white/10 bg-black/20">
-              <img src={shareCardUrl} alt="Share Card" className="w-full h-full object-contain" />
+            <div className="relative w-full rounded-xl overflow-hidden mb-4 shadow-2xl border border-white/10 bg-black/20 flex items-center justify-center">
+              <img src={shareCardUrl} alt="Share Card" className="max-w-full max-h-[70vh] object-contain" />
             </div>
 
             {/* 二维码区域 */}
@@ -1434,33 +1434,7 @@ const DrinkDetailSection = ({ drink, checkedIngredients, onToggleIngredient, onB
               </p>
             </div>
 
-            <div className="flex flex-col gap-3">
 
-              <InteractiveButton
-                variant="primary"
-                onClick={handleDownloadImage}
-                fullWidth
-                style={{
-                  background: 'linear-gradient(135deg, #3c3b36 0%, #1a1a1a 100%)',
-                  color: '#f7f0e4',
-                  fontFamily: '"Songti SC", serif',
-                  letterSpacing: '0.15em',
-                  fontWeight: 'bold'
-                }}
-                className="flex items-center justify-center gap-2"
-              >
-                <Download size={18} />
-                保存图片
-              </InteractiveButton>
-              <InteractiveButton
-                variant="text"
-                onClick={() => setShareCardUrl(null)}
-                fullWidth
-                style={{ fontFamily: '"Songti SC", serif', color: 'rgba(255,255,255,0.5)', letterSpacing: '0.1em' }}
-              >
-                返回
-              </InteractiveButton>
-            </div>
           </div>
         </Modal>
       )}

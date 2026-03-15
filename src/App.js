@@ -636,7 +636,7 @@ const InterventionModal = ({ isOpen, onClose, onSelectType }) => {
   );
 };
 
-const FriendlyNoticeModal = ({ isOpen, title, message, tone = 'default', onClose }) => {
+const FriendlyNoticeModal = ({ isOpen, title, message, tone = 'default', onClose, primaryAction, secondaryAction }) => {
   if (!isOpen) return null;
 
   const toneStyles = {
@@ -722,22 +722,41 @@ const FriendlyNoticeModal = ({ isOpen, title, message, tone = 'default', onClose
             {message}
           </p>
 
-          <InteractiveButton
-            variant="primary"
-            fullWidth
-            onClick={onClose}
-            style={{
-              marginTop: '1.5rem',
-              height: '50px',
-              background: currentTone.accent,
-              color: '#f7f0e4',
-              border: '1px solid rgba(66, 55, 60, 0.14)',
-              boxShadow: '0 10px 24px rgba(86, 73, 80, 0.18), inset 0 1px 0 rgba(255,255,255,0.18)',
-              fontWeight: 600
-            }}
-          >
-            知道了
-          </InteractiveButton>
+          <div className="flex flex-col gap-3 mt-6">
+            {primaryAction && (
+              <InteractiveButton
+                variant="primary"
+                fullWidth
+                onClick={primaryAction.onClick}
+                style={{
+                  height: '50px',
+                  background: currentTone.accent,
+                  color: '#f7f0e4',
+                  border: '1px solid rgba(66, 55, 60, 0.14)',
+                  boxShadow: '0 10px 24px rgba(86, 73, 80, 0.18), inset 0 1px 0 rgba(255,255,255,0.18)',
+                  fontWeight: 600
+                }}
+              >
+                {primaryAction.label}
+              </InteractiveButton>
+            )}
+
+            <InteractiveButton
+              variant={primaryAction ? "text" : "primary"}
+              fullWidth
+              onClick={onClose}
+              style={{
+                height: '50px',
+                background: primaryAction ? 'transparent' : currentTone.accent,
+                color: primaryAction ? currentTone.accent : '#f7f0e4',
+                border: primaryAction ? 'none' : '1px solid rgba(66, 55, 60, 0.14)',
+                boxShadow: primaryAction ? 'none' : '0 10px 24px rgba(86, 73, 80, 0.18), inset 0 1px 0 rgba(255,255,255,0.18)',
+                fontWeight: 600
+              }}
+            >
+              {secondaryAction?.label || (primaryAction ? '留在本页' : '知道了')}
+            </InteractiveButton>
+          </div>
         </div>
       </div>
     </Modal>
@@ -1691,7 +1710,9 @@ const App = () => {
     isOpen: false,
     title: '',
     message: '',
-    tone: 'default'
+    tone: 'default',
+    primaryAction: null,
+    secondaryAction: null
   });
   const [isSideNavOpen, setIsSideNavOpen] = useState(false);
   const [showIngredientLibrary, setShowIngredientLibrary] = useState(false);
@@ -1702,12 +1723,14 @@ const App = () => {
   const isQuoteFetching = useRef(false);
   const mainContentRef = useRef(null);
 
-  const showFriendlyNotice = useCallback((title, message, tone = 'default') => {
+  const showFriendlyNotice = useCallback((title, message, tone = 'default', primaryAction = null, secondaryAction = null) => {
     setFriendlyNotice({
       isOpen: true,
       title,
       message,
-      tone
+      tone,
+      primaryAction,
+      secondaryAction
     });
   }, []);
 
@@ -1732,7 +1755,12 @@ const App = () => {
       // Refresh daka drinks from storage
       const updatedDakaDrinks = collectionStorage.getDakaNotes();
       setDakaDrinks(updatedDakaDrinks);
-      showFriendlyNotice('保存成功', '记录已存入“我的”页面，随时可查。', 'success');
+      showFriendlyNotice(
+        '保存成功',
+        '记录已存入“我的”页面，随时可查。',
+        'success',
+        { label: '退出并返回', onClick: () => { handleCloseDakaModal(); closeFriendlyNotice(); } }
+      );
     }
     // handleCloseDakaModal(); // Removed to allow DakaModal to show share card preview
   };
@@ -1770,7 +1798,12 @@ const App = () => {
     // 刷新自定义饮品列表
     const updatedDrinks = customDrinkStorage.getCustomDrinks();
     setCustomDrinks(updatedDrinks);
-    showFriendlyNotice('创建成功', `您的特调“${savedDrink.name}”已存入探索列表。`, 'success');
+    showFriendlyNotice(
+      '创建成功',
+      `您的特调“${savedDrink.name}”已存入探索列表。`,
+      'success',
+      { label: '好的', onClick: () => { handleCloseCustomDrinkModal(); closeFriendlyNotice(); } }
+    );
     console.log('✨ 自定义饮品已保存:', savedDrink.name);
   };
 
@@ -2638,6 +2671,8 @@ const App = () => {
         message={friendlyNotice.message}
         tone={friendlyNotice.tone}
         onClose={closeFriendlyNotice}
+        primaryAction={friendlyNotice.primaryAction}
+        secondaryAction={friendlyNotice.secondaryAction}
       />
 
       {/* Ingredient Library Fullscreen */}

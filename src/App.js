@@ -1252,14 +1252,43 @@ const DrinkDetailSection = ({ drink, checkedIngredients, onToggleIngredient, onB
     });
   };
 
-  const handleDownloadImage = () => {
-    if (!shareCardUrl) return;
-    const link = document.createElement('a');
-    link.href = shareCardUrl;
-    link.download = `MoodMix_${drink.name}.png`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const handleDownloadImage = async () => {
+    if (!cardRef.current) return;
+
+    try {
+      // 直接使用 html2canvas 生成 canvas
+      const canvas = await html2canvas(cardRef.current, {
+        scale: 2,
+        backgroundColor: '#faf8f5',
+        useCORS: true,
+        logging: false
+      });
+
+      // 将 canvas 转为 blob 并下载
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          console.error('生成 blob 失败');
+          return;
+        }
+
+        // 创建下载链接
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `MoodMix_${drink.name}.png`;
+        document.body.appendChild(link);
+        link.click();
+
+        // 清理
+        setTimeout(() => {
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+        }, 100);
+      }, 'image/png');
+    } catch (error) {
+      console.error('下载失败:', error);
+      alert('保存失败，请稍后重试');
+    }
   };
 
   // 辅助函数：将数字索引转为中文步骤名

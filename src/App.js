@@ -1581,28 +1581,6 @@ const App = () => {
   const isQuoteFetching = useRef(false);
   const mainContentRef = useRef(null);
 
-  // 右滑显示侧边导航栏
-  const swipeGesture = useSwipeGesture({
-    enabled: !currentDrink && !isFocusMode && !showRecommendationGallery,
-    onSwipeRight: () => {
-      console.log('右滑 detected, opening side nav');
-      setIsSideNavOpen(true);
-    },
-    threshold: 30,
-    resistance: 1.5
-  });
-
-  // 原料库页面的右滑手势
-  const ingredientLibrarySwipeGesture = useSwipeGesture({
-    enabled: showIngredientLibrary,
-    onSwipeRight: () => {
-      console.log('原料库右滑 detected, opening side nav');
-      setIsSideNavOpen(true);
-    },
-    threshold: 30,
-    resistance: 1.5
-  });
-
   const showFriendlyNotice = useCallback((title, message, tone = 'default') => {
     setFriendlyNotice({
       isOpen: true,
@@ -1864,6 +1842,28 @@ const App = () => {
   const [selectedMood, setSelectedMood] = useState(null);
   const [exploreCategory, setExploreCategory] = useState('all');
   const [showRecommendationGallery, setShowRecommendationGallery] = useState(false);
+
+  // 右滑显示侧边导航栏
+  const swipeGesture = useSwipeGesture({
+    enabled: !currentDrink && !isFocusMode && !showRecommendationGallery,
+    onSwipeRight: () => {
+      console.log('右滑 detected, opening side nav');
+      setIsSideNavOpen(true);
+    },
+    threshold: 30,
+    resistance: 1.5
+  });
+
+  // 原料库页面的右滑手势
+  const ingredientLibrarySwipeGesture = useSwipeGesture({
+    enabled: showIngredientLibrary,
+    onSwipeRight: () => {
+      console.log('原料库右滑 detected, opening side nav');
+      setIsSideNavOpen(true);
+    },
+    threshold: 30,
+    resistance: 1.5
+  });
 
   // 灵感库分类切换：调用 API 筛选
   const handleExploreCategoryChange = useCallback((cat) => {

@@ -27,7 +27,7 @@ export function useCocktailApi() {
     const detailCache = useRef({});
     // 缓存：分类列表数据
     const categoryCache = useRef({});
-    
+
     // 检查缓存版本，如果不匹配则清空缓存
     const checkCacheVersion = useCallback(() => {
         const storedVersion = localStorage.getItem('moodmix_cache_version');
@@ -54,7 +54,7 @@ export function useCocktailApi() {
     const loadAll = useCallback(async () => {
         // 检查缓存版本
         checkCacheVersion();
-        
+
         // 如果已经缓存，直接使用
         if (allDrinksCache.current) {
             // 迁移旧分类到新分类
@@ -93,6 +93,32 @@ export function useCocktailApi() {
             return;
         }
 
+        const lowerQuery = query.toLowerCase().trim();
+
+        // 🔥 [优化] 优先进行本地搜索，支持中文匹配
+        if (allDrinksCache.current) {
+            const localMatches = allDrinksCache.current.filter(d =>
+                (d.name && d.name.toLowerCase().includes(lowerQuery)) ||
+                (d.nameEn && d.nameEn.toLowerCase().includes(lowerQuery)) ||
+                (d.nameCn && d.nameCn.toLowerCase().includes(lowerQuery)) ||
+                (d.subName && d.subName.toLowerCase().includes(lowerQuery))
+            );
+
+            // 如果本地有匹配结果，立即显示，不再请求 API
+            if (localMatches.length > 0) {
+                setDrinks(localMatches);
+                return;
+            }
+        }
+
+        // 本地没有匹配，且包含中文字符，则提示未找到（API 不支持中文搜索）
+        const hasChinese = /[\u4e00-\u9fa5]/.test(query);
+        if (hasChinese) {
+            setDrinks([]);
+            return;
+        }
+
+        // 仅在本地无结果且为英文时，尝试请求 API (可能缓存未完全加载)
         searchTimer.current = setTimeout(async () => {
             setLoading(true);
             setError(null);
@@ -114,7 +140,7 @@ export function useCocktailApi() {
     const filterDrinksByCategory = useCallback(async (category) => {
         // 检查缓存版本
         checkCacheVersion();
-        
+
         if (category === 'all') {
             // "全部" → 显示缓存的全量数据
             if (allDrinksCache.current) {
@@ -163,7 +189,7 @@ export function useCocktailApi() {
     const loadDrinkDetail = useCallback(async (drink) => {
         // 检查缓存版本
         checkCacheVersion();
-        
+
         // 检查缓存
         const apiId = drink?.apiId;
         if (apiId && detailCache.current[apiId]) {

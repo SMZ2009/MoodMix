@@ -529,16 +529,49 @@ async function handleStreamMoodAnalysis(req, res) {
     }
 
     const timeInfo = current_time || new Date().toISOString();
-    const systemPrompt = buildSystemPrompt();
+    // 使用增强型 Prompt，确保包含辨证分析
+    const systemPrompt = `你是一位集"语义蒸馏"、"中医辨证"与"调酒风味专家"映射于一身的智能中枢。
+你的任务是将用户的一句心情描述，演变为一场深度的【流态辨证】。
+
+### 阶段一：流态辨证 (Thought Process)
+请按以下 6 个维度中用户提到或暗示的部分进行拆解输出（请直接开始输出，不要解释）：
+1. 【情绪】映射五行(木怒/火喜/土思/金悲/水恐)的消长。
+2. 【气机】躯体状态在升降浮沉中的偏移。
+3. 【时空】当前时辰/节气对心境的微妙影响。
+4. 【神志】认知与思维模式的凝滞或散乱。
+5. 【仪轨】用户潜在的诉求(止/动/破)逻辑。
+6. 【场域】社交环境对能量场的影响。
+
+### 阶段二：结构化输出 (Final Result)
+拆解完成后，输出 [RESULT] 标记，随后紧跟严格的 JSON 对象。
+
+## JSON 结构示例（必须包含所有 Key）：
+[RESULT]
+{
+  "moodData": {
+    "emotion": { "physical": { "state": "思虑过多", "intensity": 0.8 }, "philosophy": { "wuxing": "土", "organ": "脾" }, "drinkMapping": { "tasteScore": 6, "colorCode": 3 } },
+    "somatic": { "physical": { "sensation": "胸口闷堵", "intensity": 0.6 }, "philosophy": { "direction": "郁结", "yinyang": "偏阴" }, "drinkMapping": { "temperature": 0, "textureScore": 1 } },
+    "time": { "physical": { "hour": 22, "period": "深夜", "intensity": 0.9 }, "drinkMapping": { "temporality": 22 } },
+    "cognitive": { "physical": { "state": "思绪萦绕", "intensity": 0.7 }, "drinkMapping": { "aromaScore": 8 } },
+    "demand": { "physical": { "state": "破局", "intensity": 0.8 }, "philosophy": { "type": "破" }, "drinkMapping": { "actionScore": 5 } },
+    "socialContext": { "physical": { "state": "独自", "intensity": 1.0 }, "drinkMapping": { "ratioScore": 95 } }
+  },
+  "patternAnalysis": {
+    "polarity": { "type": "negative", "confidence": 0.9 },
+    "wuxing": { "user": "earth" },
+    "strategy": { "type": "counter", "logic": "以木克土，借辛散之味破开脾土郁结" }
+  },
+  "summary": "思虑深重致气机郁结，宜以辛散之味破局。"
+}`;
     const userMessage = buildUserMessage(user_input.trim(), timeInfo);
 
-    console.log(`[Stream] 开始请求 SiliconFlow (${MODEL_CORE})...`);
+    console.log(`[Stream] 开始请求 SiliconFlow (${MODEL_CREATIVE})...`);
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
-      console.warn('[Stream] 请求超时 (30s)');
+      console.warn('[Stream] 请求超时 (40s)');
       controller.abort();
-    }, 30000);
+    }, 40000);
 
     let response;
     try {
@@ -549,13 +582,13 @@ async function handleStreamMoodAnalysis(req, res) {
           'Authorization': `Bearer ${req.apiKey}`
         },
         body: JSON.stringify({
-          model: MODEL_CORE,
+          model: MODEL_CREATIVE,
           messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userMessage }
           ],
-          temperature: 0.5,
-          max_tokens: 800,
+          temperature: 0.7,
+          max_tokens: 1500,
           stream: true
         }),
         signal: controller.signal

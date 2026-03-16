@@ -143,11 +143,18 @@ const TASTE_MODIFIERS = {
  */
 function generateDiagnosisTag(moodData, patternAnalysis) {
     if (!moodData || !patternAnalysis) {
+        // 增加日志以定位缺失点
+        if (!moodData) console.warn('[PhilosophyTags] generateDiagnosisTag failed: moodData is missing');
+        if (!patternAnalysis) console.warn('[PhilosophyTags] generateDiagnosisTag failed: patternAnalysis is missing');
         return '待辨证';
     }
 
     const polarity = patternAnalysis?.polarity?.type || 'negative';
-    const userWuxing = patternAnalysis?.wuxing?.user || 'earth';
+    const rawWuxing = patternAnalysis?.wuxing?.user || 'earth';
+    
+    // 鲁棒性映射：确保 wood/fire/earth/metal/water 格式
+    const wuxingMap = { '木': 'wood', '火': 'fire', '土': 'earth', '金': 'metal', '水': 'water' };
+    const userWuxing = wuxingMap[rawWuxing] || rawWuxing;
 
     // 收集各维度的 intensity
     const dims = [
@@ -494,24 +501,51 @@ function hashSelect(str, max) {
  * }}
  */
 export function generatePhilosophyTags(dimensions, contextData = null, drinkName = '') {
-    // 降级：无上下文
+    // 调试日志：追踪标签生成时的原始上下文
+    if (contextData && (drinkName === '螺丝刀' || !drinkName)) {
+        console.log(`[PhilosophyTags] 生成标签中 [${drinkName}]:`, {
+            hasContext: !!contextData,
+            hasMoodData: !!(contextData.moodData || contextData.emotion),
+            hasPattern: !!contextData.patternAnalysis,
+            keys: Object.keys(contextData)
+        });
+    }
+
+    // 降级：无上下文或无维度
     if (!contextData || !dimensions) {
+        if (!contextData) {
+            console.warn(`[PhilosophyTags] ${drinkName || '未知饮品'} 缺少 contextData (moodResult)，触发完全降级`);
+            // console.trace(); // 开启追溯堆栈以查找调用源
+        }
         return {
-            tags: ['待辨证', '调和气机', '口感待品'],
+            tags: [!contextData ? '待辨证(无数据)' : '待辨证(无维度)', '调理中', '口感待品'],
             quote: '「请先描述你此刻的心情，让我为你找到那杯对的酒」',
             diagnosis: '待辨证',
-            strategy: '调和气机',
+            strategy: '调理中',
             sensory: '口感待品',
         };
     }
 
-    const moodData = contextData.moodData || contextData;
-    const patternAnalysis = contextData.patternAnalysis;
+    // 深度解构适配：兼容 { moodData, patternAnalysis } 包装结构与旧版平铺结构
+    const moodData = contextData.moodData || (contextData.emotion ? contextData : null);
+    const patternAnalysis = contextData.patternAnalysis || contextData.pattern;
+
+    if (!moodData || !patternAnalysis) {
+        console.warn(`[PhilosophyTags] ${drinkName || '未知饮品'} 数据不完整: moodData=${!!moodData}, pattern=${!!patternAnalysis}`);
+        return {
+            tags: [!moodData ? '待辨证(无包)' : '待辨证(无论)', '策略待定', '感知待品'],
+            quote: '「思绪有些朦胧，待我细细为你辨证」',
+            diagnosis: '待辨证',
+            strategy: '调理中',
+            sensory: '口感待品',
+        };
+    }
 
     // 确定饮品五行
     const drinkWuXing = determineDrinkWuXing(dimensions);
 
     // 生成三个标签
+    // 如果依然缺少 patternAnalysis，但有 moodData，尝试在生成时做最后一次兜底
     const tag1 = generateDiagnosisTag(moodData, patternAnalysis);
     const tag2 = generateStrategyTag(patternAnalysis, drinkWuXing);
     const tag3 = generateSensoryTag(dimensions);

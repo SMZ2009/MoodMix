@@ -93,10 +93,34 @@ const StreamingAnalysisCard = ({
               // 处理流式文本片段
               if (data.delta) {
                 fullText += data.delta;
-                // 仅显示 [THOUGHT] 部分的内容
-                const thoughtMatch = fullText.match(/\[THOUGHT\]([\s\S]*?)(?:\[RESULT\]|$)/);
-                if (thoughtMatch && thoughtMatch[1]) {
-                  setStreamingText(thoughtMatch[1].trim());
+                
+                // --- 启发式解析策略 ---
+                let displayText = '';
+                
+                // 1. 寻找 [RESULT] 标记作为思绪的终点
+                const resultIndex = fullText.indexOf('[RESULT]');
+                const thoughtIndex = fullText.indexOf('[THOUGHT]');
+                
+                if (resultIndex !== -1) {
+                    // 已到达结果区，取 [THOUGHT] 之后到 [RESULT] 之前的全部内容
+                    const start = thoughtIndex !== -1 ? thoughtIndex + 9 : 0;
+                    displayText = fullText.slice(start, resultIndex).trim();
+                } else {
+                    // 还在思绪区
+                    if (thoughtIndex !== -1) {
+                        // 有明确标记
+                        displayText = fullText.slice(thoughtIndex + 9).trim();
+                    } else {
+                        // 无明确标记：启发式过滤掉可能的 JSON 开头内容
+                        // 如果内容以 { 开头，说明模型可能直接输出了 JSON，不展示
+                        if (!fullText.trim().startsWith('{')) {
+                            displayText = fullText.trim();
+                        }
+                    }
+                }
+                
+                if (displayText) {
+                    setStreamingText(displayText);
                 }
               }
 

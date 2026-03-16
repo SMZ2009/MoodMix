@@ -2378,7 +2378,7 @@ const App = () => {
    */
   const handleStreamingComplete = useCallback(async (moodData) => {
     const startTime = performance.now();
-    console.log('[StreamingComplete] 流态分析完成，开始饮品推荐');
+    console.log('[StreamingComplete] 流态分析完成，开始饮品推荐', moodData);
 
     try {
       // 检查饮品数据是否已加载
@@ -2392,20 +2392,9 @@ const App = () => {
       const customDrinksWithVector = customDrinks.filter(d => d.vector && d.vector.length === 8);
       const allDrinksForPipeline = [...apiDrinks, ...customDrinksWithVector];
 
-      // 从 moodData 构建向量并进行匹配
-      const userVector = [
-        moodData.emotion?.drinkMapping?.tasteScore ?? 5,
-        moodData.somatic?.drinkMapping?.textureScore ?? 0,
-        moodData.somatic?.drinkMapping?.temperature ?? 0,
-        3, // 默认五行属土
-        moodData.time?.drinkMapping?.temporality ?? new Date().getHours(),
-        moodData.cognitive?.drinkMapping?.aromaScore ?? 5,
-        moodData.socialContext?.drinkMapping?.ratioScore ?? 15,
-        moodData.demand?.drinkMapping?.actionScore ?? 3
-      ];
-
       // 使用向量引擎评估和排序饮品
-      const rankedDrinks = evaluateAndSortDrinks(allDrinksForPipeline, userVector, sessionIngredients);
+      // 注意：evaluateAndSortDrinks(moodData, allDrinks, sessionIngredients)
+      const rankedDrinks = evaluateAndSortDrinks(moodData, allDrinksForPipeline, sessionIngredients);
       const topMatches = rankedDrinks.slice(0, 9);
 
       // 设置结果

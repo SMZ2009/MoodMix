@@ -132,11 +132,12 @@ const RecommendationGallery = ({ drinks, onBack, onStartMaking, onShuffle, onNav
 
       {/* Header */}
       <header className="relative z-50 flex items-center justify-between px-6 py-4 flex-shrink-0">
+        {/* 返回按钮 */}
         <button
           onClick={onBack}
           className="flex items-center justify-center w-10 h-10 rounded-full bg-white/40 backdrop-blur-md border border-white/60 text-gray-700 hover:bg-white/60 hover:text-gray-900 transition-all duration-300 active:scale-95 shadow-sm"
         >
-          <ChevronLeft size={22} />
+          <ChevronLeft size={20} />
         </button>
 
         <div className="flex flex-col items-center">

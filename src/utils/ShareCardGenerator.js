@@ -6,9 +6,9 @@
  */
 
 export const generateShareCard = async ({ drink, note, date = new Date(), customImage = null }) => {
-    const CANVAS_WIDTH = 1200;
-    const CANVAS_HEIGHT = 1600; // 3:4 ratio
-    const PADDING = 80;
+    const CANVAS_WIDTH = 2400;
+    const CANVAS_HEIGHT = 3200; // 3:4 ratio (doubled resolution)
+    const PADDING = 160; // Doubled padding to maintain proportional spacing
 
     const canvas = document.createElement('canvas');
     canvas.width = CANVAS_WIDTH;
@@ -67,65 +67,65 @@ export const generateShareCard = async ({ drink, note, date = new Date(), custom
 
         // 3. Draw Brand & Header (Optimized)
         ctx.fillStyle = '#3c3b36';
-        ctx.font = 'bold 42px "Songti SC", serif';
+        ctx.font = 'bold 84px "Songti SC", serif';
         ctx.textAlign = 'left';
-        ctx.fillText('MoodMix | 心绪调饮', PADDING, PADDING + 50);
+        ctx.fillText('MoodMix | 心绪调饮', PADDING, PADDING + 100);
 
         ctx.fillStyle = '#a09382';
-        ctx.font = '22px "Songti SC", serif';
-        ctx.fillText('ORIENTAL ALCHEMY', PADDING, PADDING + 85);
+        ctx.font = '44px "Songti SC", serif';
+        ctx.fillText('ORIENTAL ALCHEMY', PADDING, PADDING + 170);
 
         const dateStr = date.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '.');
         ctx.textAlign = 'right';
-        ctx.font = '32px "FZYouSong", serif';
-        ctx.fillText(dateStr, CANVAS_WIDTH - PADDING, PADDING + 60);
+        ctx.font = '64px "FZYouSong", serif';
+        ctx.fillText(dateStr, CANVAS_WIDTH - PADDING, PADDING + 120);
 
         // 4. Draw Drink Name
-        const contentY = imgY + imageAreaH + 100;
+        const contentY = imgY + imageAreaH + 200;
         ctx.textAlign = 'left';
         ctx.fillStyle = '#1a1a1a';
-        ctx.font = 'bold 84px "Songti SC", serif';
+        ctx.font = 'bold 168px "Songti SC", serif';
         ctx.fillText(drink.name_cn || drink.name, PADDING, contentY);
 
         // 5. Emotion & Wuxing (Removed "此刻心迹")
-        const tagY = contentY + 65;
+        const tagY = contentY + 130;
         const emotion = drink.dimensions?.mood || '悠然';
         const wuxing = drink.dimensions?.wuxing ? `五行属${drink.dimensions.wuxing}` : '五行调和';
 
         ctx.fillStyle = '#5c5b56';
-        ctx.font = '36px "STKaiti", serif';
+        ctx.font = '72px "STKaiti", serif';
         ctx.fillText(`${emotion}  |  ${wuxing}`, PADDING, tagY);
 
         // Divider
         ctx.strokeStyle = 'rgba(209, 205, 194, 0.5)';
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 4;
         ctx.beginPath();
-        ctx.moveTo(PADDING, tagY + 50);
-        ctx.lineTo(PADDING + 100, tagY + 50);
+        ctx.moveTo(PADDING, tagY + 100);
+        ctx.lineTo(PADDING + 200, tagY + 100);
         ctx.stroke();
 
         // 6. Draw "Symphony" / AI Reason / Quote
-        const quoteY = tagY + 140;
+        const quoteY = tagY + 280;
         const quoteText = note || drink.reason || '岁序更迭，此情可待';
 
         // Gallery style left border
         ctx.strokeStyle = '#d1cdc2';
-        ctx.lineWidth = 4;
+        ctx.lineWidth = 8;
         ctx.beginPath();
-        ctx.moveTo(PADDING - 20, quoteY - 40);
-        ctx.lineTo(PADDING - 20, quoteY + 120);
+        ctx.moveTo(PADDING - 40, quoteY - 80);
+        ctx.lineTo(PADDING - 40, quoteY + 240);
         ctx.stroke();
 
         ctx.fillStyle = '#4c4b46';
-        ctx.font = 'italic 38px "STKaiti", serif';
-        wrapText(ctx, quoteText, PADDING + 10, quoteY, CANVAS_WIDTH - PADDING * 2 - 40, 60);
+        ctx.font = 'italic 76px "STKaiti", serif';
+        wrapText(ctx, quoteText, PADDING + 20, quoteY, CANVAS_WIDTH - PADDING * 2 - 80, 120);
 
         // 7. Footer & QR Area
-        const footerY = CANVAS_HEIGHT - PADDING - 40;
+        const footerY = CANVAS_HEIGHT - PADDING - 80;
         ctx.fillStyle = '#a09382';
-        ctx.font = '12px "Songti SC", serif'; // CTAs
+        ctx.font = '24px "Songti SC", serif'; // CTAs
         ctx.fillText('扫码试试你的情绪饮品', PADDING, footerY);
-        ctx.fillText('SCAN FOR YOUR MOOD MIX', PADDING, footerY + 40);
+        ctx.fillText('SCAN FOR YOUR MOOD MIX', PADDING, footerY + 80);
 
         // Simulating QR box if needed, but usually generated separately
         return canvas.toDataURL('image/png', 1.0);

@@ -724,7 +724,7 @@ const InterventionModal = ({ isOpen, onClose, onSelectType }) => {
   );
 };
 
-const FriendlyNoticeModal = ({ isOpen, title, message, tone = 'default', onClose, primaryAction, secondaryAction }) => {
+const FriendlyNoticeModal = ({ isOpen, title, message, tone = 'default', onClose, primaryAction, secondaryAction, isLoading = false }) => {
   if (!isOpen) return null;
 
   const toneStyles = {
@@ -832,7 +832,8 @@ const FriendlyNoticeModal = ({ isOpen, title, message, tone = 'default', onClose
             <InteractiveButton
               variant={primaryAction ? "text" : "primary"}
               fullWidth
-              onClick={onClose}
+              onClick={secondaryAction?.onClick || onClose}
+              disabled={isLoading}
               style={{
                 height: '50px',
                 background: primaryAction ? 'transparent' : currentTone.accent,
@@ -841,8 +842,16 @@ const FriendlyNoticeModal = ({ isOpen, title, message, tone = 'default', onClose
                 boxShadow: primaryAction ? 'none' : '0 10px 24px rgba(86, 73, 80, 0.18), inset 0 1px 0 rgba(255,255,255,0.18)',
                 fontWeight: 600
               }}
+              className="flex items-center justify-center gap-2"
             >
-              {secondaryAction?.label || (primaryAction ? '留在本页' : '知道了')}
+              {isLoading ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  生成中...
+                </>
+              ) : (
+                secondaryAction?.label || (primaryAction ? '分享' : '知道了')
+              )}
             </InteractiveButton>
           </div>
         </div>
@@ -1704,28 +1713,30 @@ const DrinkDetailSection = ({ drink, checkedIngredients, onToggleIngredient, onB
       )}
 
       {/* Hidden Share Card for generating image */}
-      <div style={{ position: 'fixed', left: '-2000px', top: '0', pointerEvents: 'none', zIndex: -1 }}>
-        {/* Hidden QR Code Canvas */}
-        <div ref={qrCanvasRef} style={{ width: '88px', height: '88px' }}>
-          <QRCodeCanvas
-            value={getShareLink()}
-            size={88}
-            level="M"
-            includeMargin={false}
-            bgColor="#ffffff"
-            fgColor="#3a3226"
+      {!shareCardUrl && (
+        <div style={{ position: 'fixed', left: '-2000px', top: '0', pointerEvents: 'none', zIndex: -1 }}>
+          {/* Hidden QR Code Canvas */}
+          <div ref={qrCanvasRef} style={{ width: '88px', height: '88px' }}>
+            <QRCodeCanvas
+              value={getShareLink()}
+              size={88}
+              level="M"
+              includeMargin={false}
+              bgColor="#ffffff"
+              fgColor="#3a3226"
+            />
+          </div>
+          <ShareCard
+            ref={cardRef}
+            drinkName={drink.name}
+            emotion={drink.dimensions?.mood || '悠然'}
+            wuxing={drink.dimensions?.wuxing ? `五行属${drink.dimensions.wuxing}` : '五行调和'}
+            imageSrc={drink.image}
+            llmCopy={llmCopy}
+            qrCodeSrc={qrCodeDataUrl}
           />
         </div>
-        <ShareCard
-          ref={cardRef}
-          drinkName={drink.name}
-          emotion={drink.dimensions?.mood || '悠然'}
-          wuxing={drink.dimensions?.wuxing ? `五行属${drink.dimensions.wuxing}` : '五行调和'}
-          imageSrc={drink.image}
-          llmCopy={llmCopy}
-          qrCodeSrc={qrCodeDataUrl}
-        />
-      </div>
+      )}
     </div>
   );
 };
@@ -1763,6 +1774,13 @@ const App = () => {
     primaryAction: null,
     secondaryAction: null
   });
+  const [isShareLoading, setIsShareLoading] = useState(false);
+  const [shareCardUrl, setShareCardUrl] = useState(null);
+  const [isGeneratingShare, setIsGeneratingShare] = useState(false);
+  const cardRef = useRef(null);
+  const qrCanvasRef = useRef(null);
+  const [llmCopy, setLlmCopy] = useState('');
+  const [qrCodeDataUrl, setQrCodeDataUrl] = useState(null);
   const [isSideNavOpen, setIsSideNavOpen] = useState(false);
   const [showIngredientLibrary, setShowIngredientLibrary] = useState(false);
   const [showIngredientCustomForm, setShowIngredientCustomForm] = useState(false);
@@ -1782,6 +1800,82 @@ const App = () => {
       secondaryAction
     });
   }, []);
+
+  const handleShare = async () => {
+    if (!currentDrink) return;
+    
+    setIsGeneratingShare(true);
+    setIsShareLoading(true);
+    try {
+      // 0. 生成二维码数据 URL
+      if (qrCanvasRef.current) {
+        const qrCanvas = qrCanvasRef.current.querySelector('canvas');
+        if (qrCanvas) {
+          const qrUrl = qrCanvas.toDataURL('image/png');
+          setQrCodeDataUrl(qrUrl);
+        }
+      }
+
+      // 1. 获取 LLM 文案
+      const prompt = `你是 MoodMix 的文案诗人。请为分享卡片生成一段情绪文案。
+
+要求：
+- 2-3 句话，总字数控制在 30-50 字
+- 东方诗意的克制感，像朋友间的低语
+- 结合饮品的具体感官细节（颜色、温度、口感、气味）
+- 温柔地回应用户当下的情绪，给予认可或鼓励
+- 不要说教，不要鸡汤，不要感叹号
+
+输入信息：
+- 饮品名：${currentDrink.name}
+- 推荐理由：${currentDrink.reason || '无'}
+- 五行属性：${currentDrink.dimensions?.wuxing || '未知'}
+
+请直接输出文案，不要任何前缀或解释。`;
+
+      // 使用专用的 SOCIAL_CARD 任务类型
+      const agentResult = await executeMixologyTask('SOCIAL_CARD', { drink: currentDrink, prompt });
+
+      // 安全提取文案
+      let poeticalCopy = '岁序更迭，此情可待';
+      if (agentResult && agentResult.success && agentResult.data && typeof agentResult.data.copy === 'string') {
+        poeticalCopy = agentResult.data.copy;
+      } else if (typeof agentResult === 'string') {
+        poeticalCopy = agentResult;
+      }
+
+      setLlmCopy(poeticalCopy);
+
+      // Wait for state to update
+      await new Promise(resolve => setTimeout(resolve, 800));
+
+      // 再次获取二维码（确保状态已更新）
+      if (qrCanvasRef.current) {
+        const qrCanvas = qrCanvasRef.current.querySelector('canvas');
+        if (qrCanvas) {
+          const qrUrl = qrCanvas.toDataURL('image/png');
+          setQrCodeDataUrl(qrUrl);
+        }
+      }
+
+      await new Promise(resolve => setTimeout(resolve, 200));
+
+      // 2. 将 DOM 生成图片
+      if (cardRef.current) {
+        const blob = await exportShareCard(cardRef.current);
+        const imageUrl = URL.createObjectURL(blob);
+        setShareCardUrl(imageUrl);
+        // 图片生成完成后关闭友好通知
+        closeFriendlyNotice();
+      }
+    } catch (error) {
+      console.error('Failed to generate share card:', error);
+      alert('生成分享卡片失败，请稍后重试');
+    } finally {
+      setIsGeneratingShare(false);
+      setIsShareLoading(false);
+    }
+  };
 
   const closeFriendlyNotice = useCallback(() => {
     setFriendlyNotice(prev => ({ ...prev, isOpen: false }));
@@ -1808,7 +1902,8 @@ const App = () => {
         '保存成功',
         '记录已存入“我的”页面，随时可查。',
         'success',
-        { label: '退出并返回', onClick: () => { handleCloseDakaModal(); closeFriendlyNotice(); } }
+        { label: '返回', onClick: () => { handleCloseDakaModal(); closeFriendlyNotice(); } },
+        { label: '分享', onClick: handleShare }
       );
     }
     // handleCloseDakaModal(); // Removed to allow DakaModal to show share card preview
@@ -2668,6 +2763,52 @@ const App = () => {
         onSave={handleSaveCustomDrink}
       />
 
+      {/* Share Card Preview Modal */}
+      {shareCardUrl && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center px-4 overflow-y-auto py-8"
+          style={{
+            background: 'rgba(0,0,0,0.5)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)'
+          }}
+          onClick={() => setShareCardUrl(null)}
+        >
+          <img
+            src={shareCardUrl}
+            alt="Share Card"
+            className="w-full max-w-[320px] h-auto object-contain rounded-2xl shadow-2xl my-auto"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
+
+      {/* Hidden Share Card for generating image */}
+      {currentDrink && !shareCardUrl && (
+        <div style={{ position: 'fixed', left: '-2000px', top: '0', pointerEvents: 'none', zIndex: -1 }}>
+          {/* Hidden QR Code Canvas for generating data URL */}
+          <div ref={qrCanvasRef} style={{ width: '88px', height: '88px' }}>
+            <QRCodeCanvas
+              value={`${window.location.origin}?drink=${encodeURIComponent(currentDrink.name)}`}
+              size={88}
+              level="M"
+              includeMargin={false}
+              bgColor="#ffffff"
+              fgColor="#3a3226"
+            />
+          </div>
+          <ShareCard
+            ref={cardRef}
+            drinkName={currentDrink.name}
+            emotion={currentDrink.dimensions?.mood || '悠然'}
+            wuxing={currentDrink.dimensions?.wuxing ? `五行属${currentDrink.dimensions.wuxing}` : '五行调和'}
+            imageSrc={currentDrink.image}
+            llmCopy={llmCopy}
+            qrCodeSrc={qrCodeDataUrl}
+          />
+        </div>
+      )}
+
       {/* Ingredient Edit Modal */}
       <Modal isOpen={showIngredientModal} onClose={() => setShowIngredientModal(false)} position="center">
         <IngredientEditModal
@@ -2710,6 +2851,7 @@ const App = () => {
         onClose={closeFriendlyNotice}
         primaryAction={friendlyNotice.primaryAction}
         secondaryAction={friendlyNotice.secondaryAction}
+        isLoading={isShareLoading}
       />
 
       {/* Ingredient Library Fullscreen */}
@@ -2865,6 +3007,8 @@ const DakaModal = ({ drink, onClose, onSave }) => {
     try {
       // 持久化存储
       onSave(drink.id, note, customImage || null);
+      // 保存成功后关闭打卡弹窗
+      onClose();
     } catch (err) {
       console.error('Failed to save:', err);
       alert('保存失败，请稍后重试');
@@ -2896,6 +3040,78 @@ const DakaModal = ({ drink, onClose, onSave }) => {
     } catch (error) {
       console.error('下载失败:', error);
       alert('保存失败，请稍后重试');
+    }
+  };
+
+  const handleShare = async () => {
+    setIsGenerating(true);
+    try {
+      // 0. 生成二维码数据 URL
+      if (qrCanvasRef.current) {
+        const qrCanvas = qrCanvasRef.current.querySelector('canvas');
+        if (qrCanvas) {
+          const qrUrl = qrCanvas.toDataURL('image/png');
+          setQrCodeDataUrl(qrUrl);
+        }
+      }
+
+      // 1. 获取 LLM 文案
+      const prompt = `你是 MoodMix 的文案诗人。请为分享卡片生成一段情绪文案。
+
+要求：
+- 2-3 句话，总字数控制在 30-50 字
+- 东方诗意的克制感，像朋友间的低语
+- 结合饮品的具体感官细节（颜色、温度、口感、气味）
+- 温柔地回应用户当下的情绪，给予认可或鼓励
+- 不要说教，不要鸡汤，不要感叹号
+
+输入信息：
+- 饮品名：${drink.name}
+- 推荐理由：${drink.reason || '无'}
+- 五行属性：${drink.dimensions?.wuxing || '未知'}
+
+请直接输出文案，不要任何前缀或解释。`;
+
+      // 使用专用的 SOCIAL_CARD 任务类型
+      const agentResult = await executeMixologyTask('SOCIAL_CARD', { drink, prompt });
+
+      // 安全提取文案
+      let poeticalCopy = '岁序更迭，此情可待';
+      if (agentResult && agentResult.success && agentResult.data && typeof agentResult.data.copy === 'string') {
+        poeticalCopy = agentResult.data.copy;
+      } else if (typeof agentResult === 'string') {
+        poeticalCopy = agentResult;
+      }
+
+      setLlmCopy(poeticalCopy);
+
+      // Wait for state to update
+      await new Promise(resolve => setTimeout(resolve, 800));
+
+      // 再次获取二维码（确保状态已更新）
+      if (qrCanvasRef.current) {
+        const qrCanvas = qrCanvasRef.current.querySelector('canvas');
+        if (qrCanvas) {
+          const qrUrl = qrCanvas.toDataURL('image/png');
+          setQrCodeDataUrl(qrUrl);
+        }
+      }
+
+      await new Promise(resolve => setTimeout(resolve, 200));
+
+      // 2. 将 DOM 生成图片
+      if (cardRef.current) {
+        const blob = await exportShareCard(cardRef.current);
+        const imageUrl = URL.createObjectURL(blob);
+        setShareCardUrl(imageUrl);
+        // 图片生成完成后关闭打卡弹窗
+        onClose();
+      }
+    } catch (error) {
+      console.error('Failed to generate share card:', error);
+      alert('生成分享卡片失败，请稍后重试');
+    } finally {
+      setIsGenerating(false);
     }
   };
 
@@ -3039,28 +3255,30 @@ const DakaModal = ({ drink, onClose, onSave }) => {
         </div>
 
         {/* Hidden Share Card for generating image */}
-        <div style={{ position: 'fixed', left: '-2000px', top: '0', pointerEvents: 'none', zIndex: -1 }}>
-          {/* Hidden QR Code Canvas for generating data URL */}
-          <div ref={qrCanvasRef} style={{ width: '88px', height: '88px' }}>
-            <QRCodeCanvas
-              value={getShareLink()}
-              size={88}
-              level="M"
-              includeMargin={false}
-              bgColor="#ffffff"
-              fgColor="#3a3226"
+        {!shareCardUrl && (
+          <div style={{ position: 'fixed', left: '-2000px', top: '0', pointerEvents: 'none', zIndex: -1 }}>
+            {/* Hidden QR Code Canvas for generating data URL */}
+            <div ref={qrCanvasRef} style={{ width: '88px', height: '88px' }}>
+              <QRCodeCanvas
+                value={getShareLink()}
+                size={88}
+                level="M"
+                includeMargin={false}
+                bgColor="#ffffff"
+                fgColor="#3a3226"
+              />
+            </div>
+            <ShareCard
+              ref={cardRef}
+              drinkName={drink.name}
+              emotion={drink.dimensions?.mood || '悠然'}
+              wuxing={drink.dimensions?.wuxing ? `五行属${drink.dimensions.wuxing}` : '五行调和'}
+              imageSrc={customImage || drink.image}
+              llmCopy={llmCopy}
+              qrCodeSrc={qrCodeDataUrl}
             />
           </div>
-          <ShareCard
-            ref={cardRef}
-            drinkName={drink.name}
-            emotion={drink.dimensions?.mood || '悠然'}
-            wuxing={drink.dimensions?.wuxing ? `五行属${drink.dimensions.wuxing}` : '五行调和'}
-            imageSrc={customImage || drink.image}
-            llmCopy={llmCopy}
-            qrCodeSrc={qrCodeDataUrl}
-          />
-        </div>
+        )}
       </div>
     </Modal>
   );

@@ -99,7 +99,10 @@ const DrinkHelpModal = ({ drink, onClose }) => {
           {/* Quick questions */}
           <div>
             <p style={{ fontSize: '0.75rem', color: 'rgba(0, 0, 0, 0.6)', marginBottom: '0.5rem', fontFamily: '"Songti SC",serif', letterSpacing: '0.06em' }}>快捷问题</p>
-            <div className="flex flex-wrap gap-2">
+            <div
+              className="flex flex-nowrap gap-2 overflow-x-auto"
+              style={{ paddingBottom: '0.25rem' }}
+            >
               {QUICK_QUESTIONS.map((q, idx) => (
                 <button
                   key={idx}
@@ -111,6 +114,7 @@ const DrinkHelpModal = ({ drink, onClose }) => {
                     fontFamily: '"Songti SC",serif',
                     letterSpacing: '0.04em',
                     transition: 'all 0.25s ease',
+                    whiteSpace: 'nowrap',
                     background: question === q.question
                       ? '#3c3b36'
                       : 'rgba(255,255,255,0.5)',

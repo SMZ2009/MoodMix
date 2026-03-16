@@ -6,24 +6,36 @@ const StreamingAnalysisCard = ({
   onStreamComplete,
   onError 
 }) => {
-  const [streamedText, setStreamedText] = useState('');
-  const [isStreaming, setIsStreaming] = useState(false);
-  const [phase, setPhase] = useState('init'); // init, streaming, complete
+  const [phase, setPhase] = useState('init'); // init, analyzing, complete
+  const [statusText, setStatusText] = useState('以意入味…');
+  const [summaryText, setSummaryText] = useState('');
   const abortControllerRef = useRef(null);
   const resultDataRef = useRef(null);
 
   useEffect(() => {
     if (!isActive || !userInput) return;
 
-    const startStreaming = async () => {
+    const startAnalysis = async () => {
       setPhase('init');
-      setStreamedText('');
-      setIsStreaming(true);
+      setStatusText('以意入味…');
+      setSummaryText('');
       resultDataRef.current = null;
 
       // 短暂延迟后开始，让卡片动画完成
       await new Promise(resolve => setTimeout(resolve, 400));
-      setPhase('streaming');
+      setPhase('analyzing');
+
+      // 动态更新状态文字
+      const statusMessages = [
+        '心与味，正在相遇…',
+        '五行正在推演…',
+        '此味将出，稍候片刻…'
+      ];
+      let msgIndex = 0;
+      const statusInterval = setInterval(() => {
+        msgIndex = (msgIndex + 1) % statusMessages.length;
+        setStatusText(statusMessages[msgIndex]);
+      }, 3000);
 
       abortControllerRef.current = new AbortController();
 
@@ -70,9 +82,8 @@ const StreamingAnalysisCard = ({
                 resultData = data.data;
                 resultDataRef.current = resultData;
                 break;
-              } else if (data.delta) {
-                setStreamedText(prev => prev + data.delta);
               }
+              // 不显示原始 JSON 流，只更新状态
             } catch (e) {
               // Skip parse errors for intermediate chunks
             }
@@ -81,26 +92,33 @@ const StreamingAnalysisCard = ({
           if (resultData) break;
         }
 
+        clearInterval(statusInterval);
         setPhase('complete');
-        setIsStreaming(false);
+        setStatusText('心意已达');
+        
+        // 显示摘要
+        if (resultData?.summary) {
+          setSummaryText(resultData.summary);
+        }
 
         // 完成后短暂展示，然后回调
         setTimeout(() => {
           if (onStreamComplete && resultDataRef.current) {
             onStreamComplete(resultDataRef.current);
           }
-        }, 1000);
+        }, 800);
 
       } catch (error) {
+        clearInterval(statusInterval);
         if (error.name === 'AbortError') return;
         console.error('[StreamingAnalysisCard] Error:', error);
-        setIsStreaming(false);
         setPhase('error');
+        setStatusText('灵感有些迟疑…');
         if (onError) onError(error);
       }
     };
 
-    startStreaming();
+    startAnalysis();
 
     return () => {
       if (abortControllerRef.current) {
@@ -157,7 +175,7 @@ const StreamingAnalysisCard = ({
               <div 
                 key={i}
                 className={`w-1.5 h-1.5 rounded-full transition-all duration-500 ${
-                  phase === 'streaming' 
+                  phase === 'analyzing' 
                     ? 'bg-white/60 animate-pulse' 
                     : phase === 'complete' 
                       ? 'bg-emerald-400/80' 
@@ -169,42 +187,58 @@ const StreamingAnalysisCard = ({
           </div>
         </div>
 
-        {/* 流态文字区域 */}
+        {/* 中心内容区域 */}
         <div className="relative flex-1 flex items-center justify-center px-2">
-          <div className="w-full">
-            {phase === 'init' && (
-              <div className="flex flex-col items-center gap-4 animate-pulse">
-                <div className="w-16 h-16 rounded-full border border-white/10 flex items-center justify-center">
-                  <div className="w-8 h-8 rounded-full bg-white/5 animate-ping" />
+          <div className="w-full text-center">
+            {/* 加载动画 */}
+            {(phase === 'init' || phase === 'analyzing') && (
+              <div className="flex flex-col items-center gap-6">
+                {/* 动态圆环 */}
+                <div className="relative w-20 h-20">
+                  <div className="absolute inset-0 rounded-full border border-white/10 animate-ping" style={{ animationDuration: '2s' }} />
+                  <div className="absolute inset-2 rounded-full border border-white/20 animate-ping" style={{ animationDuration: '2s', animationDelay: '0.5s' }} />
+                  <div className="absolute inset-4 rounded-full bg-white/5 flex items-center justify-center">
+                    <div className="w-4 h-4 rounded-full bg-white/30 animate-pulse" />
+                  </div>
                 </div>
-                <span 
-                  className="text-white/30 text-sm tracking-widest"
+                <p
+                  className="text-white/50 text-sm tracking-widest"
                   style={{ fontFamily: '"Songti SC", serif' }}
                 >
-                  以意入味…
-                </span>
+                  {statusText}
+                </p>
               </div>
             )}
 
-            {(phase === 'streaming' || phase === 'complete') && (
-              <p
-                className="text-white/85 text-[17px] sm:text-lg leading-[2] tracking-wide text-center"
-                style={{ 
-                  fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif',
-                  textShadow: '0 2px 10px rgba(0,0,0,0.5)'
-                }}
-              >
-                {streamedText}
-                {isStreaming && (
-                  <span className="inline-block w-[2px] h-[1.1em] bg-white/60 ml-1 animate-pulse align-middle" />
+            {/* 完成状态 - 显示摘要 */}
+            {phase === 'complete' && (
+              <div className="flex flex-col items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                  <svg className="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                {summaryText && (
+                  <p
+                    className="text-white/80 text-base leading-relaxed tracking-wide"
+                    style={{ fontFamily: '"Songti SC", "STKaiti", serif' }}
+                  >
+                    {summaryText}
+                  </p>
                 )}
-              </p>
+              </div>
             )}
 
+            {/* 错误状态 */}
             {phase === 'error' && (
-              <div className="text-center">
+              <div className="flex flex-col items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center">
+                  <svg className="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </div>
                 <p className="text-white/50 text-sm" style={{ fontFamily: '"Songti SC", serif' }}>
-                  灵感暂时迷路了…
+                  {statusText}
                 </p>
               </div>
             )}
@@ -220,8 +254,8 @@ const StreamingAnalysisCard = ({
             style={{ fontFamily: '"Songti SC", serif' }}
           >
             {phase === 'init' && '正在感知…'}
-            {phase === 'streaming' && '缓缓酿成…'}
-            {phase === 'complete' && '心意已达'}
+            {phase === 'analyzing' && '缓缓酿成…'}
+            {phase === 'complete' && '即将呈现'}
             {phase === 'error' && '请稍后再试'}
           </span>
         </div>

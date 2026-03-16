@@ -1309,12 +1309,18 @@ const ExploreSection = ({
                   >
                     {drink.name_cn || translateDrinkName(drink.name) || drink.name}
                   </h3>
-                  <p
-                    className="text-[11px] sm:text-[12px] text-gray-400 leading-tight line-clamp-1 font-medium italic"
-                    style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif' }}
-                  >
-                    {drink.nameEn || drink.sub || drink.subName || ''}
-                  </p>
+                  {(() => {
+                    const h3Text = drink.name_cn || translateDrinkName(drink.name) || drink.name;
+                    const pText = drink.nameEn || drink.sub || drink.subName || '';
+                    return pText && h3Text !== pText;
+                  })() && (
+                    <p
+                      className="text-[11px] sm:text-[12px] text-gray-400 leading-tight line-clamp-1 font-medium italic"
+                      style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif' }}
+                    >
+                      {drink.nameEn || drink.sub || drink.subName || ''}
+                    </p>
+                  )}
                 </div>
               </div>
             ))}

@@ -11,6 +11,15 @@ const RecommendationGallery = ({ drinks, onBack, onStartMaking, onShuffle, onNav
   const [dragOffset, setDragOffset] = useState(0);
   const containerRef = React.useRef(null);
 
+  // Debug: 跟踪 customQuotes 变化
+  useEffect(() => {
+    const quoteKeys = Object.keys(customQuotes);
+    const drinkIds = drinks?.map(d => d.id) || [];
+    console.log('[RecommendationGallery] customQuotes keys:', quoteKeys);
+    console.log('[RecommendationGallery] drink ids:', drinkIds);
+    console.log('[RecommendationGallery] 匹配情况:', drinkIds.map(id => ({ id, hasQuote: !!customQuotes[id] })));
+  }, [customQuotes, drinks]);
+
   // Reset index when drinks batch changes
   useEffect(() => {
     setCurrentIndex(0);
@@ -217,6 +226,13 @@ const CardContent = ({ drink, isActive, isLiked, moodResult, customQuote, valida
   const philosophy = generatePhilosophyTags(drink.dimensions, moodResult, drink.name);
   const [displayedQuote, setDisplayedQuote] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+
+  // Debug: 跟踪 customQuote 变化
+  useEffect(() => {
+    if (isActive) {
+      console.log(`[CardContent] drink.id=${drink.id}, customQuote=${customQuote ? customQuote.substring(0, 20) + '...' : 'undefined'}`);
+    }
+  }, [drink.id, customQuote, isActive]);
 
   // 流态打字效果：当 LLM 文案到达时逐字显示
   useEffect(() => {

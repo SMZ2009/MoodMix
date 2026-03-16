@@ -206,9 +206,12 @@ export async function fetchLiveQuotes(drinksList, contextData, batchSize = 15, f
         console.log('[QuoteGenerator] 📥 收到服务端响应:', data);
 
         // 3. 将结果写回缓存并合并到返回集
-        if (data.success && data.quotes && typeof data.quotes === 'object') {
+        // 后端可能返回 data.quotes (原始结构) 或 data.data (统一 Proxy 包装结构)
+        const rawQuotes = data.quotes || data.data;
+
+        if (data.success && rawQuotes && typeof rawQuotes === 'object') {
             unachedItems.forEach(item => {
-                const generatedQuote = data.quotes[item.id];
+                const generatedQuote = rawQuotes[item.id];
                 if (generatedQuote) {
                     // 确保 generatedQuote 是字符串 (服务端可能返回 { tags, quote } 对象)
                     let quoteStr;

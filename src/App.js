@@ -1853,8 +1853,11 @@ const App = () => {
 
   // WebSocket 连接初始化
   useEffect(() => {
-    // 使用当前页面origin，确保与服务器一致
-    const socketUrl = window.location.origin;
+    // 智能检测连接地址：开发环境下指向 3001 代理端口，生产环境下指向当前 origin
+    let socketUrl = window.location.origin;
+    if (window.location.port === '3000') {
+      socketUrl = window.location.protocol + '//' + window.location.hostname + ':3001';
+    }
 
     console.log('[WebSocket] 正在连接到:', socketUrl);
 
@@ -2779,7 +2782,7 @@ const App = () => {
             new Promise(resolve => setTimeout(() => {
               console.log(`[StreamingComplete] 文案获取超时，先显示画廊`);
               resolve({});
-            }, 8000))
+            }, 12000))
           ]);
           console.log(`[StreamingComplete] 文案获取完成 (${Object.keys(quotesMap).length} 条)`);
         } catch (err) {

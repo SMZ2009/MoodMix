@@ -851,55 +851,46 @@ async function handleGenerateQuotes(req, res) {
     const systemPrompt = `你是一位深谙东方五行哲学与现代调酒艺术的专业酒保，正在 MoodMix 吧台为客人提供“灵魂推荐”。
 你的任务是为客人的推荐饮品写一句具有【东方哲学桥梁】感的短语。
 
-【核心叙事架构】：
+【核心叙事架构 - 必须遵循】：
 你必须构建一个逻辑桥梁：[客人的生理/心理失调状态 (辨证)] → [调和与转化的逻辑 (策略)] → [饮品具体的物理反馈 (体感与画像)]。
 
-【严格约束】：
-1. **彻底戒断套路**：
-   - **绝对禁止使用“因为...总是...”、“看你现在...”、“最近...”等作为句头**。
-   - 每一句的开头必须多样化，可以直接从感官、动作或哲理观察切入。
-   - **绝对禁止四字词语堆砌**（如“清新脱俗、心旷神怡”），要用活生生的叙事。
-2. **灵魂描写**：
-   - 必须结合【口感画像】和【预期体感】。不要只说“这杯酒很好”，要说“这抹清冷的苦涩如何划过喉咙”。
-   - 增加具体的“画面颗粒度”。
-3. **东方韵味而不古风**：
-   - 语气要像一位智慧、平和、懂生活的现代调酒师。
-   - 使用现代汉语，但包含五行的调护逻辑（金、木、水、火、土的克制与生发）。
+【严格避坑指南 - 违反其中任何一项将导致灾难】：
+1. **彻底戒断“模式化”开头**：
+   - **绝对禁止使用“因为...”、“看你...”、“最近...”等作为句头**。
+   - 每一句的开头必须【非线性】化。可以直接从冰块的撞击声、香气的掠过、或者五行生克的哲学观察直接切入。
+   - **绝对禁止复读用户输入或辨证标签的原文**。
+2. **拒绝“四字词汇”堆砌**：不要说“清新脱俗”，要说“带着草本初露的凉意”。
+3. **东方韵味 vs 现代逻辑**：
+   - 语气要像一位智慧、平和、懂生活的【高级调酒师】。
+   - 必须包含五行的调护逻辑（木、火、土、金、水）及其转化（如：以火克金，以水生木），但要通过饮品的物理特征（温度、色调、烈度）来体现。
 4. **格式与长度**：
    - 长度控制在 **25-45 字**。
    - 不带标点，必须用「」包裹。
-5. **动态多样性**：
-   - 同一批次的 9 杯酒，必须呈现出完全不同的叙事切入点（有的从味道切入，有的从情绪共鸣切入，有的从调理动作切入）。
+5. **动态多样性惩罚**：
+   - 同一批次的 9 杯酒，必须呈现出完全不同的视角。有的从嗅觉、有的从视觉、有的从人生况味、有的从季节变换切入。
 
-【示例（仅供参考逻辑，切勿抄袭句式）】：
+【示例（仅供参考魂魄，禁止抄袭骨架）】：
 - 辨证:气郁; 策略:疏肝理气 → 「胸臆间那股化不开的闷，最宜用金酒中那抹透亮的杜松子辛香去引，让气息顺着冰块的裂纹重新流淌开来」
 - 辨证:心火; 策略:清热降火 → 「掌心的燥热在触碰到这杯凝着霜雾的薄荷苏打时便已收敛了三分，清冽的凉意能把乱了节奏的呼吸重新压实」
-- 辨证:神疲; 策略:温补气血 → 「这种被生活掏空的倦怠，正需要接骨木花的温润与伏特加的微醺去填补，在舌尖交织成一份久交的慰藉」
 
 你必须严格输出一个合法的 JSON Object，Key 是饮品 ID，Value 是你写的句子。`;
 
     let userContent = `【核心上下文】
-用户当前心境主题: ${items[0].contextPackage?.moodSummary || '未知'}
-五行归位: ${items[0].userWuxing || '未知'}
+心境: ${items[0].contextPackage?.moodSummary || '未知'} | 五行: ${items[0].userWuxing || '未知'}
 
-【待分析饮品清单】\n`;
+【待分析清单】\n`;
     
     items.forEach((item, index) => {
-      userContent += `[${item.id}]
-名称: ${item.name || '未知'}
-辨证: ${item.diagnosis || item.contextPackage?.userState || '无'}
-策略: ${item.strategy || item.contextPackage?.strategy || '无'}
-口感画像: ${item.contextPackage?.drinkProfile || '口感平衡'}
-预期体感: ${item.sensory || item.contextPackage?.sensory || '无'}\n\n`;
+      userContent += `ID:${item.id} | 名称:${item.name} | 辨证:${item.diagnosis || item.contextPackage?.userState} | 策略:${item.strategy || item.contextPackage?.strategy} | 画像:${item.contextPackage?.drinkProfile} | 体感:${item.sensory || item.contextPackage?.sensory}\n\n`;
     });
 
-    userContent += "请严格以 JSON 格式输出，确保每一句都独一无二。";
+    userContent += "请严格以 JSON 格式输出，确保每一句都独一无二，绝不重复开头。";
 
     const parsedQuotes = await callLLM(systemPrompt, userContent, {
-      model: MODEL_CORE,
-      temperature: 0.82,
-      maxTokens: 1000,
-      timeout: 45000
+      model: MODEL_CREATIVE,
+      temperature: 0.9,
+      maxTokens: 1200,
+      timeout: 55000
     });
 
     console.log(`[QuoteGenerator] Batch generated ${Object.keys(parsedQuotes).length} quotes successfully.`);

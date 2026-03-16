@@ -803,6 +803,72 @@ ${question}
 });
 
 // ═══════════════════════════════════════════
+// 端点：社交卡片文案生成
+// ═══════════════════════════════════════════
+app.post('/api/social-card-copy', async (req, res) => {
+  const apiKey = process.env.SILICONFLOW_API_KEY;
+
+  if (!apiKey || apiKey === 'your_key_here') {
+    return res.status(500).json({
+      success: false,
+      error: 'SILICONFLOW_API_KEY 未配置'
+    });
+  }
+
+  const { drink, prompt: userPrompt } = req.body;
+
+  if (!drink || !userPrompt) {
+    return res.status(400).json({
+      success: false,
+      error: '缺少 drink 或 prompt 参数'
+    });
+  }
+
+  try {
+    const systemPrompt = `你是一位深谙东方审美与现代情绪表达的文案大师。
+你的任务是为饮品分享卡片生成一段极具【诗意】与【克制感】的文案。
+
+【核心要求】：
+1. 风格：东方韵味、极简、有温度、像耳边的低语。
+2. 长度：2-3句话，30-50字。
+3. 严禁：鸡汤、口号、感叹号、四字词语堆砌。
+4. 内容：结合饮品的感官细节（色、味、温）和用户的情绪心径。`;
+
+    const fetch = await getFetch();
+    const response = await fetch(SILICONFLOW_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: SILICONFLOW_MODEL,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ],
+        max_tokens: 300,
+        temperature: 0.8
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[Social Card Copy] API error:', errorText);
+      return res.status(response.status).json({ success: false, error: errorText });
+    }
+
+    const data = await response.json();
+    const copy = data.choices?.[0]?.message?.content || '岁序更迭，此情可待。';
+
+    res.json({ success: true, copy });
+  } catch (error) {
+    console.error('[Social Card Copy] Error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ═══════════════════════════════════════════
 // 端点：验证优化
 // ═══════════════════════════════════════════
 app.post('/api/validate_optimize', async (req, res) => {

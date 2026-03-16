@@ -14,11 +14,24 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const http = require('http');
+const { Server } = require('socket.io');
 
 // 加载 .env 文件
 require('dotenv').config({ path: path.resolve(__dirname, '..', '.env') });
 
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: '*',
+    credentials: false,
+    methods: ['GET', 'POST']
+  },
+  transports: ['websocket', 'polling'],
+  pingTimeout: 60000,
+  pingInterval: 25000
+});
 const PORT = process.env.PORT || process.env.PROXY_PORT || 3001;
 
 // ═══════════════════════════════════════════
@@ -835,35 +848,56 @@ async function handleGenerateQuotes(req, res) {
   }
 
   try {
-    const systemPrompt = `你是一位深谙东方五行哲学与现代调酒艺术的专业酒保。
-你的任务是为顾客生成的推荐饮品写一句具有【调理感】的短句。
+    const systemPrompt = `你是一位深谙东方五行哲学与现代调酒艺术的专业酒保，正在 MoodMix 吧台为客人提供“灵魂推荐”。
+你的任务是为客人的推荐饮品写一句具有【东方哲学桥梁】感的短语。
 
-【核心要求】：
-1. **长度硬约束**：建议控制在 **25-45 字**之间，确保文案有足够的描写空间。**绝对禁止生成小于20个字的短句**。
-2. **三段式结构**：必须包含：[当前状态] + [饮品的核心特征与细节] + [调理动作/目的]。
-3. **丰富描写**：在保证口语化的前提下，增加画面的颗粒度。比如描述具体的"冷热体感"、"舌尖的触感"或"特定的生活化映射"。
-4. **口语化叙事**：语气要自然、平和。**绝对禁止四字词语堆砌，绝对禁止古风诗词感**。
-5. **格式限制**：不带标点，必须用「」包裹。
-6. **多样性**：同一批次的几杯酒，切入角度要略有不同。
+【核心叙事架构】：
+你必须构建一个逻辑桥梁：[客人的生理/心理失调状态 (辨证)] → [调和与转化的逻辑 (策略)] → [饮品具体的物理反馈 (体感与画像)]。
 
-【示例】：
-- 辨证:郁气难舒(木) → 「因为最近总是觉得心里闷闷的，这杯带有辛香的金酒正好能帮你把那股气散开，让整个人都通透不少」
-- 辨证:心绪浮躁(火) → 「看你现在心思有点乱，这杯冰凉透骨的伏特加汤力刚好能压住那股燥火，让你的呼吸稳下来」
+【严格约束】：
+1. **彻底戒断套路**：
+   - **绝对禁止使用“因为...总是...”、“看你现在...”、“最近...”等作为句头**。
+   - 每一句的开头必须多样化，可以直接从感官、动作或哲理观察切入。
+   - **绝对禁止四字词语堆砌**（如“清新脱俗、心旷神怡”），要用活生生的叙事。
+2. **灵魂描写**：
+   - 必须结合【口感画像】和【预期体感】。不要只说“这杯酒很好”，要说“这抹清冷的苦涩如何划过喉咙”。
+   - 增加具体的“画面颗粒度”。
+3. **东方韵味而不古风**：
+   - 语气要像一位智慧、平和、懂生活的现代调酒师。
+   - 使用现代汉语，但包含五行的调护逻辑（金、木、水、火、土的克制与生发）。
+4. **格式与长度**：
+   - 长度控制在 **25-45 字**。
+   - 不带标点，必须用「」包裹。
+5. **动态多样性**：
+   - 同一批次的 9 杯酒，必须呈现出完全不同的叙事切入点（有的从味道切入，有的从情绪共鸣切入，有的从调理动作切入）。
 
-你必须严格输出一个合法的 JSON Object，Key 是传入的饮品 ID，Value 是你写的句子。绝对不要输出其他任何文字！`;
+【示例（仅供参考逻辑，切勿抄袭句式）】：
+- 辨证:气郁; 策略:疏肝理气 → 「胸臆间那股化不开的闷，最宜用金酒中那抹透亮的杜松子辛香去引，让气息顺着冰块的裂纹重新流淌开来」
+- 辨证:心火; 策略:清热降火 → 「掌心的燥热在触碰到这杯凝着霜雾的薄荷苏打时便已收敛了三分，清冽的凉意能把乱了节奏的呼吸重新压实」
+- 辨证:神疲; 策略:温补气血 → 「这种被生活掏空的倦怠，正需要接骨木花的温润与伏特加的微醺去填补，在舌尖交织成一份久交的慰藉」
 
-    let userContent = `用户当前心境总结: ${items[0].contextPackage?.moodSummary || '未知'}\n`;
-    userContent += `用户主五行属性: ${items[0].userWuxing || '未知'}\n\n`;
+你必须严格输出一个合法的 JSON Object，Key 是饮品 ID，Value 是你写的句子。`;
+
+    let userContent = `【核心上下文】
+用户当前心境主题: ${items[0].contextPackage?.moodSummary || '未知'}
+五行归位: ${items[0].userWuxing || '未知'}
+
+【待分析饮品清单】\n`;
     
     items.forEach((item, index) => {
-      userContent += `[饮品 ${index + 1}] ID: ${item.id}, 名称: ${item.name || '未知'}, 辨证对照: ${item.diagnosis || '无'}\n`;
+      userContent += `[${item.id}]
+名称: ${item.name || '未知'}
+辨证: ${item.diagnosis || item.contextPackage?.userState || '无'}
+策略: ${item.strategy || item.contextPackage?.strategy || '无'}
+口感画像: ${item.contextPackage?.drinkProfile || '口感平衡'}
+预期体感: ${item.sensory || item.contextPackage?.sensory || '无'}\n\n`;
     });
 
-    userContent += "\n请严格返回 JSON 格式，不要有任何开场白或解释。";
+    userContent += "请严格以 JSON 格式输出，确保每一句都独一无二。";
 
     const parsedQuotes = await callLLM(systemPrompt, userContent, {
-      model: MODEL_CREATIVE,
-      temperature: 0.7,
+      model: MODEL_CORE,
+      temperature: 0.82,
       maxTokens: 1000,
       timeout: 45000
     });
@@ -1137,10 +1171,77 @@ app.use((req, res) => {
 });
 
 // ═══════════════════════════════════════════
+// 饮品心意统计 API
+// ═══════════════════════════════════════════
+
+const drinkLikeStats = new Map();
+
+function initDrinkLikeStats(drinkId) {
+  if (!drinkLikeStats.has(drinkId)) {
+    drinkLikeStats.set(drinkId, {
+      userUIDs: new Set(),
+      count: 0
+    });
+  }
+}
+
+app.post('/api/drink/like', (req, res) => {
+  const { drinkId, userUID } = req.body;
+  if (!drinkId || !userUID) return errorResponse(res, 400, '缺少 drinkId 或 userUID');
+  initDrinkLikeStats(drinkId);
+  const stats = drinkLikeStats.get(drinkId);
+  const isNewLike = !stats.userUIDs.has(userUID);
+  if (isNewLike) {
+    stats.userUIDs.add(userUID);
+    stats.count++;
+  }
+  io.to(`drink-${drinkId}`).emit('drink-liked', { drinkId, count: stats.count, isNewLike });
+  res.json({ success: true, count: stats.count, showMessage: stats.count >= 2 });
+});
+
+app.post('/api/drink/unlike', (req, res) => {
+  const { drinkId, userUID } = req.body;
+  if (!drinkId || !userUID) return errorResponse(res, 400, '缺少 drinkId 或 userUID');
+  initDrinkLikeStats(drinkId);
+  const stats = drinkLikeStats.get(drinkId);
+  if (stats.userUIDs.has(userUID)) {
+    stats.userUIDs.delete(userUID);
+    stats.count = Math.max(0, stats.count - 1);
+  }
+  io.to(`drink-${drinkId}`).emit('drink-liked', { drinkId, count: stats.count, isNewLike: false });
+  res.json({ success: true, count: stats.count, showMessage: stats.count >= 2 });
+});
+
+app.get('/api/drink/like-stats/:drinkId', (req, res) => {
+  const { drinkId } = req.params;
+  initDrinkLikeStats(drinkId);
+  const stats = drinkLikeStats.get(drinkId);
+  res.json({ success: true, count: stats.count, showMessage: stats.count >= 2 });
+});
+
+// ═══════════════════════════════════════════
+// Socket.IO 实时通信
+// ═══════════════════════════════════════════
+io.on('connection', (socket) => {
+  console.log('[Socket] 客户端已连接:', socket.id);
+  socket.on('join-drink-room', (drinkId) => {
+    socket.join(`drink-${drinkId}`);
+    console.log(`[Socket] ${socket.id} 加入饮品房间: drink-${drinkId}`);
+  });
+  socket.on('leave-drink-room', (drinkId) => {
+    socket.leave(`drink-${drinkId}`);
+    console.log(`[Socket] ${socket.id} 离开饮品房间: drink-${drinkId}`);
+  });
+  socket.on('disconnect', () => {
+    console.log('[Socket] 客户端已断开:', socket.id);
+  });
+});
+
+// ═══════════════════════════════════════════
 // 启动服务器
 // ═══════════════════════════════════════════
 
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`
 ╔══════════════════════════════════════════════════════════════╗
 ║                    MoodMix LLM Proxy                         ║

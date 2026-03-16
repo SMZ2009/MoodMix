@@ -5,8 +5,9 @@ import {
   Martini, User, Settings2, Maximize2,
   Wine, Droplets, ThermometerSnowflake,
   Sparkles, Lightbulb, GlassWater,
-  Users, HeartOff, Loader2, Camera, X, Menu, ArrowLeft, Download, CheckCircle, Share2, Mic
+  Users, HeartOff, Loader2, Camera, X, ArrowLeft, Download, CheckCircle, Share2, Mic
 } from 'lucide-react';
+import CustomMenuIcon from './components/CustomMenuIcon';
 import { QRCodeSVG, QRCodeCanvas } from 'qrcode.react';
 
 import { inventoryStorage, favoriteStorage, collectionStorage, customDrinkStorage } from './store/localStorageAdapter';
@@ -2588,7 +2589,7 @@ const App = () => {
           className="fixed top-4 left-4 z-30 p-1 hover:opacity-70 transition-opacity duration-200"
           aria-label="打开菜单"
         >
-          <Menu className="w-5 h-5 text-gray-600" />
+          <CustomMenuIcon className="w-5 h-5 text-gray-600" />
         </button>
       )}
 

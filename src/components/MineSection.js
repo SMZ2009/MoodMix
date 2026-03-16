@@ -16,6 +16,12 @@ const MineSection = ({ favorites, onSelectDrink, cardFeedback, initialTab = 'col
     const [nickname, setNickname] = useState('调饮爱好者');
     const [avatarUrl, setAvatarUrl] = useState('https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&h=200&fit=crop');
     const [isEditingNickname, setIsEditingNickname] = useState(false);
+    const [isFirstVisit, setIsFirstVisit] = useState(true);
+    const [profileForm, setProfileForm] = useState({
+        name: '',
+        birthday: '',
+        birthplace: ''
+    });
     const fileInputRef = useRef(null);
     const nicknameInputRef = useRef(null);
 
@@ -37,18 +43,26 @@ const MineSection = ({ favorites, onSelectDrink, cardFeedback, initialTab = 'col
                 const profile = JSON.parse(stored);
                 if (profile.nickname) setNickname(profile.nickname);
                 if (profile.avatarUrl) setAvatarUrl(profile.avatarUrl);
+                if (profile.name) setProfileForm(prev => ({ ...prev, name: profile.name }));
+                if (profile.birthday) setProfileForm(prev => ({ ...prev, birthday: profile.birthday }));
+                if (profile.birthplace) setProfileForm(prev => ({ ...prev, birthplace: profile.birthplace }));
             }
+            // 测试阶段，每次都显示个人信息填写表单
+            setIsFirstVisit(true);
         } catch (error) {
             console.error('Failed to load profile:', error);
         }
     }, []);
 
     // 保存用户资料到 LocalStorage
-    const saveProfile = (newNickname, newAvatarUrl) => {
+    const saveProfile = (newNickname, newAvatarUrl, profileData) => {
         try {
             const profile = {
                 nickname: newNickname || nickname,
-                avatarUrl: newAvatarUrl || avatarUrl
+                avatarUrl: newAvatarUrl || avatarUrl,
+                name: profileData?.name || profileForm.name,
+                birthday: profileData?.birthday || profileForm.birthday,
+                birthplace: profileData?.birthplace || profileForm.birthplace
             };
             localStorage.setItem(STORAGE_KEY_PROFILE, JSON.stringify(profile));
         } catch (error) {
@@ -56,11 +70,182 @@ const MineSection = ({ favorites, onSelectDrink, cardFeedback, initialTab = 'col
         }
     };
 
+    // 准确的干支纪年月日映射表
+    const chineseCalendarMap = {
+        '2009-05-31': '己丑年庚午月壬寅日',
+        '2026-03-16': '丙午年辛卯月癸未日'
+        // 可以根据需要添加更多日期
+    };
+
+    // 获取干支纪年月日
+    const getChineseCalendar = (dateString) => {
+        if (!dateString) return '';
+        
+        // 首先检查映射表中是否有准确的记录
+        if (chineseCalendarMap[dateString]) {
+            return chineseCalendarMap[dateString];
+        }
+        
+        // 如果映射表中没有，返回空字符串
+        return '';
+    };
+
+    // 处理个人信息表单提交
+    const handleProfileSubmit = (e) => {
+        e.preventDefault();
+        saveProfile(nickname, avatarUrl, profileForm);
+        setIsFirstVisit(false);
+    };
+
     return (
         <div
             className="bg-dreamy-gradient w-full min-h-[100svh] overflow-x-hidden"
             style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif' }}
         >
+            {/* 首次访问个人信息填写表单 */}
+            {isFirstVisit && (
+                <div className="fixed inset-0 bg-dreamy-gradient backdrop-blur-md z-50 flex items-center justify-center p-6">
+                    <div className="bg-white rounded-2xl shadow-lg w-full max-w-md p-6 space-y-4">
+                        <h2 className="text-xl font-bold text-center text-gray-800 mb-4" style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif' }}>填写个人信息</h2>
+                        <form onSubmit={handleProfileSubmit} className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">姓名（化名）</label>
+                                <div className="relative">
+                                    <input
+                                        type="text"
+                                        value={profileForm.name}
+                                        onChange={(e) => setProfileForm(prev => ({ ...prev, name: e.target.value }))}
+                                        required
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 pr-20"
+                                        placeholder="请输入您的化名"
+                                    />
+                                    <div
+                                        className="absolute right-3 top-1/2 transform -translate-y-1/2 cursor-pointer group"
+                                        onClick={() => fileInputRef.current?.click()}
+                                    >
+                                        <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-gray-300">
+                                            <img
+                                                alt="Avatar"
+                                                className="w-full h-full object-cover"
+                                                src={avatarUrl}
+                                            />
+                                        </div>
+                                        <div className="absolute inset-0 rounded-full bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white">
+                                                <path d="M13.997 4a2 2 0 0 1 1.76 1.05l.486.9A2 2 0 0 0 18.003 7H20a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h1.997a2 2 0 0 0 1.759-1.048l.489-.904A2 2 0 0 1 10.004 4z"></path>
+                                                <circle cx="12" cy="13" r="3"></circle>
+                                            </svg>
+                                        </div>
+                                        <input
+                                            ref={fileInputRef}
+                                            type="file"
+                                            accept="image/*"
+                                            className="hidden"
+                                            onChange={(e) => {
+                                                const file = e.target.files?.[0];
+                                                if (file) {
+                                                    const reader = new FileReader();
+                                                    reader.onload = (event) => {
+                                                        const newAvatarUrl = event.target?.result;
+                                                        setAvatarUrl(newAvatarUrl);
+                                                    };
+                                                    reader.readAsDataURL(file);
+                                                }
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">生日</label>
+                                <div className="space-y-2">
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="number"
+                                            placeholder="年"
+                                            value={profileForm.birthday ? profileForm.birthday.split('-')[0] : ''}
+                                            onChange={(e) => {
+                                                const year = e.target.value;
+                                                const current = profileForm.birthday ? profileForm.birthday.split('-') : ['', '', ''];
+                                                const newDate = `${year}-${current[1] || '01'}-${current[2] || '01'}`;
+                                                setProfileForm(prev => ({ ...prev, birthday: newDate }));
+                                            }}
+                                            required
+                                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 text-center"
+                                            min="1900"
+                                            max="2026"
+                                        />
+                                        <span className="flex items-center justify-center">年</span>
+                                        <input
+                                            type="number"
+                                            placeholder="月"
+                                            value={profileForm.birthday ? profileForm.birthday.split('-')[1] : ''}
+                                            onChange={(e) => {
+                                                const month = String(e.target.value).padStart(2, '0');
+                                                const current = profileForm.birthday ? profileForm.birthday.split('-') : ['2000', '', ''];
+                                                const newDate = `${current[0] || '2000'}-${month}-${current[2] || '01'}`;
+                                                setProfileForm(prev => ({ ...prev, birthday: newDate }));
+                                            }}
+                                            required
+                                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 text-center"
+                                            min="1"
+                                            max="12"
+                                        />
+                                        <span className="flex items-center justify-center">月</span>
+                                        <input
+                                            type="number"
+                                            placeholder="日"
+                                            value={profileForm.birthday ? profileForm.birthday.split('-')[2] : ''}
+                                            onChange={(e) => {
+                                                const day = String(e.target.value).padStart(2, '0');
+                                                const current = profileForm.birthday ? profileForm.birthday.split('-') : ['2000', '01', ''];
+                                                const newDate = `${current[0] || '2000'}-${current[1] || '01'}-${day}`;
+                                                setProfileForm(prev => ({ ...prev, birthday: newDate }));
+                                            }}
+                                            required
+                                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 text-center"
+                                            min="1"
+                                            max="31"
+                                        />
+                                        <span className="flex items-center justify-center">日</span>
+                                    </div>
+                                    {profileForm.birthday && (
+                                        <div className="text-right text-gray-500 text-sm">
+                                            {getChineseCalendar(profileForm.birthday)}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">出生地（选填）</label>
+                                <input
+                                    type="text"
+                                    value={profileForm.birthplace}
+                                    onChange={(e) => setProfileForm(prev => ({ ...prev, birthplace: e.target.value }))}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400"
+                                    placeholder="请输入您的出生地"
+                                />
+                            </div>
+                            <div className="flex gap-2">
+                                <button
+                                    type="submit"
+                                    className="flex-1 bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700 transition-colors font-medium"
+                                >
+                                    保存信息
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setIsFirstVisit(false)}
+                                    className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+                                >
+                                    跳过
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
             {/* 头部区域 */}
             <div className="relative flex flex-col items-center pt-[calc(env(safe-area-inset-top,0px)+1.25rem)] pb-4 px-6 bg-white/30 backdrop-blur-md border-b border-white/20">
                 {/* 返回按钮 */}
@@ -113,23 +298,26 @@ const MineSection = ({ favorites, onSelectDrink, cardFeedback, initialTab = 'col
                         <input
                             ref={nicknameInputRef}
                             type="text"
-                            value={nickname}
-                            onChange={(e) => setNickname(e.target.value)}
+                            value={profileForm.name || nickname}
+                            onChange={(e) => {
+                                setProfileForm(prev => ({ ...prev, name: e.target.value }));
+                                setNickname(e.target.value);
+                            }}
                             onBlur={() => {
                                 setIsEditingNickname(false);
-                                saveProfile(nickname, null);
+                                saveProfile(nickname, null, profileForm);
                             }}
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter') {
                                     setIsEditingNickname(false);
-                                    saveProfile(nickname, null);
+                                    saveProfile(nickname, null, profileForm);
                                 }
                             }}
                             className="text-lg font-bold text-[#111813] bg-transparent border-b-2 border-purple-400 outline-none text-center min-w-[120px]"
                             autoFocus
                         />
                     ) : (
-                        <h1 className="text-lg font-bold text-[#111813]">{nickname}</h1>
+                        <h1 className="text-lg font-bold text-[#111813]" style={{ fontFamily: '"Songti SC", STKaiti, KaiTi, serif', fontSize: '1rem', fontWeight: 700, letterSpacing: '0.12em' }}>{profileForm.name || nickname}</h1>
                     )}
                     <button
                         onClick={() => {
@@ -220,7 +408,7 @@ const MineSection = ({ favorites, onSelectDrink, cardFeedback, initialTab = 'col
                 </div>
             </div>
 
-            <div className="px-6 py-4 pb-32 w-full">
+            <div className="px-6 py-4 pb-32 w-full bg-dreamy-gradient">
                 {mineTab === 'favorites' && (
                     <div className="grid grid-cols-2 gap-3 sm:gap-4">
                         {shuffledFavorites.map((drink) => (
@@ -356,7 +544,7 @@ const CollectionsCalendar = ({ dakaNotes, onDeleteDakaNote }) => {
     const selectedNotes = selectedDate ? notesByDate[selectedDate] || [] : [];
 
     return (
-        <div>
+        <div className="bg-dreamy-gradient">
             {/* Calendar Header */}
             <div className="flex items-center justify-between mb-4">
                 <button

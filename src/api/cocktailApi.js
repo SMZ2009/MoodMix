@@ -428,7 +428,9 @@ export async function getAllDrinks() {
             const cachedData = JSON.parse(cachedStr);
             if (Date.now() - cachedData.timestamp < CACHE_EXPIRY_MS) {
                 console.log('✅ 从本地缓存读取全量饮品数据:', cachedData.data.length, '条');
-                return cachedData.data;
+                // 对缓存数据进行随机排序
+                const shuffledData = [...cachedData.data].sort(() => Math.random() - 0.5);
+                return shuffledData;
             }
         }
     } catch (e) {
@@ -463,6 +465,9 @@ export async function getAllDrinks() {
         seen.add(d.id);
         return true;
     });
+
+    // 随机排序
+    finalData.sort(() => Math.random() - 0.5);
 
     // 3. 结果写回本地缓存
     try {

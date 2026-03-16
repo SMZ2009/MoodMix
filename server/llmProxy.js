@@ -438,6 +438,14 @@ app.post('/api/analyze_mood_stream', async (req, res) => {
  * Body: { items: [ { id, name, wuxingLogic } ] }
  * Response: { success: true, quotes: { [id]: "「诗句」" } }
  */
+/**
+ * POST /api/generate_quotes
+ * 
+ * 为推荐饮品批量生成【标签】和【推荐语】
+ * 
+ * Body: { items: [ { id, name, contextPackage, userWuxing, strategyType } ] }
+ * Response: { success: true, quotes: { [id]: { tags: [...], quote: "..." } } }
+ */
 app.post('/api/generate_quotes', async (req, res) => {
   const apiKey = process.env.SILICONFLOW_API_KEY;
   if (!apiKey || apiKey === 'your_key_here') {
@@ -453,53 +461,79 @@ app.post('/api/generate_quotes', async (req, res) => {
     const currentFetch = await getFetch();
     if (!currentFetch) throw new Error('Fetch implementation not found');
 
-    // 构造极致约束、三段式结构的 Prompt
+    // 构造同时生成标签和文案的 Prompt
     const systemPrompt = `你是一位深谙东方五行哲学与现代调酒艺术的专业酒保。
-你的任务是为顾客生成的推荐饮品写一句具有【调理感】的短句。
+你的任务是为顾客的推荐饮品生成【三枚标签】和【一句推荐语】。
 
-【核心要求】：
-1. **长度硬约束**：建议控制在 **25-45 字**之间，确保文案有足够的描写空间。**绝对禁止生成小于20个字的短句**。
-2. **三段式结构**：必须包含：[当前状态] + [饮品的核心特征与细节] + [调理动作/目的]。
-3. **丰富描写**：在保证口语化的前提下，增加画面的颗粒度。比如描述具体的“冷热体感”、“舌尖的触感”或“特定的生活化映射”。
-4. **口语化叙事**：语气要自然、平和。**绝对禁止四字词语堆砌，绝对禁止古风诗词感**。
-5. **格式限制**：不带标点，必须用「」包裹。
-6. **多样性**：同一批次的几杯酒，切入角度要略有不同。
+## 三枚标签要求
 
-【示例】：
-- 辨证:郁气难舒(木) → 「因为最近总是觉得心里闷闷的，这杯带有辛香的金酒正好能帮你把那股气散开，让整个人都通透不少」
-- 辨证:心绪浮躁(火) → 「看你现在心思有点乱，这杯冰凉透骨的伏特加汤力刚好能压住那股燥火，让你的呼吸稳下来」
-- 辨证:感伤低落(金) → 「这会儿要是觉得心里空落落的，这杯温厚绵密的巧克力能像厚毯子一样紧紧裹住你，把寒意都赶跑」
-- 辨证:劳累(土) → 「加班辛苦了，浓缩马力尼这股先苦后回甘的韧劲儿，最能把你的精神头重新给拎起来」
+标签共同讲述一个"辨证施饮"故事链：你现在怎么了 -> 需要什么调理 -> 这杯酒喝起来什么感觉
 
-你必须严格输出一个合法的 JSON Object，Key 是传入的饮品 ID，Value 是你写的句子。绝对不要输出其他任何文字！`;
+### 标签1：辨证标签（你现在怎么了）
+- 4个汉字，描述用户当前的身心状态
+- 用自然的人话，不用中医术语
+- 示例：郁气难舒、心绪浮躁、兴致正浓、倦怠沉闷、感伤低落、不安焦虑
+
+### 标签2：策略标签（需要什么调理）
+- 4-6个汉字，以"以/借/同"开头
+- 描述饮品如何调理用户状态
+- 示例：以金制衡、借火生发、同水共振、以木滋养
+
+### 标签3：体感标签（喝起来什么感觉）
+- 格式为"XX·YY"，4-6个汉字
+- "·"前描述入口第一感，"·"后描述饮后走向
+- 示例：清冽·沉降、温润·舒展、辛香·升提、冰润·收束
+
+## 推荐语要求
+
+1. **长度**：25-45字，禁止少于20字
+2. **三段式结构**：[当前状态] + [饮品特征细节] + [调理动作/目的]
+3. **口语化叙事**：自然平和，禁止四字词语堆砌，禁止古风诗词感
+4. **格式**：不带标点，用「」包裹
+
+## 输出格式
+
+严格输出JSON Object，每个饮品ID对应一个对象：
+{
+  "饮品ID": {
+    "tags": ["辨证标签", "策略标签", "体感标签"],
+    "quote": "「推荐语内容」"
+  }
+}
+
+## 示例
+{
+  "drink_001": {
+    "tags": ["郁气难舒", "以金疏散", "辛香·开窍"],
+    "quote": "「因为最近总是觉得心里闷闷的，这杯带有辛香的金酒正好能帮你把那股气散开，让整个人都通透不少」"
+  }
+}
+
+绝对不要输出其他任何文字！`;
 
     let userContent = `用户当前心境总结: ${items[0].contextPackage?.moodSummary || '未知'}\n`;
     userContent += `用户主五行属性: ${items[0].userWuxing || '未知'}\n`;
-    userContent += "请为以下饮品生成专属文案。要求：\n";
-    userContent += "1. 长度建议 25-45 字，描写要具体，有画面感。\n";
-    userContent += "2. 必须包含：[当前状态] + [具体特征] + [调理动作]。\n";
-    userContent += "3. 口语化，严禁四字词语。不要标点。\n\n";
+    userContent += `用户调理策略: ${items[0].strategyType || '未知'}\n\n`;
+    userContent += "请为以下饮品生成专属标签和文案：\n\n";
 
     items.forEach((item, index) => {
-      userContent += `[饮品 ${index + 1}] ID: ${item.id}, 名称: ${item.name || '未知'}, 辨证对照: ${item.diagnosis || '无'}, 策略: ${item.strategyType || '无'}, 物理特性: ${item.contextPackage?.drinkProfile || '无'}\n`;
+      userContent += `[饮品 ${index + 1}]\n`;
+      userContent += `- ID: ${item.id}\n`;
+      userContent += `- 名称: ${item.name || '未知'}\n`;
+      userContent += `- 物理特性: ${item.contextPackage?.drinkProfile || '口感平衡'}\n\n`;
     });
 
-    userContent += "\n请严格返回 JSON 格式，不要有任何开场白或解释。";
-    userContent += "\n格式示例：\n{\n";
-    items.forEach((item, index) => {
-      userContent += `  "${item.id}": "「结合意象写的唯一句子」"${index === items.length - 1 ? '' : ','}\n`;
-    });
-    userContent += "}";
+    userContent += "请严格按照JSON格式输出，不要有任何开场白或解释。";
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
       console.warn('[QuoteGenerator] Timeout triggered (45s)');
       controller.abort();
-    }, 45000); // 45s超时，因为 batch 可能耗时较长
+    }, 45000);
 
     let response;
     try {
-      console.log(`[QuoteGenerator] Requesting batch quotes from ${MODEL_8B}...`);
+      console.log(`[QuoteGenerator] Requesting batch tags+quotes from ${MODEL_CREATIVE}...`);
       response = await currentFetch(SILICONFLOW_API_URL, {
         method: 'POST',
         headers: {
@@ -513,7 +547,7 @@ app.post('/api/generate_quotes', async (req, res) => {
             { role: 'user', content: userContent }
           ],
           temperature: 0.7,
-          max_tokens: 1000
+          max_tokens: 2000
         }),
         signal: controller.signal
       });
@@ -530,25 +564,36 @@ app.post('/api/generate_quotes', async (req, res) => {
     const result = await response.json();
     const content = (result.choices?.[0]?.message?.content || '').trim();
 
-    let parsedQuotes = {};
+    let parsedResult = {};
     if (content) {
       try {
-        // 尝试提取 JSON 内容
         const jsonMatch = content.match(/\{[\s\S]*\}/);
         const jsonStr = jsonMatch ? jsonMatch[0] : content;
-
-        // 健壮处理：移除 JSON 中的尾随逗号 (针对有些模型不听话的情况)
         const sanitizedJson = jsonStr.replace(/,\s*([}\]])/g, '$1');
-
-        parsedQuotes = JSON.parse(sanitizedJson);
+        parsedResult = JSON.parse(sanitizedJson);
       } catch (e) {
         console.error('[QuoteGenerator] JSON Parse Error. Raw content:', content);
         throw new Error('解析生成文案失败: ' + e.message);
       }
     }
 
-    console.log(`[QuoteGenerator] Batch generated ${Object.keys(parsedQuotes).length} quotes successfully.`);
-    res.json({ success: true, quotes: parsedQuotes });
+    // 兼容旧格式：将新格式转换为包含tags和quote的对象
+    const quotesWithTags = {};
+    for (const [drinkId, data] of Object.entries(parsedResult)) {
+      if (typeof data === 'object' && data.tags && data.quote) {
+        // 新格式，直接使用
+        quotesWithTags[drinkId] = data;
+      } else if (typeof data === 'string') {
+        // 旧格式（只有quote字符串），添加默认tags
+        quotesWithTags[drinkId] = {
+          tags: ['待辨证', '调和气机', '口感待品'],
+          quote: data
+        };
+      }
+    }
+
+    console.log(`[QuoteGenerator] Batch generated ${Object.keys(quotesWithTags).length} tags+quotes successfully.`);
+    res.json({ success: true, quotes: quotesWithTags });
 
   } catch (error) {
     console.error('[QuoteGenerator] Error:', error.message);

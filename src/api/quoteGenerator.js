@@ -209,11 +209,33 @@ export async function fetchLiveQuotes(drinksList, contextData, batchSize = 15, f
             unachedItems.forEach(item => {
                 const generatedQuote = data.quotes[item.id];
                 if (generatedQuote) {
+                    // 确保 generatedQuote 是字符串 (服务端可能返回 { tags, quote } 对象)
+                    let quoteStr;
+                    if (typeof generatedQuote === 'string') {
+                        quoteStr = generatedQuote;
+                    } else if (typeof generatedQuote === 'object' && generatedQuote.quote) {
+                        // llmProxy 返回 { tags: [...], quote: "..." } 格式
+                        quoteStr = generatedQuote.quote;
+                    } else if (typeof generatedQuote === 'object' && generatedQuote.text) {
+                        quoteStr = generatedQuote.text;
+                    } else {
+                        // 兜底：尝试 JSON 序列化调试
+                        console.warn('[QuoteGenerator] 未知的 quote 格式:', generatedQuote);
+                        quoteStr = String(generatedQuote);
+                    }
+                    
+                    // 确保 quoteStr 是有效字符串
+                    if (typeof quoteStr !== 'string' || quoteStr.includes('[object')) {
+                        console.warn('[QuoteGenerator] 跳过无效 quote:', quoteStr);
+                        return;
+                    }
+                    
                     // 补齐符号格式
-                    const finalStr = generatedQuote.startsWith('「') ? generatedQuote : `「${generatedQuote}」`;
+                    const finalStr = quoteStr.startsWith('「') ? quoteStr : `「${quoteStr}」`;
 
                     // 合并结果
                     resultQuotes[item.id] = finalStr;
+                    console.log(`[QuoteGenerator] ✅ 提取文案 [${item.id}]:`, finalStr.substring(0, 30) + '...');
 
                     // 永久存入哈希库
                     if (item.cacheKey) {

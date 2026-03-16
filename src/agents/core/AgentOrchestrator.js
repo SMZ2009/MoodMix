@@ -303,8 +303,11 @@ export async function executeRecommendationPipeline(userInput, options = {}) {
   }
   console.log(`│    - 置信度: ${Math.round(entities.confidence * 100)}%`);
 
-  // 2. 候选池过滤
-  const filterResult = filterDrinkPool(allDrinksOriginal, entities);
+  // 2. 候选池过滤（结合库存与当前时间，提前裁掉明显不适合的长尾）
+  const filterResult = filterDrinkPool(allDrinksOriginal, entities, {
+    inventory: options.inventory || [],
+    currentTime: options.currentTime || new Date().toISOString()
+  });
 
   console.log('│');
   console.log(`│ 🔍 过滤结果: ${filterResult.stats?.total || allDrinksOriginal.length} → ${filterResult.filtered.length} 款`);

@@ -16,11 +16,16 @@ import { fuzzyMatch } from './entityExtractor';
  */
 export function filterDrinkPool(allDrinks, entities, options = {}) {
   const {
-    maxPoolSize = 50,           // 过滤后最大池大小
+    maxPoolSize = 40,           // 过滤后最大池大小（更聚焦首屏，减少长尾计算）
     minPoolSize = 10,           // 最小保证数量
     fuzzyThreshold = 0.6,       // 模糊匹配阈值
-    enableFallback = true       // 无匹配时是否回退全量
+    enableFallback = true,      // 无匹配时是否回退全量
+    inventory = [],             // 可用库存，用于优先筛掉几乎做不出的酒
+    currentTime = null          // 当前时间（Date/string/number），用于简单时间场景过滤
   } = options;
+
+  const inventorySet = buildInventorySet(inventory);
+  const currentHour = getHourFromTime(currentTime);
   
   // 如果没有任何实体，返回全量池
   if (!hasEntities(entities)) {
@@ -39,11 +44,18 @@ export function filterDrinkPool(allDrinks, entities, options = {}) {
     return { drink, score, matchReasons };
   });
   
-  // 按分数排序，过滤出有分数的
-  const filtered = scoredDrinks
-    .filter(item => item.score > 0)
-    .sort((a, b) => b.score - a.score)
-    .slice(0, maxPoolSize);
+  // 按分数排序，过滤出有分数的，再结合库存/时间做一次轻量裁剪
+  const filtered = applyCandidatePruning(
+    scoredDrinks
+      .filter(item => item.score > 0)
+      .sort((a, b) => b.score - a.score),
+    {
+      maxPoolSize,
+      minPoolSize,
+      inventorySet,
+      currentHour
+    }
+  );
   
   // 如果过滤结果太少，启用回退策略
   if (filtered.length < minPoolSize && enableFallback) {
@@ -66,11 +78,18 @@ export function filterDrinkPool(allDrinks, entities, options = {}) {
       };
     }
     
-    // 回退策略: 放宽匹配条件
-    const relaxedFiltered = scoredDrinks
-      .filter(item => item.score > 0 || hasPartialMatch(item.drink, entities))
-      .sort((a, b) => b.score - a.score)
-      .slice(0, maxPoolSize);
+    // 回退策略: 放宽匹配条件，但仍然通过库存/时间做轻量裁剪
+    const relaxedFiltered = applyCandidatePruning(
+      scoredDrinks
+        .filter(item => item.score > 0 || hasPartialMatch(item.drink, entities))
+        .sort((a, b) => b.score - a.score),
+      {
+        maxPoolSize,
+        minPoolSize,
+        inventorySet,
+        currentHour
+      }
+    );
     
     if (relaxedFiltered.length >= minPoolSize) {
       return {
@@ -314,6 +333,186 @@ function hasPartialMatch(drink, entities) {
     const prefix = kw.toLowerCase().slice(0, 2);
     return prefix.length >= 2 && allText.includes(prefix);
   });
+}
+
+/**
+ * 将库存列表标准化为 Set，用于快速相交判断
+ */
+function buildInventorySet(inventory) {
+  if (!inventory || inventory.length === 0) return new Set();
+
+  const names = [];
+
+  for (const item of inventory) {
+    if (!item) continue;
+    if (typeof item === 'string') {
+      names.push(item.toLowerCase());
+      continue;
+    }
+
+    const {
+      name,
+      name_cn,
+      nameEn,
+      name_en,
+      label
+    } = item;
+
+    const candidate =
+      name ||
+      name_cn ||
+      nameEn ||
+      name_en ||
+      label;
+
+    if (candidate) {
+      names.push(String(candidate).toLowerCase());
+    }
+  }
+
+  return new Set(names);
+}
+
+/**
+ * 根据 currentTime 提取小时数（0-23）
+ */
+function getHourFromTime(currentTime) {
+  if (!currentTime) return null;
+
+  if (typeof currentTime === 'number') {
+    return new Date(currentTime).getHours();
+  }
+
+  const date = currentTime instanceof Date ? currentTime : new Date(currentTime);
+  if (Number.isNaN(date.getTime())) return null;
+
+  return date.getHours();
+}
+
+/**
+ * 计算饮品与库存的简单重叠比例（0-1）
+ */
+function computeInventoryOverlap(drink, inventorySet) {
+  if (!inventorySet || inventorySet.size === 0) return null;
+
+  const ingredients = (drink.ingredients || [])
+    .map(i => i && (i.name || i.name_cn || i.nameEn || i.name_en || i.label))
+    .filter(Boolean)
+    .map(name => String(name).toLowerCase());
+
+  if (ingredients.length === 0) return 0;
+
+  let hit = 0;
+  for (const name of ingredients) {
+    if (inventorySet.has(name)) {
+      hit++;
+    }
+  }
+
+  return hit / ingredients.length;
+}
+
+/**
+ * 判断当前时间与饮品是否存在明显不匹配场景
+ * - 深夜(23:00-6:00) 避免高咖啡因饮品
+ * - 清晨(6:00-11:00) 避免高度数烈酒
+ */
+function isStrongTimeMismatch(drink, currentHour) {
+  if (currentHour == null) return false;
+
+  const textSource = [
+    drink.category,
+    ...(drink.tags || []),
+    ...(drink.ingredients || []).map(i => i && (i.name || i.name_cn || i.nameEn || i.name_en || i.label)),
+    drink.description,
+    drink.taste
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+
+  const caffeineKeywords = [
+    'coffee',
+    '咖啡',
+    'espresso',
+    'latte',
+    '美式',
+    'americano',
+    'cappuccino',
+    '茶',
+    'tea',
+    'matcha',
+    '抹茶'
+  ];
+
+  const abv = typeof drink.abv === 'number' ? drink.abv : 0;
+
+  const isHighCaffeine = caffeineKeywords.some(kw => textSource.includes(kw));
+  const isHardAlcohol = abv >= 25;
+
+  // 深夜：优先过滤高咖啡因饮品
+  if ((currentHour >= 23 || currentHour < 6) && isHighCaffeine) {
+    return true;
+  }
+
+  // 清晨：优先过滤高度数烈酒
+  if (currentHour >= 6 && currentHour < 11 && isHardAlcohol) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * 在打好分数的候选集合上，结合库存/时间场景做一次轻量裁剪，
+ * 以减少后续向量引擎需要处理的无效长尾。
+ */
+function applyCandidatePruning(sortedScoredList, {
+  maxPoolSize,
+  minPoolSize,
+  inventorySet,
+  currentHour
+}) {
+  if (!sortedScoredList || sortedScoredList.length === 0) {
+    return [];
+  }
+
+  const hasInventory = inventorySet && inventorySet.size > 0;
+  const pruned = [];
+
+  for (const item of sortedScoredList) {
+    if (pruned.length >= maxPoolSize) break;
+
+    const drink = item.drink;
+    const abv = typeof drink.abv === 'number' ? drink.abv : 0;
+
+    let overlapRatio = null;
+    if (hasInventory) {
+      overlapRatio = computeInventoryOverlap(drink, inventorySet);
+    }
+
+    const timeMismatch = isStrongTimeMismatch(drink, currentHour);
+
+    const isHardAlcohol = abv >= 25;
+    const veryLowOverlap = overlapRatio != null && overlapRatio < 0.15;
+
+    const shouldDropForInventory = hasInventory && isHardAlcohol && veryLowOverlap;
+    const shouldDropForTime = isHardAlcohol && timeMismatch;
+
+    // 只有在已经至少满足 minPoolSize 的前提下，才会因为「明显不适合」而丢弃
+    if ((shouldDropForInventory || shouldDropForTime) && pruned.length >= minPoolSize) {
+      continue;
+    }
+
+    pruned.push(item);
+  }
+
+  // 如果裁剪过于激进导致数量反而太少，则退回原始前 maxPoolSize 作为兜底
+  if (pruned.length < Math.min(minPoolSize, sortedScoredList.length)) {
+    return sortedScoredList.slice(0, maxPoolSize);
+  }
+
+  return pruned;
 }
 
 /**

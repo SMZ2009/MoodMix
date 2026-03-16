@@ -243,11 +243,11 @@ export function evaluateAndSortDrinks(moodData, allDrinks, sessionIngredients) {
 
     let finalPool = evaluatedBasePool;
 
-    // 前端只取前 15
-    const top15 = finalPool.slice(0, 15);
+    // 前端只取前 9（首屏展示为主，减少长尾计算）
+    const top9 = finalPool.slice(0, 9);
 
-    console.log('🏆 Top 15 最终推荐结果排行:');
-    top15.forEach((d, i) => {
+    console.log('🏆 Top 9 最终推荐结果排行:');
+    top9.forEach((d, i) => {
         console.log(
             `%c[#${i + 1}] %c${d.name || d.name_cn || d.name_en} ` +
             `%c(得分: ${(d.similarityScore * 100).toFixed(2)}%) ` +
@@ -261,5 +261,5 @@ export function evaluateAndSortDrinks(moodData, allDrinks, sessionIngredients) {
     });
     console.groupEnd();
 
-    return top15;
+    return top9;
 }

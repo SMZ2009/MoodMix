@@ -430,9 +430,9 @@ const MoodInputSection = ({
           {greeting.sub}
         </p>
       </div>
-      <div className="relative flex-1 w-full flex flex-col items-center justify-center pb-12 sm:pb-16">
+      <div className="relative flex-1 w-full flex flex-col items-center justify-center pb-12 sm:pb-16 translate-y-[90px]">
         {/* 标签散点布局容器 - 围绕杯子分布 */}
-        <div className="absolute inset-0 z-10 pointer-events-none flex items-center justify-center">
+        <div className="absolute inset-0 z-10 pointer-events-none flex items-center justify-center -translate-y-[20px]">
           <div className="relative w-full max-w-[500px] h-[400px]">
             {ORIENTAL_MOOD_TAGS.map((mood, index) => {
               const isSelected = selectedMood === mood.value;
@@ -440,7 +440,7 @@ const MoodInputSection = ({
               const positions = [
                 { l: 12, t: 2, r: -6 },
                 { l: 28, t: -18, r: 3 },
-                { l: 48, t: -2, r: -2 },
+                { l: 48, t: -8, r: -2 },
                 { l: 68, t: -22, r: 5 },
                 { l: 84, t: 8, r: -4 },
                 { l: 96, t: -12, r: 6 },

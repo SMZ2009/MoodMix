@@ -1806,7 +1806,11 @@ const App = () => {
 
   // WebSocket 连接初始化
   useEffect(() => {
-    const socketInstance = io('http://localhost:3001', {
+    const socketUrl = process.env.NODE_ENV === 'production' 
+      ? window.location.origin 
+      : 'http://localhost:3001';
+    
+    const socketInstance = io(socketUrl, {
       transports: ['websocket', 'polling'],
       reconnection: true,
       reconnectionDelay: 1000,
@@ -2162,7 +2166,7 @@ const App = () => {
 
     try {
       const userUID = userStorage.getUID();
-      const response = await fetch('http://localhost:3001/api/drink/like', {
+      const response = await fetch('/api/drink/like', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -2211,7 +2215,7 @@ const App = () => {
     // 调用后端 API 取消用户心意
     try {
       const userUID = userStorage.getUID();
-      await fetch('http://localhost:3001/api/drink/unlike', {
+      await fetch('/api/drink/unlike', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

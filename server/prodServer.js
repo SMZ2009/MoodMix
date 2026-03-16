@@ -1066,12 +1066,129 @@ if (!existsSync(buildPath)) {
   process.exit(1);
 }
 
+// ═══════════════════════════════════════════
+// 饮品心意统计 API
+// ═══════════════════════════════════════════
+
+// 内存存储：饮品心意统计 { drinkId: { userUIDs: Set, count: number } }
+const drinkLikeStats = new Map();
+
+// 初始化饮品心意统计
+function initDrinkLikeStats(drinkId) {
+  if (!drinkLikeStats.has(drinkId)) {
+    drinkLikeStats.set(drinkId, {
+      userUIDs: new Set(),
+      count: 0
+    });
+  }
+}
+
+/**
+ * POST /api/drink/like
+ * 记录用户对饮品的心意
+ * Body: { drinkId: string, userUID: string }
+ * Response: { success: boolean, count: number, showMessage: boolean }
+ */
+app.post('/api/drink/like', (req, res) => {
+  const { drinkId, userUID } = req.body;
+
+  if (!drinkId || !userUID) {
+    return res.status(400).json({
+      success: false,
+      error: '缺少 drinkId 或 userUID'
+    });
+  }
+
+  initDrinkLikeStats(drinkId);
+  const stats = drinkLikeStats.get(drinkId);
+
+  const isNewLike = !stats.userUIDs.has(userUID);
+  
+  if (isNewLike) {
+    stats.userUIDs.add(userUID);
+    stats.count++;
+  }
+
+  console.log(`[DrinkLike] 饮品 ${drinkId} 被 ${userUID} 标记为心仪，当前统计: ${stats.count} 人`);
+
+  res.json({
+    success: true,
+    count: stats.count,
+    showMessage: stats.count >= 2
+  });
+});
+
+/**
+ * POST /api/drink/unlike
+ * 取消用户对饮品的心意
+ * Body: { drinkId: string, userUID: string }
+ * Response: { success: boolean, count: number, showMessage: boolean }
+ */
+app.post('/api/drink/unlike', (req, res) => {
+  const { drinkId, userUID } = req.body;
+
+  if (!drinkId || !userUID) {
+    return res.status(400).json({
+      success: false,
+      error: '缺少 drinkId 或 userUID'
+    });
+  }
+
+  initDrinkLikeStats(drinkId);
+  const stats = drinkLikeStats.get(drinkId);
+
+  if (stats.userUIDs.has(userUID)) {
+    stats.userUIDs.delete(userUID);
+    stats.count = Math.max(0, stats.count - 1);
+  }
+
+  console.log(`[DrinkLike] 饮品 ${drinkId} 被 ${userUID} 取消心仪，当前统计: ${stats.count} 人`);
+
+  res.json({
+    success: true,
+    count: stats.count,
+    showMessage: stats.count >= 2
+  });
+});
+
+/**
+ * GET /api/drink/like-stats/:drinkId
+ * 获取饮品的心意统计
+ * Response: { success: boolean, count: number, showMessage: boolean }
+ */
+app.get('/api/drink/like-stats/:drinkId', (req, res) => {
+  const { drinkId } = req.params;
+
+  if (!drinkId) {
+    return res.status(400).json({
+      success: false,
+      error: '缺少 drinkId'
+    });
+  }
+
+  initDrinkLikeStats(drinkId);
+  const stats = drinkLikeStats.get(drinkId);
+
+  res.json({
+    success: true,
+    count: stats.count,
+    showMessage: stats.count >= 2
+  });
+});
+
+// ═══════════════════════════════════════════
+// SPA 重定向（所有非API请求返回 index.html）
+// ═══════════════════════════════════════════
+app.get('*', (req, res) => {
+  res.sendFile(path.join(buildPath, 'index.html'));
+});
+
 app.listen(PORT, '0.0.0.0', () => {
   const hasKey = process.env.SILICONFLOW_API_KEY && process.env.SILICONFLOW_API_KEY !== 'your_key_here';
   console.log(`\n🍹 MoodMix 生产服务器已启动`);
   console.log(`   端口: ${PORT}`);
   console.log(`   前端: 从 ${buildPath} 提供`);
-  console.log(`   API: /api/analyze_mood, /api/analyze_mood_stream, /api/generate_quotes, /api/comprehensive_analyze, /api/generate-drink-dimensions, /api/drink-assistant, /api/validate_optimize`);
+  console.log(`   API: /api/analyze_mood, /api/analyze_mood_stream, /api/generate_quotes, /api/comprehensive_analyze, /api/generate-drink-dimensions, /api/drink-assistant, /api/validate_optimize, /api/drink/like, /api/drink/unlike, /api/drink/like-stats/:drinkId`);
   console.log(`   模型: ${SILICONFLOW_MODEL}`);
   console.log(`   API Key: ${hasKey ? '✅ 已配置' : '❌ 未配置'}`);
   console.log(`   环境: ${process.env.NODE_ENV || 'development'}`);

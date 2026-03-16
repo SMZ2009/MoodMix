@@ -182,6 +182,7 @@ export const DRINK_NAMES = {
     'Afternoon': '午后',
     'AT&T': 'AT&T鸡尾酒',
     'Addison': '艾迪生',
+    'Quentin': '昆廷',
 };
 
 // ─── 配料名 中英映射 ───────────────────────────

@@ -1596,6 +1596,9 @@ app.post('/api/speech-to-text', async (req, res) => {
 // 内存存储：饮品心意统计 { drinkId: { userUIDs: Set, count: number } }
 const drinkLikeStats = new Map();
 
+// 全局用户UID集合（用于统计真实用户总数）
+const globalUserUIDs = new Set();
+
 // 初始化饮品心意统计
 function initDrinkLikeStats(drinkId) {
   if (!drinkLikeStats.has(drinkId)) {
@@ -1630,9 +1633,10 @@ app.post('/api/drink/like', (req, res) => {
   if (isNewLike) {
     stats.userUIDs.add(userUID);
     stats.count++;
+    globalUserUIDs.add(userUID);
   }
 
-  console.log(`[DrinkLike] 饮品 ${drinkId} 被 ${userUID} 标记为心仪，当前统计: ${stats.count} 人`);
+  console.log(`[DrinkLike] 饮品 ${drinkId} 被 ${userUID} 标记为心仪，当前统计: ${stats.count} 人，全局用户总数: ${globalUserUIDs.size}`);
 
   if (global.io) {
     global.io.to(`drink-${drinkId}`).emit('drink-liked', {
@@ -1706,6 +1710,18 @@ app.get('/api/drink/like-stats/:drinkId', (req, res) => {
     success: true,
     count: stats.count,
     showMessage: stats.count >= 2
+  });
+});
+
+/**
+ * GET /api/stats/total-users
+ * 获取真实UID用户总数
+ * Response: { success: boolean, totalUsers: number }
+ */
+app.get('/api/stats/total-users', (req, res) => {
+  res.json({
+    success: true,
+    totalUsers: globalUserUIDs.size
   });
 });
 

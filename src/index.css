@@ -11,7 +11,7 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 0.64rem 1.12rem 0.72rem;
+    padding: 0.5rem 1.25rem 0.6rem;
     border: none;
     background: transparent;
     color: rgba(92, 101, 108, 0.72);
@@ -20,15 +20,17 @@
     appearance: none;
     -webkit-appearance: none;
     transition: color 420ms ease, transform 320ms ease;
+    white-space: nowrap;
+    min-width: 100px;
   }
 
   .mood-ink-tag::before,
   .mood-ink-tag::after {
     content: "";
     position: absolute;
-    inset: 0.08rem -0.12rem;
+    inset: 0;
     pointer-events: none;
-    border-radius: 42% 58% 51% 49% / 58% 42% 56% 44%;
+    border-radius: 60% 40% 55% 45% / 45% 55% 40% 60%;
   }
 
   .mood-ink-tag::before {

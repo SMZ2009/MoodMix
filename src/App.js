@@ -33,6 +33,7 @@ import GroupRecommendationModal from './components/GroupRecommendationModal';
 import { useTouchFeedback, useKeyboardNavigation, useCocktailApi, useSwipeGesture } from './hooks';
 import { InteractiveButton, SwipeableCard, PageTransition, Modal, LoadingTransition, StreamingAnalysisCard } from './components/ui';
 import IngredientEditModal from './components/IngredientEditModal';
+import './App.css';
 import cupRippleImage from './assets/cup-ripple.jpg';
 import navIconMix from './assets/nav_icon_mix.png';
 import navIconExplore from './assets/nav_icon_explore.png';
@@ -430,7 +431,69 @@ const MoodInputSection = ({
         </p>
       </div>
       <div className="relative flex-1 w-full flex flex-col items-center justify-center pb-12 sm:pb-16">
-        <div className="relative z-20 w-[320px] sm:w-[420px] max-w-[92vw] transition-all duration-500 translate-y-[30px]">
+        {/* 标签散点布局容器 - 围绕杯子分布 */}
+        <div className="absolute inset-0 z-10 pointer-events-none flex items-center justify-center">
+          <div className="relative w-full max-w-[500px] h-[400px]">
+            {ORIENTAL_MOOD_TAGS.map((mood, index) => {
+              const isSelected = selectedMood === mood.value;
+              // 预设坐标系统 - 随性散布方案 (位置上移，避免遮挡)
+              const positions = [
+                { l: 12, t: 2, r: -6 },
+                { l: 28, t: -18, r: 3 },
+                { l: 48, t: -2, r: -2 },
+                { l: 68, t: -22, r: 5 },
+                { l: 84, t: 8, r: -4 },
+                { l: 96, t: -12, r: 6 },
+              ];
+              const pos = positions[index % positions.length];
+              
+              return (
+                <div
+                  key={mood.value}
+                  className="absolute pointer-events-auto"
+                  style={{
+                    left: `${pos.l}%`,
+                    top: `${pos.t}%`,
+                    transform: 'translate(-50%, -50%)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  <div
+                    style={{
+                      animation: `floatIn 1.2s ease-out ${index * 150}ms forwards`,
+                      opacity: 0,
+                    }}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const nextValue = isSelected ? null : mood.value;
+                        setSelectedMood(nextValue);
+                        if (!isSelected && !isMixing) {
+                          onGenerate(nextValue);
+                        }
+                      }}
+                      className={`mood-ink-tag group ${isSelected ? 'is-selected' : ''}`}
+                      aria-pressed={isSelected}
+                      style={{
+                        '--mood-ink-color': isSelected ? 'rgba(224, 197, 110, 0.24)' : 'rgba(104, 114, 120, 0.15)',
+                        '--mood-ink-accent': isSelected ? 'rgba(204, 172, 74, 0.82)' : 'rgba(72, 82, 89, 0.5)',
+                        transform: isSelected ? 'scale(1.15) rotate(0deg)' : `rotate(${pos.r}deg) scale(0.95)`,
+                        transition: 'transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.5s ease',
+                      }}
+                    >
+                      <span className={`mood-ink-tag__label ${isSelected ? 'is-selected' : ''}`}>{mood.label}</span>
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="relative z-20 w-[320px] sm:w-[420px] max-w-[92vw] transition-all duration-500 translate-y-[80px]">
           <img
             src={cupRippleImage}
             alt="杯子和水波"
@@ -440,7 +503,7 @@ const MoodInputSection = ({
 
         <button
           type="button"
-          className="relative z-30 mt-16 sm:mt-20 mb-0.5 sm:mb-1 px-5 py-2 text-[13px] sm:text-[14px] text-gray-700/80 transition-colors hover:text-gray-800 group"
+          className="relative z-30 mt-28 sm:mt-32 mb-0.5 sm:mb-1 px-5 py-2 text-[13px] sm:text-[14px] text-gray-700/80 transition-colors hover:text-gray-800 group"
           style={{ fontFamily: '"FZQingKeBenYueSongS-R-GB", "方正清刻本悦宋简体", "Songti SC", serif', fontWeight: 300, letterSpacing: '0.14em' }}
           onClick={onEditIngredients}
           aria-label={`当前有 ${ingredientCount} 种特调原料已备齐`}
@@ -509,35 +572,6 @@ const MoodInputSection = ({
 
       {/* 固定在底部的区域 */}
       <div className="fixed bottom-0 left-0 right-0 px-6 pb-6 pt-4 bg-gradient-to-t from-white/80 to-transparent z-20">
-        {/* 情绪标签按钮 */}
-        <div className="flex flex-wrap gap-2 sm:gap-4 justify-center mb-4 z-10">
-          {ORIENTAL_MOOD_TAGS.map((mood) => {
-            const isSelected = selectedMood === mood.value;
-            return (
-              <button
-                key={mood.value}
-                type="button"
-                onClick={() => {
-                  const nextValue = isSelected ? null : mood.value;
-                  setSelectedMood(nextValue);
-                  // 选中东方情绪锚点时，直接进入玄学等待轮播画面
-                  if (!isSelected && !isMixing) {
-                    onGenerate(nextValue);  // Pass mood value directly to avoid async state issue
-                  }
-                }}
-                className={`mood-ink-tag ${isSelected ? 'is-selected' : ''}`}
-                aria-pressed={isSelected}
-                style={{
-                  '--mood-ink-color': isSelected ? 'rgba(224, 197, 110, 0.24)' : 'rgba(104, 114, 120, 0.2)',
-                  '--mood-ink-accent': isSelected ? 'rgba(204, 172, 74, 0.82)' : 'rgba(72, 82, 89, 0.5)'
-                }}
-              >
-                <span className={`mood-ink-tag__label ${isSelected ? 'is-selected' : ''}`}>{mood.label}</span>
-              </button>
-            );
-          })}
-        </div>
-
         {/* 输入框 */}
         <div className="w-full max-w-[28rem] relative mx-auto z-10">
           <div

@@ -2334,6 +2334,10 @@ const App = () => {
       const customDrinksWithVector = customDrinks.filter(d => d.vector && d.vector.length === 8);
       const allDrinksForPipeline = [...apiDrinks, ...customDrinksWithVector];
 
+      // 🔥 [核心优化] 存储文案Promise，确保卡片出现时文案已就绪
+      let quotePromiseResolve;
+      const quoteReadyPromise = new Promise(resolve => { quotePromiseResolve = resolve; });
+
       const agentPromise = executeRecommendationPipeline(finalInputForAI, {
         inventory: sessionIngredients,
         allDrinks: allDrinksForPipeline,
@@ -2350,10 +2354,13 @@ const App = () => {
               setCustomQuotes(prev => ({ ...prev, ...quotesMap }));
               console.log(`[Timer] ${Math.round(performance.now() - startTime)}ms: 异步文案润色完成`);
             }
-          }).catch(err => console.warn('Early live quote generation failed', err))
-            .finally(() => {
-              isQuoteFetching.current = false;
-            });
+            quotePromiseResolve(quotesMap); // 通知文案已就绪
+          }).catch(err => {
+            console.warn('Early live quote generation failed', err);
+            quotePromiseResolve({}); // 失败时也要resolve避免卡死
+          }).finally(() => {
+            isQuoteFetching.current = false;
+          });
         },
         onValidationSuccess: (report) => {
           console.log('[App] 异步验证报告送达，更新 UI 勋章');
@@ -2364,6 +2371,15 @@ const App = () => {
       const agentResult = await agentPromise;
 
       console.log('多Agent系统执行结果:', agentResult);
+      
+      // 🔥 [关键] 等待文案就绪后再清除loading并显示卡片
+      console.log(`[Timer] ${Math.round(performance.now() - startTime)}ms: 等待文案就绪...`);
+      await Promise.race([
+        quoteReadyPromise,
+        new Promise(resolve => setTimeout(resolve, 8000)) // 最多等8秒
+      ]);
+      console.log(`[Timer] ${Math.round(performance.now() - startTime)}ms: 文案就绪，准备显示卡片`);
+      
       clearAllTimers();
 
       // 获取匹配结果并展示画廊
@@ -2499,24 +2515,34 @@ const App = () => {
       const rankedDrinks = evaluateAndSortDrinks(moodData, allDrinksForPipeline, sessionIngredients);
       const topMatches = rankedDrinks.slice(0, 9);
 
-      // 设置结果
+      // 🔥 [优化] 先异步获取 LLM 文案，等待完成后再显示卡片
+      let quotesMap = {};
+      if (topMatches.length > 0) {
+        try {
+          console.log(`[StreamingComplete] 开始获取文案...`);
+          isQuoteFetching.current = true;
+          quotesMap = await Promise.race([
+            fetchLiveQuotes(topMatches, { moodData }, 15),
+            new Promise(resolve => setTimeout(() => resolve({}), 8000)) // 最多等8秒
+          ]);
+          if (Object.keys(quotesMap).length > 0) {
+            setCustomQuotes(prev => ({ ...prev, ...quotesMap }));
+          }
+          console.log(`[StreamingComplete] 文案获取完成`);
+        } catch (err) {
+          console.warn('Live quote generation failed', err);
+        } finally {
+          isQuoteFetching.current = false;
+        }
+      }
+
+      // 设置结果并显示卡片
       setMoodResult({ moodData });
       setRecommendationPool(topMatches.length > 0 ? topMatches : apiDrinks.slice(0, 9));
       setCurrentBatchIndex(0);
       setCurrentCardIndex(0);
       setMixMode('home');
       setShowRecommendationGallery(true);
-
-      // 异步获取 LLM 文案
-      if (!isQuoteFetching.current && topMatches.length > 0) {
-        isQuoteFetching.current = true;
-        fetchLiveQuotes(topMatches, { moodData }, 15).then((quotesMap) => {
-          if (Object.keys(quotesMap).length > 0) {
-            setCustomQuotes(prev => ({ ...prev, ...quotesMap }));
-          }
-        }).catch(err => console.warn('Live quote generation failed', err))
-          .finally(() => { isQuoteFetching.current = false; });
-      }
 
       console.log(`[StreamingComplete] ${Math.round(performance.now() - startTime)}ms: 推荐完成`);
 

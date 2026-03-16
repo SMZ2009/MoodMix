@@ -325,12 +325,12 @@ function detectNegativeIntent(input) {
 
 
 const ORIENTAL_MOOD_TAGS = [
-  { label: '心安', value: '#心安' },
-  { label: '意难平', value: '#意难平' },
-  { label: '思远道', value: '#思远道' },
-  { label: '意踌躇', value: '#意踌躇' },
-  { label: '心有郁结', value: '#心有郁结' },
-  { label: '喜上眉梢', value: '#喜上眉梢' }
+  { label: '早起唤醒', value: '#早起唤醒' },
+  { label: '午后犯困', value: '#午后犯困' },
+  { label: '加班续命', value: '#加班续命' },
+  { label: '下班犒劳', value: '#下班犒劳' },
+  { label: '周末放松', value: '#周末放松' },
+  { label: '睡前安抚', value: '#睡前安抚' }
 ];
 
 const MoodInputSection = ({
@@ -2239,12 +2239,12 @@ const App = () => {
 
     // 东方锚点到五行/脏腑/七情的粗略映射（轻量规则，不求医学严谨）
     const mapping = {
-      '心安': { trigram: '坤', wuxing: '土', organ: '脾', emotion: '思', phrase: '大地承载，心有归处' },
-      '意难平': { trigram: '兑', wuxing: '金', organ: '肺', emotion: '忧', phrase: '金气收束，言笑之下仍有未竟之事' },
-      '思远道': { trigram: '巽', wuxing: '木', organ: '肝', emotion: '思', phrase: '风行万里，思绪早已越过当下' },
-      '意踌躇': { trigram: '艮', wuxing: '土', organ: '脾', emotion: '思', phrase: '山止于前，脚步欲行还休' },
-      '心有郁结': { trigram: '坎', wuxing: '水', organ: '肾', emotion: '恐', phrase: '水气深藏，情绪在暗处回旋' },
-      '喜上眉梢': { trigram: '离', wuxing: '火', organ: '心', emotion: '喜', phrase: '火光外扬，笑意止不住地往上走' }
+      '早起唤醒': { trigram: '震', wuxing: '木', organ: '肝', emotion: '思', phrase: '春木生发，是身体唤醒的时刻' },
+      '午后犯困': { trigram: '坤', wuxing: '土', organ: '脾', emotion: '思', phrase: '大地承载，是身体渴望被托住的时刻' },
+      '加班续命': { trigram: '坎', wuxing: '水', organ: '肾', emotion: '恐', phrase: '水气深藏，是精力需要续航的时刻' },
+      '下班犒劳': { trigram: '兑', wuxing: '金', organ: '肺', emotion: '喜', phrase: '金气收束，是给自己一份奖赏的时刻' },
+      '周末放松': { trigram: '离', wuxing: '火', organ: '心', emotion: '喜', phrase: '火光外扬，是心情彻底打开的时刻' },
+      '睡前安抚': { trigram: '艮', wuxing: '土', organ: '脾', emotion: '思', phrase: '山止于前，是身心徐徐安静的时刻' }
     };
 
     const info = mapping[selected] || null;

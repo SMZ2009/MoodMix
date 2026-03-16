@@ -447,6 +447,10 @@ const MoodInputSection = ({
               ];
               const pos = positions[index % positions.length];
               
+              const cloudAnimations = ['cloudFloat1', 'cloudFloat2', 'cloudFloat3'];
+              const cloudDurations = [12, 15, 18, 14, 16, 13];
+              const cloudDelays = [0, 2, 4, 1, 3, 5];
+              
               return (
                 <div
                   key={mood.value}
@@ -475,13 +479,18 @@ const MoodInputSection = ({
                           onGenerate(nextValue);
                         }
                       }}
-                      className={`mood-ink-tag group ${isSelected ? 'is-selected' : ''}`}
+                      className={`mood-ink-tag group ${isSelected ? 'is-selected' : ''} mood-tag-cloud`}
                       aria-pressed={isSelected}
                       style={{
                         '--mood-ink-color': isSelected ? 'rgba(224, 197, 110, 0.24)' : 'rgba(104, 114, 120, 0.15)',
                         '--mood-ink-accent': isSelected ? 'rgba(204, 172, 74, 0.82)' : 'rgba(72, 82, 89, 0.5)',
+                        '--rotate': `${pos.r}deg`,
+                        '--scale': '0.95',
                         transform: isSelected ? 'scale(1.15) rotate(0deg)' : `rotate(${pos.r}deg) scale(0.95)`,
                         transition: 'transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.5s ease',
+                        animationName: isSelected ? 'none' : cloudAnimations[index % 3],
+                        animationDuration: `${cloudDurations[index]}s`,
+                        animationDelay: `${cloudDelays[index]}s`,
                       }}
                     >
                       <span className={`mood-ink-tag__label ${isSelected ? 'is-selected' : ''}`}>{mood.label}</span>

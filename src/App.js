@@ -324,6 +324,15 @@ function detectNegativeIntent(input) {
 
 
 
+const ORIENTAL_MOOD_TAGS = [
+  { label: '心安', value: '#心安' },
+  { label: '意难平', value: '#意难平' },
+  { label: '思远道', value: '#思远道' },
+  { label: '意踌躇', value: '#意踌躇' },
+  { label: '心有郁结', value: '#心有郁结' },
+  { label: '喜上眉梢', value: '#喜上眉梢' }
+];
+
 const MoodInputSection = ({
   moodInput, setMoodInput, selectedMood, setSelectedMood, onGenerate, buttonFeedback, isMixing,
   ingredientCount, onEditIngredients, onNavigate, activeTab, showFriendlyNotice
@@ -436,17 +445,20 @@ const MoodInputSection = ({
       <div className="fixed bottom-0 left-0 right-0 px-6 pb-6 pt-4 bg-gradient-to-t from-white/80 to-transparent z-20">
         {/* 情绪标签按钮 */}
         <div className="flex flex-wrap gap-2 sm:gap-4 justify-center mb-4 z-10">
-          {[
-            { label: '放松', value: '#放松' },
-            { label: '浪漫', value: '#浪漫' },
-            { label: '难受', value: '#难受' }
-          ].map((mood) => {
+          {ORIENTAL_MOOD_TAGS.map((mood) => {
             const isSelected = selectedMood === mood.value;
             return (
               <button
                 key={mood.value}
                 type="button"
-                onClick={() => setSelectedMood(isSelected ? null : mood.value)}
+                onClick={() => {
+                  const nextValue = isSelected ? null : mood.value;
+                  setSelectedMood(nextValue);
+                  // 选中东方情绪锚点时，直接进入玄学等待轮播画面
+                  if (!isSelected && !isMixing) {
+                    onGenerate();
+                  }
+                }}
                 className={`mood-ink-tag ${isSelected ? 'is-selected' : ''}`}
                 aria-pressed={isSelected}
                 style={{
@@ -2080,11 +2092,48 @@ const App = () => {
 
   const [buttonLoadingText, setButtonLoadingText] = useState('静心感受中…');
 
+  /**
+   * 轻量东方情绪解读，用于 LoadingTransition 文案
+   * - 不额外调用 LLM，基于易经/五行/七情做规则化描述
+   */
+  const buildOrientalLoadingText = useCallback((rawInput, rawSelectedMood) => {
+    const input = (rawInput || '').trim();
+    const selected = (rawSelectedMood || '').replace(/^#/, '');
+
+    // 特例：平静 + 期待 -> 震卦
+    if (input.includes('平静') && input.includes('期待')) {
+      return '平而有动，是为「震」象，春木生发，这份期待，是心底新芽将发的预兆。你的心绪，已入杯中。';
+    }
+
+    // 东方锚点到五行/脏腑/七情的粗略映射（轻量规则，不求医学严谨）
+    const mapping = {
+      '心安': { trigram: '坤', wuxing: '土', organ: '脾', emotion: '思', phrase: '大地承载，心有归处' },
+      '意难平': { trigram: '兑', wuxing: '金', organ: '肺', emotion: '忧', phrase: '金气收束，言笑之下仍有未竟之事' },
+      '思远道': { trigram: '巽', wuxing: '木', organ: '肝', emotion: '思', phrase: '风行万里，思绪早已越过当下' },
+      '意踌躇': { trigram: '艮', wuxing: '土', organ: '脾', emotion: '思', phrase: '山止于前，脚步欲行还休' },
+      '心有郁结': { trigram: '坎', wuxing: '水', organ: '肾', emotion: '恐', phrase: '水气深藏，情绪在暗处回旋' },
+      '喜上眉梢': { trigram: '离', wuxing: '火', organ: '心', emotion: '喜', phrase: '火光外扬，笑意止不住地往上走' }
+    };
+
+    const info = mapping[selected] || null;
+    const baseText = input || (selected ? `此刻，是一种「${selected}」的味道。` : '此刻心绪未尽言表。');
+
+    if (!info) {
+      return `${baseText} 以易理观之，此刻气机有其自成一象，且让这一杯，替你慢慢调和。`;
+    }
+
+    return [
+      baseText,
+      `${info.phrase}，卦象近「${info.trigram}」，五行属${info.wuxing}，大致归于${info.organ}之气、${info.emotion}之情。`,
+      '这一刻的起伏，就让它先入杯中，再缓缓落回心里。'
+    ].join(' ');
+  }, []);
+
   const handleStartGeneration = useCallback(async (type = null) => {
     const startTime = performance.now();
     console.log(`[Timer] 0ms: 用户点击按钮，开始寻味流程`);
     setMixMode('generating');
-    setButtonLoadingText('正在寻杯…');
+    // 初始玄学式 Loading 文案：先依据当前输入/情绪锚点做一次东方解读
 
     // 记录干预类型
     if (type) {
@@ -2104,6 +2153,9 @@ const App = () => {
       }
     }
 
+    // 在验证通过后更新玄学 Loading 文案，作为轮播期的「流态」基准语
+    setButtonLoadingText(buildOrientalLoadingText(moodInput, selectedMood));
+
     // 构造带有干预类型的输入
     let finalInputForAI = combinedInput || '心情不太好';
     if (currentInterventionType === 'soothe') {
@@ -2116,14 +2168,14 @@ const App = () => {
       finalInputForAI += `\n(重要参考: 用户目前拥有的原料: ${sessionIngredients.join(', ')})`;
     }
 
-    // 动态文字：阶梯式更新加载文案
+    // 动态文字：阶梯式更新加载文案（保留原有节奏，但更偏东方语境）
     const timers = [];
-    setButtonLoadingText('心与味，正在相遇…');
+    setButtonLoadingText(buildOrientalLoadingText(moodInput, selectedMood));
 
-    timers.push(setTimeout(() => setButtonLoadingText('五行正在推演…'), 3000));
-    timers.push(setTimeout(() => setButtonLoadingText('好饮不急，稍候片刻…'), 8000));
-    timers.push(setTimeout(() => setButtonLoadingText('万般心绪，皆需时机…'), 15000));
-    timers.push(setTimeout(() => setButtonLoadingText('此味将出，稍候片刻…'), 25000));
+    timers.push(setTimeout(() => setButtonLoadingText('五行气机正在排布，替你调一杯合脏腑之性的酒。'), 3000));
+    timers.push(setTimeout(() => setButtonLoadingText('情志在杯壁缓缓升起，别急，让情绪先落地。'), 8000));
+    timers.push(setTimeout(() => setButtonLoadingText('木火土金水，各归其位，你的起伏正在被安放。'), 15000));
+    timers.push(setTimeout(() => setButtonLoadingText('卦象已成，只待这一杯，从想象落入掌心。'), 25000));
 
     const clearAllTimers = () => timers.forEach(t => clearTimeout(t));
 

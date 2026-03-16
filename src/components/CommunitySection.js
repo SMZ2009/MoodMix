@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Users, MessageCircle, Heart, TrendingUp, Star, Coffee, Wine, Music, BookOpen, Palette, Flame, Droplets } from 'lucide-react';
 import { getAllGroups } from '../engine/groupRecommendationEngine';
 
@@ -103,6 +103,29 @@ const CommunitySection = ({ onNavigate, activeTab }) => {
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [joinedGroups, setJoinedGroups] = useState(new Set());
   const [groups, setGroups] = useState(() => getAllGroups());
+  const [totalUsers, setTotalUsers] = useState(0);
+
+  // 获取真实UID用户总数
+  useEffect(() => {
+    const fetchTotalUsers = async () => {
+      try {
+        const response = await fetch('/api/stats/total-users');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success) {
+            setTotalUsers(data.totalUsers);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch total users:', error);
+      }
+    };
+
+    fetchTotalUsers();
+    // 每30秒刷新一次用户数量
+    const interval = setInterval(fetchTotalUsers, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleJoinGroup = (groupId) => {
     setJoinedGroups(prev => {
@@ -140,7 +163,7 @@ const CommunitySection = ({ onNavigate, activeTab }) => {
           </div>
           <div className="flex items-center gap-2 bg-purple-50 px-3 py-1.5 rounded-full">
             <Users size={16} className="text-purple-600" />
-            <span className="text-sm text-purple-700 font-medium">{groups.reduce((acc, g) => acc + g.memberCount, 0)} 人</span>
+            <span className="text-sm text-purple-700 font-medium">{totalUsers} 人</span>
           </div>
         </div>
       </div>

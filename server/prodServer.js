@@ -1075,6 +1075,9 @@ if (!existsSync(buildPath)) {
 // 内存存储：饮品心意统计 { drinkId: { userUIDs: Set, count: number } }
 const drinkLikeStats = new Map();
 
+// 全局唯一用户集合（用于统计真实UID用户数）
+const globalUserUIDs = new Set();
+
 // 初始化饮品心意统计
 function initDrinkLikeStats(drinkId) {
   if (!drinkLikeStats.has(drinkId)) {
@@ -1084,6 +1087,18 @@ function initDrinkLikeStats(drinkId) {
     });
   }
 }
+
+/**
+ * GET /api/stats/total-users
+ * 获取真实UID用户总数
+ * Response: { success: boolean, totalUsers: number }
+ */
+app.get('/api/stats/total-users', (req, res) => {
+  res.json({
+    success: true,
+    totalUsers: globalUserUIDs.size
+  });
+});
 
 /**
  * POST /api/drink/like
@@ -1111,7 +1126,10 @@ app.post('/api/drink/like', (req, res) => {
     stats.count++;
   }
 
-  console.log(`[DrinkLike] 饮品 ${drinkId} 被 ${userUID} 标记为心仪，当前统计: ${stats.count} 人`);
+  // 将用户添加到全局唯一用户集合
+  globalUserUIDs.add(userUID);
+
+  console.log(`[DrinkLike] 饮品 ${drinkId} 被 ${userUID} 标记为心仪，当前统计: ${stats.count} 人，全局用户总数: ${globalUserUIDs.size}`);
 
   res.json({
     success: true,

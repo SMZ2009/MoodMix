@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Edit3, Camera, Trash2, Heart, ChevronLeft, ChevronRight, ArrowLeft, MapPin, Loader2 } from 'lucide-react';
 import { SwipeableCard } from './ui';
 import { translateDrinkName } from '../data/translations';
+import { userStorage } from '../store/localStorageAdapter';
 
 const STORAGE_KEY_PROFILE = 'moodmix_profile';
 
@@ -22,6 +23,22 @@ const MineSection = ({ favorites, onSelectDrink, cardFeedback, initialTab = 'col
         birthday: '',
         birthplace: ''
     });
+    const [clickCount, setClickCount] = useState(0);
+    const [showUID, setShowUID] = useState(false);
+    const [uid, setUID] = useState(userStorage.getUID());
+
+    const handleLikeClick = () => {
+        setClickCount(prev => {
+            const newCount = prev + 1;
+            if (newCount === 3) {
+                setShowUID(true);
+                setClickCount(0);
+                // 3秒后隐藏UID
+                setTimeout(() => setShowUID(false), 3000);
+            }
+            return newCount;
+        });
+    };
     const [currentCity, setCurrentCity] = useState('');
     const [locationLoading, setLocationLoading] = useState(false);
     const [locationError, setLocationError] = useState('');
@@ -454,8 +471,9 @@ const MineSection = ({ favorites, onSelectDrink, cardFeedback, initialTab = 'col
                     <p className="text-[#798fa7] text-[11px] font-medium bg-white/60 px-3 py-1 rounded-full backdrop-blur-sm">
                         {dakaNotes.length} 札记
                     </p>
-                    <p className="text-[#608a6e] text-[11px] font-medium bg-white/60 px-3 py-1 rounded-full backdrop-blur-sm">
-                        {favorites.length} 喜欢
+                    <p className="text-[#608a6e] text-[11px] font-medium bg-white/60 px-3 py-1 rounded-full backdrop-blur-sm cursor-pointer hover:bg-white/80 transition-all duration-200"
+                       onClick={handleLikeClick}>
+                        {showUID ? uid : `${favorites.length} 喜欢`}
                     </p>
                 </div>
             </div>

@@ -3,6 +3,7 @@ const STORAGE_KEYS = {
   FAVORITES: 'moodmix_favorites',
   COLLECTIONS: 'moodmix_collections',
   CUSTOM_DRINKS: 'moodmix_custom_drinks',
+  USER_UID: 'moodmix_user_uid',
 };
 
 const DEFAULT_FAVORITES = [];
@@ -557,11 +558,44 @@ export const customDrinkStorage = {
   }
 };
 
+// 生成8位唯一UID
+function generateUniqueUID() {
+  const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  let uid = '';
+  for (let i = 0; i < 8; i++) {
+    uid += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return uid;
+}
+
+// 用户存储
+export const userStorage = {
+  getUID() {
+    let uid = getItem(STORAGE_KEYS.USER_UID, null);
+    if (!uid) {
+      uid = generateUniqueUID();
+      setItem(STORAGE_KEYS.USER_UID, uid);
+    }
+    return uid;
+  },
+  
+  refreshUID() {
+    const newUID = generateUniqueUID();
+    setItem(STORAGE_KEYS.USER_UID, newUID);
+    return newUID;
+  },
+  
+  clearUID() {
+    localStorage.removeItem(STORAGE_KEYS.USER_UID);
+  }
+};
+
 const storage = {
   inventory: inventoryStorage,
   favorite: favoriteStorage,
   collection: collectionStorage,
-  customDrink: customDrinkStorage
+  customDrink: customDrinkStorage,
+  user: userStorage
 };
 
 export default storage;

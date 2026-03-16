@@ -10,7 +10,7 @@ import {
 import CustomMenuIcon from './components/CustomMenuIcon';
 import { QRCodeSVG, QRCodeCanvas } from 'qrcode.react';
 
-import { inventoryStorage, favoriteStorage, collectionStorage, customDrinkStorage } from './store/localStorageAdapter';
+import { inventoryStorage, favoriteStorage, collectionStorage, customDrinkStorage, userStorage } from './store/localStorageAdapter';
 import HelperModal from './components/HelperModal';
 import DrinkHelpModal from './components/DrinkHelpModal';
 import FocusModeView from './components/FocusModeView';
@@ -41,6 +41,10 @@ if (!localStorage.getItem('moodmix_v2_cache_cleared')) {
   localStorage.setItem('moodmix_v2_cache_cleared', 'true');
   console.log('⚡ [System] Stale quote cache cleared for V2 upgrade.');
 }
+
+// 初始化用户UID
+const userUID = userStorage.getUID();
+console.log('⚡ [System] User UID initialized:', userUID);
 
 const iconMap = {
   Wine,
@@ -2091,18 +2095,64 @@ const App = () => {
     loadCustomDrinks();
   }, []);
 
-  const handleLikeDrink = useCallback((drink) => {
+  const handleLikeDrink = useCallback(async (drink) => {
     setFavoriteDrinks(prev => {
       if (prev.some(d => d.id === drink.id)) return prev;
       return [...prev, drink];
     });
     // 存储完整的饮品数据
     favoriteStorage.addFavorite(drink);
+
+    // 调用后端 API 记录用户心意
+    try {
+      const userUID = userStorage.getUID();
+      const response = await fetch('http://localhost:3001/api/drink/like', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          drinkId: drink.id,
+          userUID: userUID
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.showMessage) {
+          showFriendlyNotice(
+            '有' + data.count + '人和你一样钟爱这款特调呢~',
+            '',
+            'success',
+            { label: '好的', onClick: () => closeFriendlyNotice() }
+          );
+        }
+      }
+    } catch (error) {
+      console.error('Failed to record drink like:', error);
+    }
   }, []);
 
-  const handleUnlikeDrink = useCallback((drinkId) => {
+  const handleUnlikeDrink = useCallback(async (drinkId) => {
     setFavoriteDrinks(prev => prev.filter(d => d.id !== drinkId));
     favoriteStorage.removeFavorite(drinkId);
+
+    // 调用后端 API 取消用户心意
+    try {
+      const userUID = userStorage.getUID();
+      await fetch('http://localhost:3001/api/drink/unlike', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          drinkId: drinkId,
+          userUID: userUID
+        })
+      });
+    } catch (error) {
+      console.error('Failed to remove drink like:', error);
+    }
   }, []);
 
   const fetchInventory = useCallback(() => {

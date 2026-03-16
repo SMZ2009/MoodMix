@@ -555,6 +555,174 @@ app.post('/api/generate_quotes', async (req, res) => {
 });
 
 // ═══════════════════════════════════════════
+// 端点：原料分类与名称标准化 (Ingredient Classification & Normalization)
+// ═══════════════════════════════════════════
+
+// 饮品库中的标准原料名称列表（用于LLM匹配）
+const STANDARD_INGREDIENT_NAMES = [
+  // 基酒
+  '伏特加', '金酒', '朗姆酒', '白朗姆', '黑朗姆', '龙舌兰', '威士忌', '波本威士忌', '苏格兰威士忌',
+  '白兰地', '干邑', '香槟', '普罗赛克', '红葡萄酒', '白葡萄酒', '起泡酒', '甜味美思', '干味美思',
+  '味美思', '雪莉酒', '波特酒', '力乐白', '啤酒', '拉格啤酒', '艾尔啤酒', '世涛啤酒', '健力士黑啤',
+  // 利口酒
+  '金巴利', '阿佩罗', '橙味利口酒', '君度', '蓝橙利口酒', '咖啡利口酒', '百利甜', '樱桃利口酒',
+  '杏仁利口酒', '椰子利口酒', '蜜多丽', '薄荷利口酒', '黑莓利口酒', '接骨木花利口酒', '苦艾酒',
+  '马拉斯奇诺', '加利安奴', '查特酒', '本笃会', '三秒', '库拉索', '格兰玛尼',
+  // 苦精
+  '安格仕苦精', '橙味苦精', '佩乔苦精', '苦精',
+  // 果汁
+  '柠檬汁', '青柠汁', '橙汁', '蔓越莓汁', '菠萝汁', '西柚汁', '葡萄柚汁', '苹果汁', '番茄汁',
+  '葡萄汁', '百香果汁', '芒果汁', '石榴汁', '椰奶', '猕猴桃汁', '西瓜汁', '桃汁',
+  // 水果
+  '青柠', '柠檬', '橙子', '橙皮', '柠檬皮', '青柠皮', '樱桃', '浸渍樱桃', '橄榄', '薄荷',
+  '新鲜薄荷', '薄荷叶', '罗勒', '迷迭香', '黄瓜', '芹菜', '草莓', '香蕉', '桃子', '菠萝',
+  '苹果', '姜', '鲜姜', '姜根', '猕猴桃', '西瓜', '芒果', '百香果', '葡萄', '蓝莓', '覆盆子',
+  // 糖浆/甜味剂
+  '单糖浆', '糖浆', '红石榴糖浆', '蜂蜜', '蜂蜜糖浆', '龙舌兰糖浆', '枫糖浆', '杏仁糖浆',
+  '德梅拉拉糖', '糖', '糖粉', '红糖', '细砂糖', '香草糖浆', '法勒南糖浆', '百香果糖浆',
+  '覆盆子糖浆', '草莓糖浆',
+  // 气泡饮料
+  '苏打水', '汤力水', '姜汁汽水', '姜汁啤酒', '可乐', '可口可乐', '雪碧', '柠檬汽水',
+  '柠檬水', '碳酸水', '七喜', '胡椒博士',
+  // 乳制品/蛋类
+  '牛奶', '全脂牛奶', '奶油', '浓奶油', '打发奶油', '半脂奶油', '鸡蛋', '蛋白', '蛋黄',
+  '淡奶油', '炼乳',
+  // 香草/香料
+  '香草', '香草精', '巧克力', '可可粉', '肉桂', '肉豆蔻', '丁香', '多香果', '八角',
+  '椰子', '黄油', '盐', '胡椒', '黑胡椒',
+  // 其他
+  '冰块', '碎冰', '水', '热水', '开水', '茶', '咖啡', '浓缩咖啡', '伍斯特酱', '塔巴斯科'
+];
+
+app.post('/api/classify_ingredient', async (req, res) => {
+  const { name } = req.body;
+
+  if (!name || !name.trim()) {
+    return res.status(400).json({ success: false, error: '缺少原料名称' });
+  }
+
+  const apiKey = process.env.SILICONFLOW_API_KEY;
+  if (!apiKey) {
+    return res.status(500).json({ success: false, error: 'API Key 未配置' });
+  }
+
+  try {
+    const currentFetch = await getFetch();
+    if (!currentFetch) throw new Error('Fetch implementation not found');
+
+    const CATEGORIES = [
+      '基酒', '利口酒', '苦精', '果汁', '水果', '糖浆/甜味剂', '气泡饮料',
+      '乳制品/蛋类', '香草/香料', '装饰', '其他'
+    ];
+
+    const systemPrompt = `你是一个调酒原料分类与名称标准化专家。
+
+## 任务
+根据用户提供的原料名称：
+1. 判断它属于哪个分类
+2. 将其映射到饮品库中的标准名称（处理别名、地区差异、同义词）
+
+## 可选分类
+${CATEGORIES.map((c, i) => `${i + 1}. ${c}`).join('\n')}
+
+## 饮品库标准名称列表
+${STANDARD_INGREDIENT_NAMES.join('、')}
+
+## 名称标准化规则
+- 奇异果 → 猕猴桃
+- 凤梨 → 菠萝  
+- 西柚 → 葡萄柚/西柚汁
+- 番茄 → 番茄汁（如果是汁类语境）
+- 士多啤梨 → 草莓
+- 柳橙/柳丁 → 橙子
+- 车厘子 → 樱桃
+- 忌廉 → 奶油
+- 淡奶 → 炼乳
+- 梳打水/汽水 → 苏打水
+- 薄荷叶/新鲜薄荷 → 薄荷
+- 白兰地酒 → 白兰地
+- 威士忌酒 → 威士忌
+- 如果用户输入已经是标准名称，直接返回
+- 如果找不到匹配，返回用户原始输入
+
+## 输出格式（严格JSON）
+{
+  "category": "分类名称",
+  "normalized_name": "标准化后的名称",
+  "original_input": "用户原始输入"
+}`;
+
+    const userMessage = `原料名称：${name.trim()}`;
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+    const response = await currentFetch(SILICONFLOW_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: MODEL_8B,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userMessage }
+        ],
+        temperature: 0.1,
+        max_tokens: 150,
+        response_format: { type: 'json_object' }
+      }),
+      signal: controller.signal
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      throw new Error(`API 返回错误: ${response.status}`);
+    }
+
+    const result = await response.json();
+    const content = (result.choices?.[0]?.message?.content || '').trim();
+
+    let category = '其他';
+    let normalizedName = name.trim();
+    
+    if (content) {
+      try {
+        const parsed = JSON.parse(content);
+        if (parsed.category && CATEGORIES.includes(parsed.category)) {
+          category = parsed.category;
+        }
+        if (parsed.normalized_name) {
+          normalizedName = parsed.normalized_name;
+        }
+      } catch (e) {
+        console.warn('[ClassifyIngredient] JSON parse failed, using default');
+      }
+    }
+
+    console.log(`[ClassifyIngredient] "${name}" -> category: ${category}, normalized: ${normalizedName}`);
+    res.json({ 
+      success: true, 
+      category,
+      normalized_name: normalizedName,
+      original_input: name.trim()
+    });
+
+  } catch (error) {
+    console.error('[ClassifyIngredient] Error:', error.message);
+    // 错误时返回原始名称
+    res.json({ 
+      success: true, 
+      category: '其他',
+      normalized_name: name.trim(),
+      original_input: name.trim()
+    });
+  }
+});
+
+// ═══════════════════════════════════════════
 // 端点：自定义饮品维度生成 (Custom Drink Dimensions Generator)
 // ═══════════════════════════════════════════
 /**

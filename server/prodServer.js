@@ -14,6 +14,8 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const { existsSync } = require('fs');
+const { createServer } = require('http');
+const { Server } = require('socket.io');
 require('dotenv').config({ path: path.resolve(__dirname, '..', '.env') });
 
 const app = express();
@@ -1183,7 +1185,44 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(buildPath, 'index.html'));
 });
 
-app.listen(PORT, '0.0.0.0', () => {
+// ═══════════════════════════════════════════
+// 创建 HTTP 服务器和 WebSocket 服务器
+// ═══════════════════════════════════════════
+const httpServer = createServer(app);
+const io = new Server(httpServer, {
+  cors: {
+    origin: '*',
+    methods: ['GET', 'POST']
+  },
+  transports: ['websocket', 'polling']
+});
+
+// WebSocket 连接管理
+io.on('connection', (socket) => {
+  console.log(`[WebSocket] 新客户端连接: ${socket.id}`);
+
+  socket.on('disconnect', () => {
+    console.log(`[WebSocket] 客户端断开连接: ${socket.id}`);
+  });
+
+  socket.on('join-drink-room', (drinkId) => {
+    socket.join(`drink-${drinkId}`);
+    console.log(`[WebSocket] 客户端 ${socket.id} 加入饮品房间: ${drinkId}`);
+  });
+
+  socket.on('leave-drink-room', (drinkId) => {
+    socket.leave(`drink-${drinkId}`);
+    console.log(`[WebSocket] 客户端 ${socket.id} 离开饮品房间: ${drinkId}`);
+  });
+});
+
+// 导出 io 实例供其他模块使用
+global.io = io;
+
+// ═══════════════════════════════════════════
+// 启动服务器
+// ═══════════════════════════════════════════
+httpServer.listen(PORT, '0.0.0.0', () => {
   const hasKey = process.env.SILICONFLOW_API_KEY && process.env.SILICONFLOW_API_KEY !== 'your_key_here';
   console.log(`\n🍹 MoodMix 生产服务器已启动`);
   console.log(`   端口: ${PORT}`);
@@ -1192,5 +1231,6 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`   模型: ${SILICONFLOW_MODEL}`);
   console.log(`   API Key: ${hasKey ? '✅ 已配置' : '❌ 未配置'}`);
   console.log(`   环境: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`   WebSocket: ✅ 已启用，支持实时同步`);
   console.log(`   访问地址: http://0.0.0.0:${PORT}\n`);
 });

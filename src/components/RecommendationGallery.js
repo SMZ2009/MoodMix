@@ -358,7 +358,7 @@ const CardContent = ({ drink, isActive, isLiked, moodResult, customQuote, valida
                   className="text-[13px] italic"
                   style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif' }}
                 >
-                  文案生成中…
+                  以意入味，缓缓酿成…
                 </span>
               </div>
             )}

@@ -28,6 +28,9 @@ const MineSection = ({ favorites, onSelectDrink, cardFeedback, initialTab = 'col
     const fileInputRef = useRef(null);
     const nicknameInputRef = useRef(null);
 
+    // 高德地图 API Key
+    const AMAP_KEY = '40103397884c52085af7f3bc3fc9d267';
+
     // 自动获取当前城市
     useEffect(() => {
         const fetchCurrentCity = async () => {
@@ -35,47 +38,49 @@ const MineSection = ({ favorites, onSelectDrink, cardFeedback, initialTab = 'col
             setLocationError('');
             
             try {
-                // 先尝试使用浏览器定位
+                // 先尝试使用浏览器定位 + 高德逆地理编码
                 if ('geolocation' in navigator) {
-                    const position = await new Promise((resolve, reject) => {
-                        navigator.geolocation.getCurrentPosition(resolve, reject, {
-                            enableHighAccuracy: false,
-                            timeout: 5000,
-                            maximumAge: 300000 // 5分钟缓存
+                    try {
+                        const position = await new Promise((resolve, reject) => {
+                            navigator.geolocation.getCurrentPosition(resolve, reject, {
+                                enableHighAccuracy: false,
+                                timeout: 5000,
+                                maximumAge: 300000 // 5分钟缓存
+                            });
                         });
-                    });
-                    
-                    const { latitude, longitude } = position.coords;
-                    // 使用免费的反向地理编码API
-                    const response = await fetch(
-                        `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=zh`
-                    );
-                    const data = await response.json();
-                    if (data.city || data.locality) {
-                        setCurrentCity(data.city || data.locality);
-                    } else if (data.principalSubdivision) {
-                        setCurrentCity(data.principalSubdivision);
+                        
+                        const { latitude, longitude } = position.coords;
+                        // 使用高德逆地理编码API
+                        const response = await fetch(
+                            `https://restapi.amap.com/v3/geocode/regeo?key=${AMAP_KEY}&location=${longitude},${latitude}&extensions=base`
+                        );
+                        const data = await response.json();
+                        if (data.status === '1' && data.regeocode?.addressComponent?.city) {
+                            const city = data.regeocode.addressComponent.city;
+                            // 高德返回的city可能是数组或字符串
+                            setCurrentCity(Array.isArray(city) ? city[0] : city);
+                            return;
+                        } else if (data.status === '1' && data.regeocode?.addressComponent?.province) {
+                            // 某些直辖市没有city字段，使用province
+                            setCurrentCity(data.regeocode.addressComponent.province);
+                            return;
+                        }
+                    } catch (geoError) {
+                        console.log('Browser geolocation failed, falling back to IP location');
                     }
+                }
+                
+                // 备用：使用高德IP定位
+                const ipResponse = await fetch(`https://restapi.amap.com/v3/ip?key=${AMAP_KEY}`);
+                const ipData = await ipResponse.json();
+                if (ipData.status === '1' && ipData.city) {
+                    setCurrentCity(ipData.city);
                 } else {
-                    // 备用：使用IP定位
-                    const response = await fetch('https://ipapi.co/json/');
-                    const data = await response.json();
-                    if (data.city) {
-                        setCurrentCity(data.city);
-                    }
+                    setLocationError('无法获取位置');
                 }
             } catch (error) {
                 console.log('Location fetch failed:', error);
-                // 尝试使用IP定位作为备用
-                try {
-                    const response = await fetch('https://ipapi.co/json/');
-                    const data = await response.json();
-                    if (data.city) {
-                        setCurrentCity(data.city);
-                    }
-                } catch (e) {
-                    setLocationError('无法获取位置');
-                }
+                setLocationError('无法获取位置');
             } finally {
                 setLocationLoading(false);
             }

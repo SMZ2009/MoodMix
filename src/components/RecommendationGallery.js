@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, Shuffle, Heart, Wine, Droplets, GlassWater, Snowflake, Check, AlertCircle, Loader2 } from 'lucide-react';
+import { ChevronLeft, Shuffle, Heart, Wine, Droplets, GlassWater, Snowflake, Check, AlertCircle } from 'lucide-react';
 import { generatePhilosophyTags } from '../engine/philosophyTags';
 import { translateDrinkName, translateIngredient } from '../data/translations';
 
@@ -353,15 +353,8 @@ const CardContent = ({ drink, isActive, isLiked, moodResult, customQuote, valida
                 {isTyping && <span className="animate-pulse">|</span>}
               </p>
             ) : (
-              <div className="flex items-center gap-2 text-white/60">
-                <Loader2 size={14} className="animate-spin" />
-                <span
-                  className="text-[13px] italic"
-                  style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif' }}
-                >
-                  以意入味，缓缓酿成…
-                </span>
-              </div>
+              /* 文案加载中不显示任何内容，等待流态输出 */
+              <div className="h-full" />
             )}
           </div>
 

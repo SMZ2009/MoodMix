@@ -9,6 +9,7 @@ const StreamingAnalysisCard = ({
   const [phase, setPhase] = useState('init'); // init, analyzing, complete
   const [statusText, setStatusText] = useState('以意入味…');
   const [summaryText, setSummaryText] = useState('');
+  const [streamingText, setStreamingText] = useState('');
   const abortControllerRef = useRef(null);
   const resultDataRef = useRef(null);
   const isRunningRef = useRef(false);
@@ -33,6 +34,7 @@ const StreamingAnalysisCard = ({
       setPhase('init');
       setStatusText('以意入味…');
       setSummaryText('');
+      setStreamingText('');
       resultDataRef.current = null;
 
       await new Promise(resolve => setTimeout(resolve, 400));
@@ -70,6 +72,7 @@ const StreamingAnalysisCard = ({
         const decoder = new TextDecoder();
         let lineBuffer = '';
         let resultData = null;
+        let fullText = '';
 
         while (true) {
           const { done, value } = await reader.read();
@@ -86,6 +89,16 @@ const StreamingAnalysisCard = ({
 
             try {
               const data = JSON.parse(line.slice(6));
+
+              // 处理流式文本片段
+              if (data.delta) {
+                fullText += data.delta;
+                // 仅显示 [THOUGHT] 部分的内容
+                const thoughtMatch = fullText.match(/\[THOUGHT\]([\s\S]*?)(?:\[RESULT\]|$)/);
+                if (thoughtMatch && thoughtMatch[1]) {
+                  setStreamingText(thoughtMatch[1].trim());
+                }
+              }
 
               if (data.done) {
                 if (data.error) {
@@ -202,23 +215,42 @@ const StreamingAnalysisCard = ({
         {/* 中心内容区域 */}
         <div className="relative flex-1 flex items-center justify-center px-2">
           <div className="w-full text-center">
-            {/* 加载动画 */}
+            {/* 加载动画与流式解析 */}
             {(phase === 'init' || phase === 'analyzing') && (
-              <div className="flex flex-col items-center gap-6">
+              <div className="flex flex-col items-center gap-6 w-full">
                 {/* 动态圆环 */}
-                <div className="relative w-20 h-20">
+                <div className="relative w-16 h-16 shrink-0">
                   <div className="absolute inset-0 rounded-full border border-white/10 animate-ping" style={{ animationDuration: '2s' }} />
                   <div className="absolute inset-2 rounded-full border border-white/20 animate-ping" style={{ animationDuration: '2s', animationDelay: '0.5s' }} />
                   <div className="absolute inset-4 rounded-full bg-white/5 flex items-center justify-center">
-                    <div className="w-4 h-4 rounded-full bg-white/30 animate-pulse" />
+                    <div className="w-3 h-3 rounded-full bg-white/30 animate-pulse" />
                   </div>
                 </div>
-                <p
-                  className="text-white/50 text-sm tracking-widest"
-                  style={{ fontFamily: '"Songti SC", serif' }}
-                >
-                  {statusText}
-                </p>
+
+                {/* 流式拆解文本区域 */}
+                <div className="w-full min-h-[140px] flex flex-col items-center justify-center px-4">
+                  {streamingText ? (
+                    <div className="animate-in fade-in slide-in-from-bottom-2 duration-700">
+                      <p
+                        className="text-white/80 text-base leading-relaxed tracking-wide italic"
+                        style={{ 
+                          fontFamily: '"Songti SC", "STKaiti", serif',
+                          textShadow: '0 0 10px rgba(255,255,255,0.1)'
+                        }}
+                      >
+                        {streamingText}
+                        <span className="inline-block w-1.5 h-4 ml-1 bg-white/40 animate-pulse align-middle" />
+                      </p>
+                    </div>
+                  ) : (
+                    <p
+                      className="text-white/40 text-sm tracking-widest animate-pulse"
+                      style={{ fontFamily: '"Songti SC", serif' }}
+                    >
+                      {statusText}
+                    </p>
+                  )}
+                </div>
               </div>
             )}
 

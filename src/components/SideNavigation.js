@@ -3,6 +3,7 @@ import navIconMix from '../assets/nav_icon_mix.png';
 import navIconExplore from '../assets/nav_icon_explore.png';
 import navIconMine from '../assets/nav_icon_mine.png';
 import navIconIngredient from '../assets/nav_icon_ingredient.png';
+import { Users } from 'lucide-react';
 
 const SideNavigation = ({ isOpen, onClose, activeTab, onTabChange, onOpenIngredientLibrary }) => {
   return (
@@ -50,6 +51,19 @@ const SideNavigation = ({ isOpen, onClose, activeTab, onTabChange, onOpenIngredi
               <img src={navIconIngredient} alt="原料" className="w-5 h-5 object-contain" />
             </div>
             <span className="text-sm font-medium" style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif' }}>原料</span>
+          </button>
+
+          <button
+            onClick={() => {
+              onTabChange('community');
+              onClose();
+            }}
+            className={`flex items-center gap-3 w-full p-2 rounded-lg transition-colors ${activeTab === 'community' ? 'bg-purple-50 text-purple-700' : 'text-gray-600 hover:bg-gray-50'}`}
+          >
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${activeTab === 'community' ? 'scale-110 drop-shadow-md bg-purple-100' : ''}`}>
+              <Users size={20} className={activeTab === 'community' ? 'text-purple-600' : 'text-gray-500'} />
+            </div>
+            <span className="text-sm font-medium" style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif' }}>社区</span>
           </button>
 
           <button

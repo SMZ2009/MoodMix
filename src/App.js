@@ -28,6 +28,8 @@ import { validateInput } from './utils/inputValidator';
 import { generateShareCard } from './utils/ShareCardGenerator';
 import MineSection from './components/MineSection';
 import IngredientManager from './components/IngredientManager';
+import CommunitySection from './components/CommunitySection';
+import GroupRecommendationModal from './components/GroupRecommendationModal';
 import { useTouchFeedback, useKeyboardNavigation, useCocktailApi, useSwipeGesture } from './hooks';
 import { InteractiveButton, SwipeableCard, PageTransition, Modal, LoadingTransition, StreamingAnalysisCard } from './components/ui';
 import IngredientEditModal from './components/IngredientEditModal';
@@ -1796,6 +1798,8 @@ const App = () => {
   const [isSideNavOpen, setIsSideNavOpen] = useState(false);
   const [showIngredientLibrary, setShowIngredientLibrary] = useState(false);
   const [showIngredientCustomForm, setShowIngredientCustomForm] = useState(false);
+  const [showGroupRecommendation, setShowGroupRecommendation] = useState(false);
+  const [lastLikedDrink, setLastLikedDrink] = useState(null);
   const [socket, setSocket] = useState(null);
   const [liveLikeCount, setLiveLikeCount] = useState({});
 
@@ -1953,6 +1957,17 @@ const App = () => {
   const closeFriendlyNotice = useCallback(() => {
     setFriendlyNotice(prev => ({ ...prev, isOpen: false }));
   }, []);
+
+  const handleJoinGroup = (group) => {
+    console.log('Joining group:', group.name);
+    setShowGroupRecommendation(false);
+    setActiveTab('community');
+  };
+
+  const handleNavigateToCommunity = (group) => {
+    setShowGroupRecommendation(false);
+    setActiveTab('community');
+  };
 
   const handleOpenDakaModal = (drink) => {
     setDakaDrink(drink);
@@ -2183,6 +2198,13 @@ const App = () => {
           ...prev,
           [drink.id]: data.count
         }));
+        
+        setLastLikedDrink(drink);
+        
+        setTimeout(() => {
+          setShowGroupRecommendation(true);
+        }, 500);
+        
         showFriendlyNotice(
           '已将' + drink.name + '加入心仪',
           '有' + data.count + '人和你一样钟爱这款特调呢~',
@@ -2859,6 +2881,15 @@ const App = () => {
           </PageTransition>
         )}
 
+        {activeTab === 'community' && !currentDrink && (
+          <PageTransition animation="fade" duration={400}>
+            <CommunitySection
+              onNavigate={handleNavClick}
+              activeTab={activeTab}
+            />
+          </PageTransition>
+        )}
+
         {currentDrink && (
           <PageTransition animation="slide" duration={400}>
             <DrinkDetailSection
@@ -3013,6 +3044,17 @@ const App = () => {
             setShowDrinkHelpModal(false);
             setDrinkHelpTarget(null);
           }}
+        />
+      )}
+
+      {/* Group Recommendation Modal */}
+      {showGroupRecommendation && (
+        <GroupRecommendationModal
+          drink={lastLikedDrink}
+          isOpen={showGroupRecommendation}
+          onClose={() => setShowGroupRecommendation(false)}
+          onJoinGroup={handleJoinGroup}
+          onNavigateToCommunity={handleNavigateToCommunity}
         />
       )}
 

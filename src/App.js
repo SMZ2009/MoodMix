@@ -2958,49 +2958,55 @@ const DakaModal = ({ drink, onClose, onSave }) => {
       <div style={{ background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(40px) saturate(1.2)', WebkitBackdropFilter: 'blur(40px) saturate(1.2)', border: '1px solid rgba(255,255,255,0.15)', boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.2)' }} className="rounded-2xl p-6 w-full max-w-sm mx-auto">
         <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '1rem', fontFamily: '"Noto Sans SC", sans-serif', color: 'rgba(255,255,255,0.95)', letterSpacing: '0.08em', textShadow: '0 1px 4px rgba(0,0,0,0.4)' }}>为 {drink.name} 打卡</h2>
 
-        {/* 可选图片上传 */}
-        <div
-          className="relative w-full h-28 rounded-xl mb-4 overflow-hidden cursor-pointer group"
-          onClick={() => fileInputRef.current?.click()}
-        >
-          {customImage ? (
-            <>
-              <img src={customImage} alt="打卡照片" className="w-full h-full object-cover" />
-              <button
-                onClick={handleRemoveImage}
-                className="absolute top-2 right-2 w-6 h-6 bg-black/50 rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-colors z-10"
+        {/* 左右布局：图片 + 文本输入 */}
+        <div className="flex gap-4 mb-4">
+          {/* 左侧：可选图片上传 */}
+          <div
+            className="relative flex-shrink-0 w-24 h-24 rounded-xl overflow-hidden cursor-pointer group"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            {customImage ? (
+              <>
+                <img src={customImage} alt="打卡照片" className="w-full h-full object-cover" />
+                <button
+                  onClick={handleRemoveImage}
+                  className="absolute top-1 right-1 w-5 h-5 bg-black/50 rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-colors z-10"
+                >
+                  <X size={12} />
+                </button>
+              </>
+            ) : (
+              <div
+                className="w-full h-full bg-cover bg-center"
+                style={{ backgroundImage: `url(${drink.image})`, filter: 'brightness(0.7)' }}
               >
-                <X size={14} />
-              </button>
-            </>
-          ) : (
-            <div
-              className="w-full h-full bg-cover bg-center"
-              style={{ backgroundImage: `url(${drink.image})`, filter: 'brightness(0.7)' }}
-            >
-              <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/30">
-                <Camera size={24} className="text-white/80 mb-1" />
-                <span className="text-white/80 text-xs">记录此刻 (可选)</span>
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/30">
+                  <Camera size={20} className="text-white/80 mb-0.5" />
+                  <span className="text-white/80 text-[10px]">记录此刻</span>
+                </div>
               </div>
-            </div>
-          )}
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={handleImageUpload}
-          />
-        </div>
+            )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleImageUpload}
+            />
+          </div>
 
-        <p style={{ color: 'rgba(255,255,255,0.65)', marginBottom: '0.5rem', fontSize: '0.875rem', fontFamily: '"Noto Sans SC", sans-serif' }}>记录下此刻的口味、心情或任何想法…</p>
-        <textarea
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          className="oriental-textarea"
-          style={{ height: '6rem', marginBottom: '1rem' }}
-          placeholder="例如：口感非常清爽，柠檬的酸味很突出…"
-        />
+          {/* 右侧：文本输入区 */}
+          <div className="flex-1 flex flex-col min-w-0">
+            <p style={{ color: 'rgba(255,255,255,0.65)', marginBottom: '0.5rem', fontSize: '0.75rem', fontFamily: '"Noto Sans SC", sans-serif' }}>记录口味、心情或任何想法…</p>
+            <textarea
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              className="oriental-textarea flex-1"
+              style={{ minHeight: '4.5rem', resize: 'none' }}
+              placeholder="例如：口感非常清爽，柠檬的酸味很突出…"
+            />
+          </div>
+        </div>
         <div className="flex justify-end space-x-3">
           <InteractiveButton
             variant="text"

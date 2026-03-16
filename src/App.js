@@ -2685,15 +2685,33 @@ const App = () => {
         try {
           console.log(`[StreamingComplete] 开始获取文案...`);
           isQuoteFetching.current = true;
+          
+          // 创建异步文案获取，即使超时也会在后台继续执行并更新 UI
+          const quotePromise = fetchLiveQuotes(topMatches, { moodData }, 15);
+          
+          // 后台监听：无论是否超时，文案返回后都设置到 state
+          quotePromise.then((quotes) => {
+            if (Object.keys(quotes).length > 0) {
+              console.log(`[StreamingComplete] 文案异步到达，更新 UI (${Object.keys(quotes).length} 条)`);
+              setCustomQuotes(prev => ({ ...prev, ...quotes }));
+            }
+          }).catch(err => {
+            console.warn('[StreamingComplete] 后台文案获取失败', err);
+          }).finally(() => {
+            isQuoteFetching.current = false;
+          });
+          
+          // 等待最多 8 秒，超时则先显示画廊（文案会稍后到达）
           quotesMap = await Promise.race([
-            fetchLiveQuotes(topMatches, { moodData }, 15),
-            new Promise(resolve => setTimeout(() => resolve({}), 8000)) // 最多等8秒
+            quotePromise,
+            new Promise(resolve => setTimeout(() => {
+              console.log(`[StreamingComplete] 文案获取超时，先显示画廊`);
+              resolve({});
+            }, 8000))
           ]);
-          console.log(`[StreamingComplete] 文案获取完成`);
+          console.log(`[StreamingComplete] 文案获取完成 (${Object.keys(quotesMap).length} 条)`);
         } catch (err) {
           console.warn('Live quote generation failed', err);
-        } finally {
-          isQuoteFetching.current = false;
         }
       }
 

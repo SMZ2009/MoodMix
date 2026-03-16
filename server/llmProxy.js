@@ -558,41 +558,48 @@ app.post('/api/generate_quotes', async (req, res) => {
 // 端点：原料分类与名称标准化 (Ingredient Classification & Normalization)
 // ═══════════════════════════════════════════
 
-// 饮品库中的标准原料名称列表（用于LLM匹配）
-const STANDARD_INGREDIENT_NAMES = [
-  // 基酒
-  '伏特加', '金酒', '朗姆酒', '白朗姆', '黑朗姆', '龙舌兰', '威士忌', '波本威士忌', '苏格兰威士忌',
-  '白兰地', '干邑', '香槟', '普罗赛克', '红葡萄酒', '白葡萄酒', '起泡酒', '甜味美思', '干味美思',
-  '味美思', '雪莉酒', '波特酒', '力乐白', '啤酒', '拉格啤酒', '艾尔啤酒', '世涛啤酒', '健力士黑啤',
-  // 利口酒
-  '金巴利', '阿佩罗', '橙味利口酒', '君度', '蓝橙利口酒', '咖啡利口酒', '百利甜', '樱桃利口酒',
-  '杏仁利口酒', '椰子利口酒', '蜜多丽', '薄荷利口酒', '黑莓利口酒', '接骨木花利口酒', '苦艾酒',
-  '马拉斯奇诺', '加利安奴', '查特酒', '本笃会', '三秒', '库拉索', '格兰玛尼',
-  // 苦精
-  '安格仕苦精', '橙味苦精', '佩乔苦精', '苦精',
-  // 果汁
-  '柠檬汁', '青柠汁', '橙汁', '蔓越莓汁', '菠萝汁', '西柚汁', '葡萄柚汁', '苹果汁', '番茄汁',
-  '葡萄汁', '百香果汁', '芒果汁', '石榴汁', '椰奶', '猕猴桃汁', '西瓜汁', '桃汁',
-  // 水果
-  '青柠', '柠檬', '橙子', '橙皮', '柠檬皮', '青柠皮', '樱桃', '浸渍樱桃', '橄榄', '薄荷',
-  '新鲜薄荷', '薄荷叶', '罗勒', '迷迭香', '黄瓜', '芹菜', '草莓', '香蕉', '桃子', '菠萝',
-  '苹果', '姜', '鲜姜', '姜根', '猕猴桃', '西瓜', '芒果', '百香果', '葡萄', '蓝莓', '覆盆子',
-  // 糖浆/甜味剂
-  '单糖浆', '糖浆', '红石榴糖浆', '蜂蜜', '蜂蜜糖浆', '龙舌兰糖浆', '枫糖浆', '杏仁糖浆',
-  '德梅拉拉糖', '糖', '糖粉', '红糖', '细砂糖', '香草糖浆', '法勒南糖浆', '百香果糖浆',
-  '覆盆子糖浆', '草莓糖浆',
+// 常见原料别名映射表（硬编码，确保精准匹配）
+const INGREDIENT_ALIASES = {
+  // 水果类别名
+  '奇异果': { normalized: '猕猴桃', category: '水果' },
+  '猎猴桃': { normalized: '猕猴桃', category: '水果' },
+  '凤梨': { normalized: '菠萝', category: '水果' },
+  '波罗': { normalized: '菠萝', category: '水果' },
+  '西柚': { normalized: '葡萄柚', category: '水果' },
+  '胡柚': { normalized: '葡萄柚', category: '水果' },
+  '士多啤梨': { normalized: '草莓', category: '水果' },
+  '柳橙': { normalized: '橙子', category: '水果' },
+  '柳丁': { normalized: '橙子', category: '水果' },
+  '车厘子': { normalized: '樱桃', category: '水果' },
+  '番茄': { normalized: '番茄', category: '水果' },
+  '西红柿': { normalized: '番茄', category: '水果' },
+  // 果汁类别名
+  '奇异果汁': { normalized: '猕猴桃汁', category: '果汁' },
+  '凤梨汁': { normalized: '菠萝汁', category: '果汁' },
+  '西柚汁': { normalized: '葡萄柚汁', category: '果汁' },
+  '番茄汁': { normalized: '番茄汁', category: '果汁' },
+  '西红柿汁': { normalized: '番茄汁', category: '果汁' },
+  // 乳制品
+  '忌廉': { normalized: '奶油', category: '乳制品/蛋类' },
+  '鲜奶油': { normalized: '奶油', category: '乳制品/蛋类' },
+  '淡奶': { normalized: '炼乳', category: '乳制品/蛋类' },
+  '炼奶': { normalized: '炼乳', category: '乳制品/蛋类' },
   // 气泡饮料
-  '苏打水', '汤力水', '姜汁汽水', '姜汁啤酒', '可乐', '可口可乐', '雪碧', '柠檬汽水',
-  '柠檬水', '碳酸水', '七喜', '胡椒博士',
-  // 乳制品/蛋类
-  '牛奶', '全脂牛奶', '奶油', '浓奶油', '打发奶油', '半脂奶油', '鸡蛋', '蛋白', '蛋黄',
-  '淡奶油', '炼乳',
-  // 香草/香料
-  '香草', '香草精', '巧克力', '可可粉', '肉桂', '肉豆蔻', '丁香', '多香果', '八角',
-  '椰子', '黄油', '盐', '胡椒', '黑胡椒',
-  // 其他
-  '冰块', '碎冰', '水', '热水', '开水', '茶', '咖啡', '浓缩咖啡', '伍斯特酱', '塔巴斯科'
-];
+  '梳打水': { normalized: '苏打水', category: '气泡饮料' },
+  '汽水': { normalized: '苏打水', category: '气泡饮料' },
+  '气泡水': { normalized: '苏打水', category: '气泡饮料' },
+  // 香草香料
+  '薄荷叶': { normalized: '薄荷', category: '香草/香料' },
+  '新鲜薄荷': { normalized: '薄荷', category: '香草/香料' },
+  '九层塔': { normalized: '罗勒', category: '香草/香料' },
+  // 基酒
+  '伏特加酒': { normalized: '伏特加', category: '基酒' },
+  '白兰地酒': { normalized: '白兰地', category: '基酒' },
+  '威士忌酒': { normalized: '威士忌', category: '基酒' },
+  '金酒': { normalized: '金酒', category: '基酒' },
+  '朗姆酒': { normalized: '朗姆酒', category: '基酒' },
+  '龙舌兰酒': { normalized: '龙舌兰', category: '基酒' },
+};
 
 app.post('/api/classify_ingredient', async (req, res) => {
   const { name } = req.body;
@@ -601,6 +608,21 @@ app.post('/api/classify_ingredient', async (req, res) => {
     return res.status(400).json({ success: false, error: '缺少原料名称' });
   }
 
+  const inputName = name.trim();
+  
+  // ═══ 第一步：硬编码别名查表（最快最准） ═══
+  if (INGREDIENT_ALIASES[inputName]) {
+    const match = INGREDIENT_ALIASES[inputName];
+    console.log(`[ClassifyIngredient] 硬匹配: "${inputName}" -> category: ${match.category}, normalized: ${match.normalized}`);
+    return res.json({
+      success: true,
+      category: match.category,
+      normalized_name: match.normalized,
+      original_input: inputName
+    });
+  }
+
+  // ═══ 第二步：调用LLM进行智能分类 ═══
   const apiKey = process.env.SILICONFLOW_API_KEY;
   if (!apiKey) {
     return res.status(500).json({ success: false, error: 'API Key 未配置' });
@@ -615,42 +637,20 @@ app.post('/api/classify_ingredient', async (req, res) => {
       '乳制品/蛋类', '香草/香料', '装饰', '其他'
     ];
 
-    const systemPrompt = `你是一个调酒原料分类与名称标准化专家。
+    const systemPrompt = `你是调酒原料分类专家。将原料分类并返回标准化名称。
 
-## 任务
-根据用户提供的原料名称：
-1. 判断它属于哪个分类
-2. 将其映射到饮品库中的标准名称（处理别名、地区差异、同义词）
+分类选项：${CATEGORIES.join('、')}
 
-## 可选分类
-${CATEGORIES.map((c, i) => `${i + 1}. ${c}`).join('\n')}
+分类规则：
+- 基酒：伏特加、威士忌、金酒、朗姆酒、龙舌兰、白兰地等烈酒
+- 果汁：柠檬汁、橙汁、菠萝汁、番茄汁等
+- 水果：柠檬、草莓、樱桃、猕猴桃、菠萝、橙子等新鲜水果
+- 糖浆/甜味剂：糖浆、蜂蜜、石榴糖浆等
+- 气泡饮料：苏打水、汤力水、可乐等
+- 乳制品/蛋类：牛奶、奶油、蛋白、蛋黄等
+- 香草/香料：薄荷、肉桂、罗勒等
 
-## 饮品库标准名称列表
-${STANDARD_INGREDIENT_NAMES.join('、')}
-
-## 名称标准化规则
-- 奇异果 → 猕猴桃
-- 凤梨 → 菠萝  
-- 西柚 → 葡萄柚/西柚汁
-- 番茄 → 番茄汁（如果是汁类语境）
-- 士多啤梨 → 草莓
-- 柳橙/柳丁 → 橙子
-- 车厘子 → 樱桃
-- 忌廉 → 奶油
-- 淡奶 → 炼乳
-- 梳打水/汽水 → 苏打水
-- 薄荷叶/新鲜薄荷 → 薄荷
-- 白兰地酒 → 白兰地
-- 威士忌酒 → 威士忌
-- 如果用户输入已经是标准名称，直接返回
-- 如果找不到匹配，返回用户原始输入
-
-## 输出格式（严格JSON）
-{
-  "category": "分类名称",
-  "normalized_name": "标准化后的名称",
-  "original_input": "用户原始输入"
-}`;
+返回JSON: {"category":"分类","normalized_name":"标准名"}`;
 
     const userMessage = `原料名称：${name.trim()}`;
 

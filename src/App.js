@@ -2730,9 +2730,31 @@ const App = () => {
    * 流态分析完成后的回调
    * - 接收 moodData，继续执行饮品推荐流程
    */
-  const handleStreamingComplete = useCallback(async (moodData) => {
+  const handleStreamingComplete = useCallback(async (resultData) => {
     const startTime = performance.now();
-    console.log('[StreamingComplete] 流态分析完成，开始饮品推荐', moodData);
+    console.log('[StreamingComplete] 收到原始流式结果:', resultData);
+    
+    if (!resultData) {
+        console.error('[StreamingComplete] 错误：收到空的 resultData');
+        return;
+    }
+
+    // 1. 结构化解构与兼容性提取
+    let moodData = resultData.moodData || (resultData.emotion ? resultData : null);
+    let patternAnalysis = resultData.patternAnalysis;
+    let summary = resultData.summary || resultData.moodData?.summary || '寻味之旅已开启';
+
+    // 2. 启发式补全逻辑 (Heuristic Repair)
+    // 如果后端 32B 模型偶尔还是漏掉了 patternAnalysis，我们根据 moodData 强制合成一个
+    if (!patternAnalysis && moodData) {
+        console.warn('[StreamingComplete] ⚠️ 检测到 patternAnalysis 缺失，启动前端启发式补全...');
+        const userWuxing = moodData.emotion?.philosophy?.wuxing || 'earth';
+        patternAnalysis = {
+            polarity: { type: 'negative', confidence: 0.5 },
+            wuxing: { user: userWuxing === '木' ? 'wood' : userWuxing === '火' ? 'fire' : userWuxing === '水' ? 'water' : userWuxing === '金' ? 'metal' : 'earth' },
+            strategy: { type: 'harmonize', logic: '自动补全辨证逻辑' }
+        };
+    }
 
     // 🔥 重置上一次的文案，避免旧数据导致闪烁
     setCustomQuotes({});
@@ -2750,7 +2772,6 @@ const App = () => {
       const allDrinksForPipeline = [...apiDrinks, ...customDrinksWithVector];
 
       // 使用向量引擎评估和排序饮品
-      // 注意：evaluateAndSortDrinks(moodData, allDrinks, sessionIngredients)
       const rankedDrinks = evaluateAndSortDrinks(moodData, allDrinksForPipeline, sessionIngredients);
       const topMatches = rankedDrinks.slice(0, 9);
 
@@ -2761,8 +2782,17 @@ const App = () => {
           console.log(`[StreamingComplete] 开始获取文案...`);
           isQuoteFetching.current = true;
           
-          // 创建异步文案获取，即使超时也会在后台继续执行并更新 UI
-          const quotePromise = fetchLiveQuotes(topMatches, { moodData }, 15);
+          // 构造完整上下文，透传给文案引擎和标签引擎
+          const contextData = {
+            moodData,
+            patternAnalysis,
+            summary,
+            // 如果后端没有返回 vectorResult，某些逻辑可能还需要它，但通常在后端完成
+            vectorResult: resultData.vectorResult 
+          };
+          
+          // 创建异步文案获取，传入完整 contextData
+          const quotePromise = fetchLiveQuotes(topMatches, contextData, 15);
           
           // 后台监听：无论是否超时，文案返回后都设置到 state
           quotePromise.then((quotes) => {
@@ -2791,11 +2821,10 @@ const App = () => {
       }
 
       // 🔥 [关键] 批量设置所有状态，减少重复渲染
-      // 先设置文案，再显示画廊，确保卡片出现时文案已就绪
       if (Object.keys(quotesMap).length > 0) {
         setCustomQuotes(quotesMap);
       }
-      setMoodResult({ moodData });
+      setMoodResult({ moodData, patternAnalysis, summary }); // 关键修复：补全 patternAnalysis
       setRecommendationPool(topMatches.length > 0 ? topMatches : apiDrinks.slice(0, 9));
       setCurrentBatchIndex(0);
       setCurrentCardIndex(0);

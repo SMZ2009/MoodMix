@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Edit3, Camera, Trash2, Heart, ChevronLeft, ChevronRight, ArrowLeft } from 'lucide-react';
+import { Edit3, Camera, Trash2, Heart, ChevronLeft, ChevronRight, ArrowLeft, MapPin, Loader2 } from 'lucide-react';
 import { SwipeableCard } from './ui';
 import { translateDrinkName } from '../data/translations';
 
@@ -22,8 +22,67 @@ const MineSection = ({ favorites, onSelectDrink, cardFeedback, initialTab = 'col
         birthday: '',
         birthplace: ''
     });
+    const [currentCity, setCurrentCity] = useState('');
+    const [locationLoading, setLocationLoading] = useState(false);
+    const [locationError, setLocationError] = useState('');
     const fileInputRef = useRef(null);
     const nicknameInputRef = useRef(null);
+
+    // 自动获取当前城市
+    useEffect(() => {
+        const fetchCurrentCity = async () => {
+            setLocationLoading(true);
+            setLocationError('');
+            
+            try {
+                // 先尝试使用浏览器定位
+                if ('geolocation' in navigator) {
+                    const position = await new Promise((resolve, reject) => {
+                        navigator.geolocation.getCurrentPosition(resolve, reject, {
+                            enableHighAccuracy: false,
+                            timeout: 5000,
+                            maximumAge: 300000 // 5分钟缓存
+                        });
+                    });
+                    
+                    const { latitude, longitude } = position.coords;
+                    // 使用免费的反向地理编码API
+                    const response = await fetch(
+                        `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=zh`
+                    );
+                    const data = await response.json();
+                    if (data.city || data.locality) {
+                        setCurrentCity(data.city || data.locality);
+                    } else if (data.principalSubdivision) {
+                        setCurrentCity(data.principalSubdivision);
+                    }
+                } else {
+                    // 备用：使用IP定位
+                    const response = await fetch('https://ipapi.co/json/');
+                    const data = await response.json();
+                    if (data.city) {
+                        setCurrentCity(data.city);
+                    }
+                }
+            } catch (error) {
+                console.log('Location fetch failed:', error);
+                // 尝试使用IP定位作为备用
+                try {
+                    const response = await fetch('https://ipapi.co/json/');
+                    const data = await response.json();
+                    if (data.city) {
+                        setCurrentCity(data.city);
+                    }
+                } catch (e) {
+                    setLocationError('无法获取位置');
+                }
+            } finally {
+                setLocationLoading(false);
+            }
+        };
+        
+        fetchCurrentCity();
+    }, []);
 
     // 随机排序收藏饮品
     const shuffledFavorites = useMemo(() => {
@@ -225,6 +284,26 @@ const MineSection = ({ favorites, onSelectDrink, cardFeedback, initialTab = 'col
                                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400"
                                     placeholder="请输入您的出生地"
                                 />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">当前城市</label>
+                                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg">
+                                    {locationLoading ? (
+                                        <>
+                                            <Loader2 size={16} className="text-purple-500 animate-spin" />
+                                            <span className="text-gray-500 text-sm">正在定位...</span>
+                                        </>
+                                    ) : currentCity ? (
+                                        <>
+                                            <MapPin size={16} className="text-purple-500" />
+                                            <span className="text-gray-700">{currentCity}</span>
+                                        </>
+                                    ) : locationError ? (
+                                        <span className="text-gray-400 text-sm">{locationError}</span>
+                                    ) : (
+                                        <span className="text-gray-400 text-sm">未能获取位置</span>
+                                    )}
+                                </div>
                             </div>
                             <div className="flex gap-2">
                                 <button

@@ -5,7 +5,7 @@ import {
   Martini, User, Settings2, Maximize2,
   Wine, Droplets, ThermometerSnowflake,
   Sparkles, Lightbulb, GlassWater,
-  Users, HeartOff, Loader2, Camera, X, Menu, ArrowLeft, Download, CheckCircle, Share2
+  Users, HeartOff, Loader2, Camera, X, Menu, ArrowLeft, Download, CheckCircle, Share2, Mic
 } from 'lucide-react';
 import { QRCodeSVG, QRCodeCanvas } from 'qrcode.react';
 
@@ -339,6 +339,10 @@ const MoodInputSection = ({
 }) => {
   // onGenerate can optionally accept a directMood value for immediate tag clicks
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
+  const [isListening, setIsListening] = useState(false);
+  const [greeting, setGreeting] = useState({ main: '此刻，心境如何？', sub: '万般心绪，皆可入杯' });
+
+
 
   useEffect(() => {
     const intervalId = window.setInterval(() => {
@@ -350,18 +354,71 @@ const MoodInputSection = ({
     };
   }, []);
 
+  const handleVoiceInput = () => {
+    if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+      alert('您的浏览器不支持语音识别功能');
+      return;
+    }
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'zh-CN';
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    setIsListening(true);
+
+    recognition.onstart = () => {
+      console.log('语音识别开始');
+    };
+
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      setMoodInput(transcript);
+      console.log('语音识别结果:', transcript);
+    };
+
+    recognition.onerror = (event) => {
+      console.error('语音识别错误:', event.error);
+      setIsListening(false);
+      
+      // 处理常见错误
+      if (event.error === 'not-allowed') {
+        alert('请在浏览器设置中允许麦克风权限');
+      } else if (event.error === 'no-speech') {
+        alert('未检测到语音，请重试');
+      } else {
+        alert('语音识别失败，请重试');
+      }
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+      console.log('语音识别结束');
+    };
+
+    try {
+      recognition.start();
+      console.log('语音识别已启动');
+    } catch (error) {
+      console.error('启动语音识别失败:', error);
+      setIsListening(false);
+      alert('启动语音识别失败，请检查麦克风权限');
+    }
+  };
+
   return (
     <div className="flex-1 flex flex-col items-center px-6 pt-[calc(env(safe-area-inset-top,0px)+1.25rem)] pb-24 bg-dreamy-gradient w-full min-h-[100svh] relative overflow-x-hidden overflow-y-auto trae-browser-inspect-draggable">
       <div className="absolute top-0 left-1/4 w-96 h-96 bg-purple-200/40 rounded-full blur-[120px] pointer-events-none mix-blend-multiply"></div>
       <div className="absolute top-1/4 right-0 w-80 h-80 bg-blue-200/40 rounded-full blur-[100px] pointer-events-none mix-blend-multiply"></div>
       <div className="absolute bottom-1/3 left-0 w-72 h-72 bg-pink-200/40 rounded-full blur-[100px] pointer-events-none mix-blend-multiply"></div>
       <div className="text-center mt-12 sm:mt-16 mb-4 sm:mb-6 z-10">
-        <h2 className="text-2xl xs:text-[24px] sm:text-[28px] font-extrabold text-gray-800 mb-2 sm:mb-3 tracking-wide mx-auto text-center" style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif' }}>此刻，心境如何？</h2>
+        <h2 className="text-2xl xs:text-[24px] sm:text-[28px] font-extrabold text-gray-800 mb-2 sm:mb-3 tracking-wide mx-auto text-center animate-float-in" style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif', animation: 'floatIn 1.2s ease-out forwards' }}>{greeting.main}</h2>
         <p
-          className="text-gray-500 text-xs sm:text-sm font-light tracking-wider mx-auto text-center italic"
-          style={{ fontFamily: '"FZYouSong", "方正悠宋", serif' }}
+          className="text-gray-500 text-xs sm:text-sm font-light tracking-wider mx-auto text-center italic animate-float-in"
+          style={{ fontFamily: '"FZYouSong", "方正悠宋", serif', animation: 'floatIn 1.2s ease-out 0.3s forwards' }}
         >
-          万般心绪，皆可入杯
+          {greeting.sub}
         </p>
       </div>
       <div className="relative flex-1 w-full flex flex-col items-center justify-center pb-12 sm:pb-16">
@@ -497,6 +554,24 @@ const MoodInputSection = ({
                 style={{ fontFamily: '"Songti SC", STKaiti, KaiTi, serif', letterSpacing: '0.05em' }}
               />
             </div>
+            <button
+              type="button"
+              onClick={handleVoiceInput}
+              disabled={isMixing}
+              className={`w-10 h-10 flex items-center justify-center rounded-full ml-2 transition-all duration-300 flex-shrink-0 ${isListening
+                ? 'bg-gradient-to-br from-[#3c3b36] to-[#1a1a1a] text-[#f7f0e4] shadow-lg animate-pulse'
+                : 'bg-gray-100 text-gray-500 hover:bg-gray-200 cursor-pointer'
+                }`}
+              style={{ boxShadow: 'rgba(0, 0, 0, 0.05) 0px 2px 6px' }}
+              aria-label="语音输入"
+            >
+              <Mic
+                width="16"
+                height="16"
+                className={isListening ? 'text-[#f7f0e4]' : 'text-gray-500'}
+                aria-hidden="true"
+              />
+            </button>
             <button
               type="button"
               onClick={onGenerate}
@@ -1611,59 +1686,20 @@ const DrinkDetailSection = ({ drink, checkedIngredients, onToggleIngredient, onB
       {/* 分享卡片预览弹窗 */}
       {shareCardUrl && (
         <div
-          className="fixed inset-0 z-[100] flex items-center justify-center px-4"
+          className="fixed inset-0 z-[100] flex items-center justify-center px-4 overflow-y-auto py-8"
           style={{
-            background: (() => {
-              const gradients = [
-                'radial-gradient(circle at 0% 0%, #fdfbfb 0%, #ebedee 100%)',
-                'radial-gradient(circle at top right, #f5f5f0 0%, #e1e1d6 100%)',
-                'linear-gradient(135deg, #e9e4f0 0%, #d3d3d3 100%)',
-                'linear-gradient(to top, #ece9e6 0%, #ffffff 100%)',
-                'radial-gradient(circle at center, #f3f4f6 0%, #e5e7eb 100%)',
-                'linear-gradient(120deg, #fdfcfb 0%, #e2d1c3 100%)'
-              ];
-              // Soft, muted gradients for a better "Zen" feel
-              return gradients[Math.floor(Math.random() * gradients.length)];
-            })(),
-            backdropFilter: 'blur(30px) saturate(0.8)',
-            WebkitBackdropFilter: 'blur(30px) saturate(0.8)'
+            background: 'rgba(0,0,0,0.5)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)'
           }}
           onClick={() => setShareCardUrl(null)}
         >
-          <div
-            style={{
-              background: 'rgba(255,255,255,0.15)',
-              backdropFilter: 'blur(40px) saturate(1.2)',
-              WebkitBackdropFilter: 'blur(40px) saturate(1.2)',
-              border: '1px solid rgba(255,255,255,0.2)',
-              boxShadow: '0 24px 64px rgba(0,0,0,0.15)',
-              position: 'relative'
-            }}
-            className="rounded-3xl p-6 xs:p-8 w-full max-w-[400px] mx-auto text-center"
+          <img
+            src={shareCardUrl}
+            alt="Share Card"
+            className="w-full max-w-[400px] h-auto object-contain rounded-2xl shadow-2xl my-auto"
             onClick={(e) => e.stopPropagation()}
-          >
-            {/* Close Button */}
-            <button
-              onClick={() => setShareCardUrl(null)}
-              className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-black/10 text-white/80 hover:bg-black/20 hover:text-white transition-all"
-            >
-              <X size={18} />
-            </button>
-
-            <div className="flex justify-center mb-4">
-              <div className="w-10 h-10 bg-emerald-500/20 rounded-full flex items-center justify-center text-emerald-400 mb-2">
-                <CheckCircle size={20} />
-              </div>
-            </div>
-            <h2 style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: '0.25rem', fontFamily: '"Songti SC", serif', color: 'white' }}>分享卡片已生成</h2>
-            <p style={{ color: 'rgba(255,255,255,0.5)', marginBottom: '1.5rem', fontSize: '0.8rem', fontFamily: '"Songti SC", serif' }}>长按保存图片或扫码分享</p>
-
-            <div className="relative group overflow-hidden rounded-2xl shadow-2xl">
-              <img src={shareCardUrl} alt="Share Card" className="w-full h-auto object-contain transition-transform duration-500 group-hover:scale-[1.02]" />
-            </div>
-
-            <p className="mt-8 text-[11px] text-white/30 tracking-widest uppercase">Explore Mood Mix • Aesthetic Life</p>
-          </div>
+          />
         </div>
       )}
 
@@ -2557,7 +2593,7 @@ const App = () => {
                 onGenerate={processMoodAndGenerate}
                 buttonFeedback={{ ...buttonFeedback, loadingText: buttonLoadingText }}
                 isMixing={mixMode === 'generating'}
-                ingredientCount={sessionIngredients.length}
+                ingredientCount={ingredientCount}
                 onEditIngredients={() => setShowIngredientModal(true)}
                 onNavigate={handleNavClick}
                 activeTab={activeTab}

@@ -1587,6 +1587,116 @@ app.post('/api/speech-to-text', async (req, res) => {
   }
 });
 
+// ═══════════════════════════════════════════
+// 饮品心意统计 API
+// ═══════════════════════════════════════════
+
+// 内存存储：饮品心意统计 { drinkId: { userUIDs: Set, count: number } }
+const drinkLikeStats = new Map();
+
+// 初始化饮品心意统计
+function initDrinkLikeStats(drinkId) {
+  if (!drinkLikeStats.has(drinkId)) {
+    drinkLikeStats.set(drinkId, {
+      userUIDs: new Set(),
+      count: 0
+    });
+  }
+}
+
+/**
+ * POST /api/drink/like
+ * 记录用户对饮品的心意
+ * Body: { drinkId: string, userUID: string }
+ * Response: { success: boolean, count: number, showMessage: boolean }
+ */
+app.post('/api/drink/like', (req, res) => {
+  const { drinkId, userUID } = req.body;
+
+  if (!drinkId || !userUID) {
+    return res.status(400).json({
+      success: false,
+      error: '缺少 drinkId 或 userUID'
+    });
+  }
+
+  initDrinkLikeStats(drinkId);
+  const stats = drinkLikeStats.get(drinkId);
+
+  // 如果用户之前没有标记过这个饮品，则增加计数
+  if (!stats.userUIDs.has(userUID)) {
+    stats.userUIDs.add(userUID);
+    stats.count++;
+  }
+
+  console.log(`[DrinkLike] 饮品 ${drinkId} 被 ${userUID} 标记为心仪，当前统计: ${stats.count} 人`);
+
+  res.json({
+    success: true,
+    count: stats.count,
+    showMessage: stats.count >= 2
+  });
+});
+
+/**
+ * POST /api/drink/unlike
+ * 取消用户对饮品的心意
+ * Body: { drinkId: string, userUID: string }
+ * Response: { success: boolean, count: number, showMessage: boolean }
+ */
+app.post('/api/drink/unlike', (req, res) => {
+  const { drinkId, userUID } = req.body;
+
+  if (!drinkId || !userUID) {
+    return res.status(400).json({
+      success: false,
+      error: '缺少 drinkId 或 userUID'
+    });
+  }
+
+  initDrinkLikeStats(drinkId);
+  const stats = drinkLikeStats.get(drinkId);
+
+  // 如果用户之前标记过这个饮品，则减少计数
+  if (stats.userUIDs.has(userUID)) {
+    stats.userUIDs.delete(userUID);
+    stats.count = Math.max(0, stats.count - 1);
+  }
+
+  console.log(`[DrinkLike] 饮品 ${drinkId} 被 ${userUID} 取消心仪，当前统计: ${stats.count} 人`);
+
+  res.json({
+    success: true,
+    count: stats.count,
+    showMessage: stats.count >= 2
+  });
+});
+
+/**
+ * GET /api/drink/like-stats/:drinkId
+ * 获取饮品的心意统计
+ * Response: { success: boolean, count: number, showMessage: boolean }
+ */
+app.get('/api/drink/like-stats/:drinkId', (req, res) => {
+  const { drinkId } = req.params;
+
+  if (!drinkId) {
+    return res.status(400).json({
+      success: false,
+      error: '缺少 drinkId'
+    });
+  }
+
+  initDrinkLikeStats(drinkId);
+  const stats = drinkLikeStats.get(drinkId);
+
+  res.json({
+    success: true,
+    count: stats.count,
+    showMessage: stats.count >= 2
+  });
+});
+
 // ─── 启动服务器 ───
 app.listen(PORT, '0.0.0.0', () => {
   const hasKey = process.env.SILICONFLOW_API_KEY && process.env.SILICONFLOW_API_KEY !== 'your_key_here';

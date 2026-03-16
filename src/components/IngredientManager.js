@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, Check, ChevronDown, X } from 'lucide-react';
+import { Plus, Check, ChevronDown, X, Loader2 } from 'lucide-react';
 import { inventoryStorage, ingredientCategories } from '../store/localStorageAdapter';
 
 const DEFAULT_CATEGORIES = [
@@ -11,7 +11,7 @@ const IngredientManager = ({ userInventory, onUpdate, showCustomForm, setShowCus
     const standardIngredients = ingredientCategories;
     const [activeCategory, setActiveCategory] = useState(null);
     const [customName, setCustomName] = useState('');
-    const [customCategory, setCustomCategory] = useState('');
+    const [isClassifying, setIsClassifying] = useState(false);
 
     // Internal state fallback if props not provided
     const [internalShowForm, setInternalShowForm] = useState(false);
@@ -28,32 +28,59 @@ const IngredientManager = ({ userInventory, onUpdate, showCustomForm, setShowCus
     };
 
     const handleAddCustom = async () => {
-        if (!customName.trim() || !customCategory.trim()) return;
+        if (!customName.trim()) return;
 
-        const name = customName.trim();
+        const inputName = customName.trim();
 
-        // Check for duplicates in standard library
-        const isStandardDuplicate = Object.values(standardIngredients).some(catItems =>
-            catItems.some(item => item.name_cn === name || item.name_en === name)
-        );
-
-        // Check for duplicates in custom library
-        const isCustomDuplicate = userInventory.custom.some(item => item.name_cn === name);
-
-        if (isStandardDuplicate || isCustomDuplicate) {
-            alert(`"${name}" 已存在于原料库中，无需重复添加。`);
-            return;
-        }
-
+        // Call LLM to classify and normalize the ingredient name
+        setIsClassifying(true);
         try {
-            await inventoryStorage.addCustomIngredient(name, customCategory.trim());
+            const response = await fetch('/api/classify_ingredient', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: inputName })
+            });
+            const data = await response.json();
+            const category = data.category || '其他';
+            // Use normalized name from LLM (e.g., "奇异果" -> "猕猴桃")
+            const normalizedName = data.normalized_name || inputName;
+
+            // Check for duplicates using normalized name
+            const isStandardDuplicate = Object.values(standardIngredients).some(catItems =>
+                catItems.some(item => item.name_cn === normalizedName || item.name_en === normalizedName)
+            );
+            const isCustomDuplicate = userInventory.custom.some(item => item.name_cn === normalizedName);
+
+            if (isStandardDuplicate || isCustomDuplicate) {
+                // Show which name was matched
+                const displayMsg = normalizedName !== inputName 
+                    ? `"${inputName}" (${normalizedName}) 已存在于原料库中，无需重复添加。`
+                    : `"${normalizedName}" 已存在于原料库中，无需重复添加。`;
+                alert(displayMsg);
+                setIsClassifying(false);
+                return;
+            }
+
+            await inventoryStorage.addCustomIngredient(normalizedName, category);
             setCustomName('');
-            setCustomCategory('');
             triggerShowForm(false);
             onUpdate();
+            
+            // Open the category where the ingredient was added
+            setActiveCategory(category);
         } catch (error) {
             console.error("Add custom failed", error);
-            alert('添加失败，请重试');
+            // Fallback: add with original name to "其他" category
+            try {
+                await inventoryStorage.addCustomIngredient(inputName, '其他');
+                setCustomName('');
+                triggerShowForm(false);
+                onUpdate();
+            } catch (e) {
+                alert('添加失败，请重试');
+            }
+        } finally {
+            setIsClassifying(false);
         }
     };
 
@@ -71,7 +98,6 @@ const IngredientManager = ({ userInventory, onUpdate, showCustomForm, setShowCus
 
     const handleCancelCustom = () => {
         setCustomName('');
-        setCustomCategory('');
         triggerShowForm(false);
     };
 
@@ -155,36 +181,36 @@ const IngredientManager = ({ userInventory, onUpdate, showCustomForm, setShowCus
                     <h3 className="im-custom-form-title">添加自定义原料</h3>
                     <input
                         type="text"
-                        placeholder="原料名称"
+                        placeholder="输入原料名称，系统自动分类并匹配标准名..."
                         value={customName}
                         onChange={(e) => setCustomName(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && !isClassifying && customName.trim() && handleAddCustom()}
                         className="oriental-input"
-                        style={{ marginBottom: '0.5rem' }}
-                    />
-                    <select
-                        value={customCategory}
-                        onChange={(e) => setCustomCategory(e.target.value)}
-                        className="oriental-select"
                         style={{ marginBottom: '0.75rem' }}
-                    >
-                        <option value="">选择分类…</option>
-                        {categories.map(cat => (
-                            <option key={cat} value={cat}>{cat}</option>
-                        ))}
-                    </select>
+                        disabled={isClassifying}
+                        autoFocus
+                    />
                     <div className="im-custom-form-actions">
                         <button
                             onClick={handleCancelCustom}
                             className="im-form-btn-cancel"
+                            disabled={isClassifying}
                         >
                             取消
                         </button>
                         <button
                             onClick={handleAddCustom}
-                            disabled={!customName.trim() || !customCategory}
+                            disabled={!customName.trim() || isClassifying}
                             className="im-form-btn-add"
                         >
-                            添加
+                            {isClassifying ? (
+                                <>
+                                    <Loader2 size={14} className="animate-spin mr-1" />
+                                    分类中...
+                                </>
+                            ) : (
+                                '添加'
+                            )}
                         </button>
                     </div>
                 </div>

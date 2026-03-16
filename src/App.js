@@ -1374,7 +1374,7 @@ const DrinkDetailSection = ({ drink, checkedIngredients, onToggleIngredient, onB
   // 生成分享链接
   const getShareLink = () => {
     const baseUrl = window.location.origin;
-    return `${baseUrl}?drink=${encodeURIComponent(drink.name)}`;
+    return `${baseUrl}?drink_id=${drink.id}`;
   };
 
   const handleShare = async () => {
@@ -1985,9 +1985,17 @@ const App = () => {
   useEffect(() => {
     const handleSharedDrink = () => {
       const urlParams = new URLSearchParams(window.location.search);
+      const drinkId = urlParams.get('drink_id');
       const drinkName = urlParams.get('drink');
 
-      if (drinkName && apiDrinks.length > 0) {
+      if (drinkId && apiDrinks.length > 0) {
+        const foundDrink = apiDrinks.find(d => d.id === drinkId);
+        if (foundDrink) {
+          setCurrentDrink(foundDrink);
+          setActiveTab('explore');
+        }
+      } else if (drinkName && apiDrinks.length > 0) {
+        // 兼容旧的分享链接格式
         const decodedName = decodeURIComponent(drinkName);
         const foundDrink = apiDrinks.find(d =>
           d.name === decodedName ||
@@ -3011,7 +3019,7 @@ const DakaModal = ({ drink, onClose, onSave }) => {
   // 生成分享链接
   const getShareLink = () => {
     const baseUrl = window.location.origin;
-    return `${baseUrl}?drink=${encodeURIComponent(drink.name)}`;
+    return `${baseUrl}?drink_id=${drink.id}`;
   };
 
   const handleImageUpload = (e) => {

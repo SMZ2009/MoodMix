@@ -2201,9 +2201,11 @@ const App = () => {
         
         setLastLikedDrink(drink);
         
-        setTimeout(() => {
-          setShowGroupRecommendation(true);
-        }, 500);
+        if (data.count >= 2) {
+          setTimeout(() => {
+            setShowGroupRecommendation(true);
+          }, 500);
+        }
         
         showFriendlyNotice(
           '已将' + drink.name + '加入心仪',

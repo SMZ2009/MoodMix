@@ -113,7 +113,7 @@ const GROUPS = [
     matchingRules: {
       abv: { min: 15, max: 35 },
       taste: { bitter: 3, sweet: 2 },
-      dimensions: { texture: { min: 2, max: 5 } },
+      dimensions: { smoothness: { min: 2, max: 5 } },
       philosophyTags: ['踏实安稳', '清醒自在', '想要慰藉']
     },
     recentMessages: [
@@ -133,7 +133,7 @@ const GROUPS = [
     matchingRules: {
       abv: { min: 5, max: 25 },
       taste: { sweet: { min: 5 } },
-      dimensions: { texture: { min: 1, max: 4 } },
+      dimensions: { smoothness: { min: 1, max: 4 } },
       philosophyTags: ['想要慰藉', '心气舒展', '踏实安稳']
     },
     recentMessages: [
@@ -160,6 +160,47 @@ const GROUPS = [
       { user: '苦味爱好者', content: '金巴利的苦味太上头了', time: '5分钟前' },
       { user: '草本迷', content: '苦艾酒要怎么喝才好？', time: '12分钟前' }
     ]
+  },
+  {
+    id: 9,
+    name: '花间一壶酒',
+    description: '花香、果香饮品的优雅天地',
+    memberCount: 95,
+    onlineCount: 16,
+    icon: 'Palette',
+    color: 'from-pink-300 to-purple-300',
+    tags: ['花香', '果香', '优雅'],
+    matchingRules: {
+      abv: { min: 0, max: 20 },
+      taste: { sweet: 3, sour: 2 },
+      dimensions: { smoothness: { min: 3, max: 6 } },
+      aroma: { primary: ['floral', 'fruit'] },
+      philosophyTags: ['心气舒展', '想要安静', '思路通透']
+    },
+    recentMessages: [
+      { user: '花香控', content: '薰衣草金酒太香了', time: '3分钟前' },
+      { user: '果酒爱好者', content: '梅子酒配桂花，绝配', time: '6分钟前' }
+    ]
+  },
+  {
+    id: 10,
+    name: '暖冬围炉',
+    description: '热饮、温补饮品的温暖港湾',
+    memberCount: 76,
+    onlineCount: 12,
+    icon: 'Flame',
+    color: 'from-orange-400 to-red-400',
+    tags: ['热饮', '温补', '温暖'],
+    matchingRules: {
+      abv: { min: 0, max: 30 },
+      taste: { sweet: 4, spicy: 2 },
+      dimensions: { temperature: { min: 2, max: 4 } },
+      philosophyTags: ['身暖气足', '踏实安稳', '想要慰藉']
+    },
+    recentMessages: [
+      { user: '暖冬控', content: '热红酒加肉桂，冬天必备', time: '2分钟前' },
+      { user: '养生达人', content: '姜茶加蜂蜜，驱寒暖胃', time: '9分钟前' }
+    ]
   }
 ];
 
@@ -171,64 +212,93 @@ function calculateMatchScore(drink, group) {
 
   if (!rules) return { score: 0, maxScore: 0 };
 
+  const dimensions = drink.dimensions || {};
+
   if (rules.abv) {
-    maxScore += 20;
+    maxScore += 15;
     const { min, max } = rules.abv;
-    if (drink.abv >= min && drink.abv <= max) {
-      score += 20;
-    } else if (drink.abv < min) {
-      score += Math.max(0, 20 - (min - drink.abv) * 2);
+    const drinkAbv = dimensions.ratio?.physical?.estimated_abv || drink.abv || 0;
+    if (drinkAbv >= min && drinkAbv <= max) {
+      score += 15;
+    } else if (drinkAbv < min) {
+      score += Math.max(0, 15 - (min - drinkAbv) * 1.5);
     } else {
-      score += Math.max(0, 20 - (drink.abv - max) * 2);
+      score += Math.max(0, 15 - (drinkAbv - max) * 1.5);
     }
   }
 
   if (rules.taste) {
-    maxScore += 30;
+    maxScore += 20;
     const tasteMatch = rules.taste;
-    const drinkTaste = drink.dimensions?.taste || {};
+    const drinkTaste = dimensions.taste?.physical || {};
     
     for (const [tasteKey, ruleValue] of Object.entries(tasteMatch)) {
       const drinkValue = drinkTaste[tasteKey] || 0;
       if (typeof ruleValue === 'object' && ruleValue.min !== undefined) {
         if (drinkValue >= ruleValue.min) {
-          score += 15;
+          score += 7;
         } else {
-          score += Math.max(0, 15 - (ruleValue.min - drinkValue) * 3);
+          score += Math.max(0, 7 - (ruleValue.min - drinkValue) * 2);
         }
       } else {
         if (drinkValue >= ruleValue) {
-          score += 10;
+          score += 5;
         } else {
-          score += Math.max(0, 10 - (ruleValue - drinkValue) * 2);
+          score += Math.max(0, 5 - (ruleValue - drinkValue) * 1.5);
         }
       }
     }
   }
 
   if (rules.dimensions) {
-    maxScore += 30;
+    maxScore += 25;
     const dimMatch = rules.dimensions;
-    const drinkDims = drink.dimensions || {};
+    const drinkDims = dimensions;
 
     for (const [dimKey, ruleValue] of Object.entries(dimMatch)) {
-      const drinkValue = drinkDims[dimKey]?.value || drinkDims[dimKey] || 0;
+      let drinkValue = 0;
+      
+      if (dimKey === 'temperature') {
+        drinkValue = dimensions.temperature?.philosophy?.yin_yang_score || 0;
+      } else if (dimKey === 'effervescence') {
+        drinkValue = dimensions.texture?.physical?.effervescence || 0;
+      } else if (dimKey === 'smoothness') {
+        drinkValue = dimensions.texture?.physical?.smoothness || 0;
+      } else if (dimKey === 'burn') {
+        drinkValue = dimensions.texture?.physical?.burn || 0;
+      }
+      
       if (typeof ruleValue === 'object' && ruleValue.min !== undefined) {
         if (drinkValue >= ruleValue.min && drinkValue <= (ruleValue.max || 10)) {
-          score += 15;
+          score += 8;
         } else {
-          score += Math.max(0, 15 - Math.abs(drinkValue - ruleValue.min) * 2);
+          score += Math.max(0, 8 - Math.abs(drinkValue - ruleValue.min) * 1.5);
         }
       } else {
         if (drinkValue >= ruleValue) {
-          score += 15;
+          score += 8;
         }
       }
     }
   }
 
+  if (rules.aroma) {
+    maxScore += 15;
+    const drinkAromas = dimensions.aroma?.physical?.primary_aromas || [];
+    const ruleAromas = rules.aroma.primary || [];
+    
+    const aromaMatchCount = ruleAromas.filter(ruleAroma => 
+      drinkAromas.some(drinkAroma => 
+        drinkAroma.toLowerCase().includes(ruleAroma.toLowerCase()) ||
+        ruleAroma.toLowerCase().includes(drinkAroma.toLowerCase())
+      )
+    ).length;
+    
+    score += (aromaMatchCount / ruleAromas.length) * 15;
+  }
+
   if (rules.philosophyTags && rules.philosophyTags.length > 0) {
-    maxScore += 20;
+    maxScore += 25;
     const philosophy = generatePhilosophyTags(drink.dimensions);
     const drinkTags = philosophy.tags || [];
     
@@ -236,7 +306,7 @@ function calculateMatchScore(drink, group) {
       drinkTags.some(dt => dt.includes(tag) || tag.includes(dt))
     ).length;
     
-    score += (tagMatchCount / rules.philosophyTags.length) * 20;
+    score += (tagMatchCount / rules.philosophyTags.length) * 25;
   }
 
   return { score, maxScore };

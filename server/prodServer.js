@@ -1065,6 +1065,55 @@ if (!existsSync(buildPath)) {
 }
 
 // ═══════════════════════════════════════════
+// 用户统计 API
+// ═══════════════════════════════════════════
+
+// 内存存储：所有已注册的用户 UID
+const registeredUserUIDs = new Set();
+
+/**
+ * POST /api/stats/register-user
+ * 注册用户 UID（用于统计总用户数）
+ * Body: { userUID: string }
+ * Response: { success: boolean, totalUsers: number, isNewUser: boolean }
+ */
+app.post('/api/stats/register-user', (req, res) => {
+  const { userUID } = req.body;
+
+  if (!userUID) {
+    return res.status(400).json({
+      success: false,
+      error: '缺少 userUID'
+    });
+  }
+
+  const isNewUser = !registeredUserUIDs.has(userUID);
+  
+  if (isNewUser) {
+    registeredUserUIDs.add(userUID);
+    console.log(`[UserStats] 新用户注册: ${userUID}, 总用户数: ${registeredUserUIDs.size}`);
+  }
+
+  res.json({
+    success: true,
+    totalUsers: registeredUserUIDs.size,
+    isNewUser
+  });
+});
+
+/**
+ * GET /api/stats/total-users
+ * 获取总用户数
+ * Response: { success: boolean, totalUsers: number }
+ */
+app.get('/api/stats/total-users', (req, res) => {
+  res.json({
+    success: true,
+    totalUsers: registeredUserUIDs.size
+  });
+});
+
+// ═══════════════════════════════════════════
 // 饮品心意统计 API
 // ═══════════════════════════════════════════
 

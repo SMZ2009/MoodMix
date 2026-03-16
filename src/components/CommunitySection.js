@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Users, MessageCircle, Heart, TrendingUp, Star, Coffee, Wine, Music, BookOpen, Palette, Flame, Droplets } from 'lucide-react';
 import { getAllGroups } from '../engine/groupRecommendationEngine';
+import { userStorage } from '../store/localStorageAdapter';
 
 const iconMap = {
   Wine,
@@ -109,6 +110,14 @@ const CommunitySection = ({ onNavigate, activeTab }) => {
   useEffect(() => {
     const fetchTotalUsers = async () => {
       try {
+        const userUID = userStorage.getUID();
+        
+        await fetch('/api/stats/register-user', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userUID })
+        });
+
         const response = await fetch('/api/stats/total-users');
         if (response.ok) {
           const data = await response.json();

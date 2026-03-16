@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, Shuffle, Heart, Wine, Droplets, GlassWater, Snowflake, Check, AlertCircle } from 'lucide-react';
+import { ChevronLeft, Shuffle, Heart, Wine, Droplets, GlassWater, Snowflake, Check, AlertCircle, Loader2 } from 'lucide-react';
 import { generatePhilosophyTags } from '../engine/philosophyTags';
 import { translateDrinkName, translateIngredient } from '../data/translations';
 
@@ -214,6 +214,35 @@ const RecommendationGallery = ({ drinks, onBack, onStartMaking, onShuffle, onNav
 // Enhanced Card Content Component
 const CardContent = ({ drink, isActive, isLiked, moodResult, customQuote, validation, onLike, onUnlike }) => {
   const philosophy = generatePhilosophyTags(drink.dimensions, moodResult, drink.name);
+  const [displayedQuote, setDisplayedQuote] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+
+  // 流态打字效果：当 LLM 文案到达时逐字显示
+  useEffect(() => {
+    if (customQuote && customQuote.length >= 10) {
+      setIsTyping(true);
+      setDisplayedQuote('');
+      let index = 0;
+      const typingSpeed = 35; // 每个字的间隔时间(ms)
+      
+      const typeNextChar = () => {
+        if (index < customQuote.length) {
+          setDisplayedQuote(customQuote.slice(0, index + 1));
+          index++;
+          setTimeout(typeNextChar, typingSpeed);
+        } else {
+          setIsTyping(false);
+        }
+      };
+      
+      // 略微延迟后开始打字
+      const timer = setTimeout(typeNextChar, 100);
+      return () => clearTimeout(timer);
+    } else {
+      setDisplayedQuote('');
+      setIsTyping(false);
+    }
+  }, [customQuote]);
 
   return (
     <div
@@ -306,21 +335,33 @@ const CardContent = ({ drink, isActive, isLiked, moodResult, customQuote, valida
             </div>
           </div>
 
-          {/* Primary Quote (LLM or Philosophy Fallback) */}
+          {/* Primary Quote (LLM 流态显示) */}
           <div
             className="mb-4 pl-3 border-l-2 border-white/30"
             style={{ minHeight: '3.5em', display: 'flex', alignItems: 'center' }}
           >
-            <p
-              className="text-[14px] font-medium text-white leading-relaxed italic"
-              style={{
-                fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif',
-                textShadow: '0 2px 8px rgba(0,0,0,0.5)',
-              }}
-            >
-              {/* 只有当异步生成的文案达到一定长度(非短促诗句)时才覆盖本地高质量长句 */}
-              {(customQuote && customQuote.length >= 10) ? customQuote : philosophy.quote}
-            </p>
+            {(customQuote && customQuote.length >= 10) ? (
+              <p
+                className="text-[14px] font-medium text-white leading-relaxed italic"
+                style={{
+                  fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif',
+                  textShadow: '0 2px 8px rgba(0,0,0,0.5)',
+                }}
+              >
+                {displayedQuote}
+                {isTyping && <span className="animate-pulse">|</span>}
+              </p>
+            ) : (
+              <div className="flex items-center gap-2 text-white/60">
+                <Loader2 size={14} className="animate-spin" />
+                <span
+                  className="text-[13px] italic"
+                  style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif' }}
+                >
+                  文案生成中…
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Ingredients + Availability - Stick to Bottom */}

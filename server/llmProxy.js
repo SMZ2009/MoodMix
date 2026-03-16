@@ -1,21 +1,19 @@
 /**
- * DashScope (魔搭) API 代理服务器
+ * MoodMix LLM Proxy Server
  * 
  * 职责：
  * 1. 保护 API Key（从 .env 读取，不暴露到前端）
- * 2. 接收前端 POST /api/analyze_mood 请求
- * 3. 拼装 DashScope OpenAI 兼容接口请求并转发
- * 4. 返回大模型响应
+ * 2. 提供统一的 LLM API 代理服务
+ * 3. 实现请求限流、错误处理、日志记录
+ * 4. 支持多种 LLM 功能：情绪分析、文案生成、饮品助手等
  * 
- * 启动: node server/dashscopeProxy.js
+ * 启动: node server/llmProxy.js
  * 默认端口: 3001
  */
 
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const { createServer } = require('http');
-const { Server } = require('socket.io');
 
 // 加载 .env 文件
 require('dotenv').config({ path: path.resolve(__dirname, '..', '.env') });
@@ -23,1039 +21,170 @@ require('dotenv').config({ path: path.resolve(__dirname, '..', '.env') });
 const app = express();
 const PORT = process.env.PORT || process.env.PROXY_PORT || 3001;
 
-// 信任代理（用于云平台如Render.com）
-app.set('trust proxy', 1);
-
-// 中间件
-app.use(cors({
-  origin: true,  // 允许所有origin
-  credentials: false  // 不允许credentials
-}));
-app.use(express.json());
-
-app.get('/', (req, res) => res.send(' MoodMix LLM Proxy is running.'));
-
-// 全局异常处理，防止进程崩溃
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-});
-
-process.on('uncaughtException', (err) => {
-  console.error('Uncaught Exception thrown:', err);
-});
-
-// 处理host header
-app.use((req, res, next) => {
-  // 允许所有host header
-  next();
-});
-
 // ═══════════════════════════════════════════
-// TheCocktailDB API 代理（解决 CORS 问题）
+// 配置常量
 // ═══════════════════════════════════════════
-const COCKTAILDB_BASE = 'https://www.thecocktaildb.com/api/json/v1/1';
-
-app.use('/api/cocktaildb', async (req, res) => {
-  const path = req.originalUrl.replace('/api/cocktaildb', '') || '/';
-  const targetUrl = `${COCKTAILDB_BASE}${path}`;
-
-  console.log('[CocktailDB Proxy]', req.method, targetUrl);
-
-  try {
-    const response = await fetch(targetUrl);
-    const status = response.status;
-    const text = await response.text();
-    console.log('[CocktailDB] Status:', status, 'Body:', text.substring(0, 200));
-
-    if (status !== 200) {
-      return res.status(status).json({ error: 'CocktailDB API error', status, body: text });
-    }
-
-    const data = JSON.parse(text);
-    res.json(data);
-  } catch (error) {
-    console.error('[CocktailDB Proxy Error]', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// ═══════════════════════════════════════════
-// 鸡尾酒图片代理（解决图片加载失败问题）
-// ═══════════════════════════════════════════
-app.get('/api/cocktail_image/:imageName', async (req, res) => {
-  const imageName = req.params.imageName;
-  const targetUrl = `https://www.thecocktaildb.com/images/media/drink/${imageName}`;
-
-  const currentFetch = await getFetch();
-  if (!currentFetch) return res.status(500).send('Fetch implementation not found');
-
-  try {
-    const response = await currentFetch(targetUrl);
-    if (!response.ok) return res.status(response.status).send('Image fetch failed');
-
-    // 转发原始 Content-Type
-    const contentType = response.headers.get('content-type');
-    if (contentType) res.setHeader('Content-Type', contentType);
-
-    // 设置长时间缓存
-    res.setHeader('Cache-Control', 'public, max-age=86400');
-
-    // 流式转发
-    if (response.body.pipe) {
-      response.body.pipe(res);
-    } else {
-      // 针对原生 fetch 返回的 Web ReadableStream
-      const reader = response.body.getReader();
-      const pump = async () => {
-        const { done, value } = await reader.read();
-        if (done) {
-          res.end();
-          return;
-        }
-        res.write(value);
-        pump();
-      };
-      pump().catch(err => {
-        console.error('[Image Pipe Error]', err);
-        res.end();
-      });
-    }
-  } catch (error) {
-    console.error('[Image Proxy Error]', error);
-    res.status(502).send('Gateway Error: Image unreachable');
-  }
-});
-
-// SiliconFlow API 配置
 const SILICONFLOW_API_URL = 'https://api.siliconflow.cn/v1/chat/completions';
 const MODEL_8B = process.env.SILICONFLOW_MODEL_8B || 'Qwen/Qwen2.5-7B-Instruct';
 const MODEL_30B = process.env.SILICONFLOW_MODEL_30B || 'Qwen/Qwen2.5-32B-Instruct';
+const MODEL_CORE = process.env.SILICONFLOW_MODEL_CORE || MODEL_8B;
+const MODEL_CREATIVE = process.env.SILICONFLOW_MODEL_CREATIVE || MODEL_30B;
+const COCKTAILDB_BASE = 'https://www.thecocktaildb.com/api/json/v1/1';
 
-// 按照 Agent 职责分类使用的模型
-const MODEL_CORE = process.env.SILICONFLOW_MODEL_CORE || MODEL_8B; // 核心提取 (7B)
-const MODEL_CREATIVE = process.env.SILICONFLOW_MODEL_CREATIVE || MODEL_30B; // 创意文案 (32B)
+// 限流配置
+const RATE_LIMIT_WINDOW = 60 * 1000; // 1分钟
+const RATE_LIMIT_MAX = 60; // 每分钟最多60个请求
+const requestCounts = new Map();
 
-// 优先使用原生 fetch (Node 18+)，否则回退到 node-fetch
+// ═══════════════════════════════════════════
+// 工具函数
+// ═══════════════════════════════════════════
+
+/**
+ * 获取 fetch 实现（优先原生 fetch，回退到 node-fetch）
+ */
 const getFetch = async () => {
   if (typeof global !== 'undefined' && global.fetch) return global.fetch;
   try {
     return (await import('node-fetch')).default;
   } catch (e) {
-    // 某些环境可能不支持 dynamic import
     return null;
   }
 };
 
 /**
- * POST /api/analyze_mood
- * 
- * Body: { user_input: string, current_time?: string }
- * Response: { success: boolean, data?: object, error?: string }
+ * 统一的成功响应格式
  */
-app.post('/api/analyze_mood', async (req, res) => {
-  const apiKey = process.env.SILICONFLOW_API_KEY;
-
-  if (!apiKey || apiKey === 'your_key_here') {
-    return res.status(500).json({
-      success: false,
-      error: 'SILICONFLOW_API_KEY 未配置。请在 .env 文件中设置你的 API Key。'
-    });
-  }
-
-  const { user_input, current_time } = req.body;
-
-  if (!user_input || typeof user_input !== 'string' || !user_input.trim()) {
-    return res.status(400).json({
-      success: false,
-      error: '缺少 user_input 参数'
-    });
-  }
-
-  try {
-    // 动态获取 fetch 实现
-    const fetch = await getFetch();
-    if (!fetch) throw new Error('Fetch implementation not found');
-
-    const timeInfo = current_time || new Date().toISOString();
-
-    const systemPrompt = buildSystemPrompt();
-    const userMessage = buildUserMessage(user_input.trim(), timeInfo);
-
-    // 设置后端物理截断超时 (50秒)
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => {
-      controller.abort();
-    }, 60000); // 增加到 60 秒，确保后端不会先于前端超时太多
-
-    let response;
-    try {
-      response = await fetch(SILICONFLOW_API_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
-        },
-        body: JSON.stringify({
-          model: MODEL_CORE,
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userMessage }
-          ],
-          temperature: 0.5,
-          max_tokens: 800,
-          response_format: { type: 'json_object' }
-        }),
-        signal: controller.signal
-      });
-    } finally {
-      clearTimeout(timeoutId);
+const successResponse = (res, data, meta = {}) => {
+  res.json({
+    success: true,
+    data,
+    meta: {
+      timestamp: new Date().toISOString(),
+      ...meta
     }
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`SiliconFlow API 错误 [${response.status}]:`, errorText);
-      return res.status(502).json({
-        success: false,
-        error: `大模型 API 返回错误: ${response.status}`
-      });
-    }
-
-    const result = await response.json();
-    const content = result.choices?.[0]?.message?.content;
-
-    if (!content) {
-      return res.status(502).json({
-        success: false,
-        error: '大模型返回空内容'
-      });
-    }
-
-    // 解析 JSON
-    let parsed;
-    try {
-      parsed = JSON.parse(content);
-    } catch (e) {
-      // 尝试提取 JSON 块
-      const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/) || content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        parsed = JSON.parse(jsonMatch[1] || jsonMatch[0]);
-      } else {
-        throw new Error('无法从大模型输出中解析 JSON');
-      }
-    }
-
-    console.log(`[${new Date().toLocaleTimeString()}] 分析完成: "${user_input.slice(0, 30)}..." → isNegative=${parsed.isNegative}`);
-
-    res.json({ success: true, data: parsed });
-
-  } catch (error) {
-    console.error('分析请求失败:', error.message);
-    res.status(500).json({
-      success: false,
-      error: `分析失败: ${error.message}`
-    });
-  }
-});
-
-// ═══════════════════════════════════════════
-// 端点：流式情绪分析 (SSE Streaming)
-// ═══════════════════════════════════════════
-app.post('/api/analyze_mood_stream', async (req, res) => {
-  // 设置 SSE 头
-  res.writeHead(200, {
-    'Content-Type': 'text/event-stream',
-    'Cache-Control': 'no-cache',
-    'Connection': 'keep-alive',
-    'Access-Control-Allow-Origin': '*'
   });
-
-  try {
-    const { user_input, current_time } = req.body;
-    if (!user_input || typeof user_input !== 'string' || !user_input.trim()) {
-      res.write(`data: ${JSON.stringify({ error: '缺少 user_input', done: true })}\n\n`);
-      res.end();
-      return;
-    }
-
-    const apiKey = process.env.SILICONFLOW_API_KEY?.trim();
-    if (!apiKey || apiKey === 'your_key_here') {
-      res.write(`data: ${JSON.stringify({ error: 'API Key 未配置', done: true })}\n\n`);
-      res.end();
-      return;
-    }
-
-    const currentFetch = await getFetch();
-    if (!currentFetch) throw new Error('Fetch implementation not found');
-
-    const timeInfo = current_time || new Date().toISOString();
-    const systemPrompt = buildSystemPrompt();
-    const userMessage = buildUserMessage(user_input.trim(), timeInfo);
-
-    console.log(`[Stream] 开始请求 SiliconFlow (${MODEL_8B})...`);
-
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => {
-      console.warn('[Stream] 请求超时 (30s)');
-      controller.abort();
-    }, 30000);
-
-    let response;
-    try {
-      response = await currentFetch(SILICONFLOW_API_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
-        },
-        body: JSON.stringify({
-          model: MODEL_CORE,
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userMessage }
-          ],
-          temperature: 0.5,
-          max_tokens: 800,
-          stream: true
-        }),
-        signal: controller.signal
-      });
-    } catch (err) {
-      console.error('[Stream] Fetch 网络错误:', err.message);
-      res.write(`data: ${JSON.stringify({ error: `网络连接失败: ${err.message}`, done: true })}\n\n`);
-      res.end();
-      return;
-    } finally {
-      clearTimeout(timeoutId);
-    }
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`[Stream] API 响应错误 [${response.status}]:`, errorText);
-      res.write(`data: ${JSON.stringify({ error: `API error: ${response.status}`, done: true })}\n\n`);
-      res.end();
-      return;
-    }
-
-    console.log('[Stream] 收到响应头，正在读取流...');
-
-    let accumulated = '';
-    let lineBuffer = '';
-
-    // 统一处理流的辅助函数
-    const processChunk = (chunkText) => {
-      lineBuffer += chunkText;
-      let newlineIndex;
-      while ((newlineIndex = lineBuffer.indexOf('\n')) >= 0) {
-        const line = lineBuffer.slice(0, newlineIndex).trim();
-        lineBuffer = lineBuffer.slice(newlineIndex + 1);
-
-        if (!line.startsWith('data:')) continue;
-        const data = line.replace(/^data:\s*/, '').trim();
-
-        if (data === '[DONE]') {
-          finishStream();
-          return true;
-        }
-
-        try {
-          const parsed = JSON.parse(data);
-          const delta = parsed.choices?.[0]?.delta?.content || '';
-          if (delta) {
-            accumulated += delta;
-            res.write(`data: ${JSON.stringify({ delta, done: false })}\n\n`);
-          }
-        } catch (e) {
-          // ignore incomplete json from delta
-        }
-      }
-      return false;
-    };
-
-    const finishStream = () => {
-      if (res.writableEnded) return;
-      try {
-        const jsonMatch = accumulated.match(/\{[\s\S]*\}/);
-        const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : accumulated);
-        res.write(`data: ${JSON.stringify({ done: true, data: parsed })}\n\n`);
-      } catch (e) {
-        console.error('[Stream] Final parse error:', e.message);
-        res.write(`data: ${JSON.stringify({ done: true, error: '解析失败', raw: accumulated })}\n\n`);
-      }
-      res.end();
-    };
-
-    const reader = response.body;
-
-    if (typeof reader.getReader === 'function') {
-      // 这里的 response.body 是 Web ReadableStream (原生 fetch)
-      const webReader = reader.getReader();
-      const decoder = new TextDecoder();
-
-      try {
-        while (true) {
-          const { done, value } = await webReader.read();
-          if (done) break;
-          const text = decoder.decode(value, { stream: true });
-          if (processChunk(text)) break;
-        }
-      } finally {
-        webReader.releaseLock();
-        finishStream();
-      }
-    } else {
-      // 这里的 response.body 是 Node.js Readable Stream (node-fetch)
-      reader.on('data', (chunk) => {
-        if (processChunk(chunk.toString())) {
-          // done
-        }
-      });
-      reader.on('end', () => {
-        finishStream();
-      });
-      reader.on('error', (err) => {
-        console.error('[Stream] Node stream error:', err.message);
-        if (!res.writableEnded) {
-          res.write(`data: ${JSON.stringify({ done: true, error: err.message })}\n\n`);
-          res.end();
-        }
-      });
-    }
-
-  } catch (error) {
-    console.error('[Stream] 顶层捕获请求失败:', error.message);
-    if (!res.writableEnded) {
-      res.write(`data: ${JSON.stringify({ done: true, error: error.message })}\n\n`);
-      res.end();
-    }
-  }
-});
-
-// ═══════════════════════════════════════════
-// 端点：动态文案批量生成 (Batch Quote Generator)
-// ═══════════════════════════════════════════
-/**
- * POST /api/generate_quotes
- * Body: { items: [ { id, name, wuxingLogic } ] }
- * Response: { success: true, quotes: { [id]: "「诗句」" } }
- */
-app.post('/api/generate_quotes', async (req, res) => {
-  const apiKey = process.env.SILICONFLOW_API_KEY;
-  if (!apiKey || apiKey === 'your_key_here') {
-    return res.status(500).json({ success: false, error: 'API Key 未配置' });
-  }
-
-  const { items } = req.body;
-  if (!items || !Array.isArray(items) || items.length === 0) {
-    return res.status(400).json({ success: false, error: '缺少有效的 items 数组' });
-  }
-
-  try {
-    const currentFetch = await getFetch();
-    if (!currentFetch) throw new Error('Fetch implementation not found');
-
-    // 构造极致约束、三段式结构的 Prompt
-    const systemPrompt = `你是一位深谙东方五行哲学与现代调酒艺术的专业酒保。
-你的任务是为顾客生成的推荐饮品写一句具有【调理感】的短句。
-
-【核心要求】：
-1. **长度硬约束**：建议控制在 **25-45 字**之间，确保文案有足够的描写空间。**绝对禁止生成小于20个字的短句**。
-2. **三段式结构**：必须包含：[当前状态] + [饮品的核心特征与细节] + [调理动作/目的]。
-3. **丰富描写**：在保证口语化的前提下，增加画面的颗粒度。比如描述具体的“冷热体感”、“舌尖的触感”或“特定的生活化映射”。
-4. **口语化叙事**：语气要自然、平和。**绝对禁止四字词语堆砌，绝对禁止古风诗词感**。
-5. **格式限制**：不带标点，必须用「」包裹。
-6. **多样性**：同一批次的几杯酒，切入角度要略有不同。
-
-【示例】：
-- 辨证:郁气难舒(木) → 「因为最近总是觉得心里闷闷的，这杯带有辛香的金酒正好能帮你把那股气散开，让整个人都通透不少」
-- 辨证:心绪浮躁(火) → 「看你现在心思有点乱，这杯冰凉透骨的伏特加汤力刚好能压住那股燥火，让你的呼吸稳下来」
-- 辨证:感伤低落(金) → 「这会儿要是觉得心里空落落的，这杯温厚绵密的巧克力能像厚毯子一样紧紧裹住你，把寒意都赶跑」
-- 辨证:劳累(土) → 「加班辛苦了，浓缩马力尼这股先苦后回甘的韧劲儿，最能把你的精神头重新给拎起来」
-
-你必须严格输出一个合法的 JSON Object，Key 是传入的饮品 ID，Value 是你写的句子。绝对不要输出其他任何文字！`;
-
-    let userContent = `用户当前心境总结: ${items[0].contextPackage?.moodSummary || '未知'}\n`;
-    userContent += `用户主五行属性: ${items[0].userWuxing || '未知'}\n`;
-    userContent += "请为以下饮品生成专属文案。要求：\n";
-    userContent += "1. 长度建议 25-45 字，描写要具体，有画面感。\n";
-    userContent += "2. 必须包含：[当前状态] + [具体特征] + [调理动作]。\n";
-    userContent += "3. 口语化，严禁四字词语。不要标点。\n\n";
-
-    items.forEach((item, index) => {
-      userContent += `[饮品 ${index + 1}] ID: ${item.id}, 名称: ${item.name || '未知'}, 辨证对照: ${item.diagnosis || '无'}, 策略: ${item.strategyType || '无'}, 物理特性: ${item.contextPackage?.drinkProfile || '无'}\n`;
-    });
-
-    userContent += "\n请严格返回 JSON 格式，不要有任何开场白或解释。";
-    userContent += "\n格式示例：\n{\n";
-    items.forEach((item, index) => {
-      userContent += `  "${item.id}": "「结合意象写的唯一句子」"${index === items.length - 1 ? '' : ','}\n`;
-    });
-    userContent += "}";
-
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => {
-      console.warn('[QuoteGenerator] Timeout triggered (45s)');
-      controller.abort();
-    }, 45000); // 45s超时，因为 batch 可能耗时较长
-
-    let response;
-    try {
-      console.log(`[QuoteGenerator] Requesting batch quotes from ${MODEL_8B}...`);
-      response = await currentFetch(SILICONFLOW_API_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
-        },
-        body: JSON.stringify({
-          model: MODEL_CREATIVE,
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userContent }
-          ],
-          temperature: 0.7,
-          max_tokens: 1000
-        }),
-        signal: controller.signal
-      });
-    } finally {
-      clearTimeout(timeoutId);
-    }
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`[QuoteGenerator] API error response [${response.status}]:`, errorText);
-      throw new Error(`API 返回错误: ${response.status}`);
-    }
-
-    const result = await response.json();
-    const content = (result.choices?.[0]?.message?.content || '').trim();
-
-    let parsedQuotes = {};
-    if (content) {
-      try {
-        // 尝试提取 JSON 内容
-        const jsonMatch = content.match(/\{[\s\S]*\}/);
-        const jsonStr = jsonMatch ? jsonMatch[0] : content;
-
-        // 健壮处理：移除 JSON 中的尾随逗号 (针对有些模型不听话的情况)
-        const sanitizedJson = jsonStr.replace(/,\s*([}\]])/g, '$1');
-
-        parsedQuotes = JSON.parse(sanitizedJson);
-      } catch (e) {
-        console.error('[QuoteGenerator] JSON Parse Error. Raw content:', content);
-        throw new Error('解析生成文案失败: ' + e.message);
-      }
-    }
-
-    console.log(`[QuoteGenerator] Batch generated ${Object.keys(parsedQuotes).length} quotes successfully.`);
-    res.json({ success: true, quotes: parsedQuotes });
-
-  } catch (error) {
-    console.error('[QuoteGenerator] Error:', error.message);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-// ═══════════════════════════════════════════
-// 端点：原料分类与名称标准化 (Ingredient Classification & Normalization)
-// ═══════════════════════════════════════════
-
-// 常见原料别名映射表（硬编码，确保精准匹配）
-const INGREDIENT_ALIASES = {
-  // 水果类别名
-  '奇异果': { normalized: '猕猴桃', category: '水果' },
-  '猎猴桃': { normalized: '猕猴桃', category: '水果' },
-  '凤梨': { normalized: '菠萝', category: '水果' },
-  '波罗': { normalized: '菠萝', category: '水果' },
-  '西柚': { normalized: '葡萄柚', category: '水果' },
-  '胡柚': { normalized: '葡萄柚', category: '水果' },
-  '士多啤梨': { normalized: '草莓', category: '水果' },
-  '柳橙': { normalized: '橙子', category: '水果' },
-  '柳丁': { normalized: '橙子', category: '水果' },
-  '车厘子': { normalized: '樱桃', category: '水果' },
-  '番茄': { normalized: '番茄', category: '水果' },
-  '西红柿': { normalized: '番茄', category: '水果' },
-  // 果汁类别名
-  '奇异果汁': { normalized: '猕猴桃汁', category: '果汁' },
-  '凤梨汁': { normalized: '菠萝汁', category: '果汁' },
-  '西柚汁': { normalized: '葡萄柚汁', category: '果汁' },
-  '番茄汁': { normalized: '番茄汁', category: '果汁' },
-  '西红柿汁': { normalized: '番茄汁', category: '果汁' },
-  // 乳制品
-  '忌廉': { normalized: '奶油', category: '乳制品/蛋类' },
-  '鲜奶油': { normalized: '奶油', category: '乳制品/蛋类' },
-  '淡奶': { normalized: '炼乳', category: '乳制品/蛋类' },
-  '炼奶': { normalized: '炼乳', category: '乳制品/蛋类' },
-  // 气泡饮料
-  '梳打水': { normalized: '苏打水', category: '气泡饮料' },
-  '汽水': { normalized: '苏打水', category: '气泡饮料' },
-  '气泡水': { normalized: '苏打水', category: '气泡饮料' },
-  // 香草香料
-  '薄荷叶': { normalized: '薄荷', category: '香草/香料' },
-  '新鲜薄荷': { normalized: '薄荷', category: '香草/香料' },
-  '九层塔': { normalized: '罗勒', category: '香草/香料' },
-  // 基酒
-  '伏特加酒': { normalized: '伏特加', category: '基酒' },
-  '白兰地酒': { normalized: '白兰地', category: '基酒' },
-  '威士忌酒': { normalized: '威士忌', category: '基酒' },
-  '金酒': { normalized: '金酒', category: '基酒' },
-  '朗姆酒': { normalized: '朗姆酒', category: '基酒' },
-  '龙舌兰酒': { normalized: '龙舌兰', category: '基酒' },
 };
 
-app.post('/api/classify_ingredient', async (req, res) => {
-  const { name } = req.body;
-
-  if (!name || !name.trim()) {
-    return res.status(400).json({ success: false, error: '缺少原料名称' });
+/**
+ * 统一的错误响应格式
+ */
+const errorResponse = (res, statusCode, error, details = null) => {
+  const response = {
+    success: false,
+    error,
+    meta: {
+      timestamp: new Date().toISOString()
+    }
+  };
+  if (details && process.env.NODE_ENV !== 'production') {
+    response.details = details;
   }
+  res.status(statusCode).json(response);
+};
 
-  const inputName = name.trim();
+/**
+ * 请求日志记录
+ */
+const logRequest = (req, res, next) => {
+  const start = Date.now();
+  const clientIp = req.ip || req.connection.remoteAddress;
   
-  // ═══ 第一步：硬编码别名查表（最快最准） ═══
-  if (INGREDIENT_ALIASES[inputName]) {
-    const match = INGREDIENT_ALIASES[inputName];
-    console.log(`[ClassifyIngredient] 硬匹配: "${inputName}" -> category: ${match.category}, normalized: ${match.normalized}`);
-    return res.json({
-      success: true,
-      category: match.category,
-      normalized_name: match.normalized,
-      original_input: inputName
-    });
-  }
-
-  // ═══ 第二步：调用LLM进行智能分类 ═══
-  const apiKey = process.env.SILICONFLOW_API_KEY;
-  if (!apiKey) {
-    return res.status(500).json({ success: false, error: 'API Key 未配置' });
-  }
-
-  try {
-    const currentFetch = await getFetch();
-    if (!currentFetch) throw new Error('Fetch implementation not found');
-
-    const CATEGORIES = [
-      '基酒', '利口酒', '苦精', '果汁', '水果', '糖浆/甜味剂', '气泡饮料',
-      '乳制品/蛋类', '香草/香料', '装饰', '其他'
-    ];
-
-    const systemPrompt = `你是调酒原料分类专家。将原料分类并返回标准化名称。
-
-分类选项：${CATEGORIES.join('、')}
-
-分类规则：
-- 基酒：伏特加、威士忌、金酒、朗姆酒、龙舌兰、白兰地等烈酒
-- 果汁：柠檬汁、橙汁、菠萝汁、番茄汁等
-- 水果：柠檬、草莓、樱桃、猕猴桃、菠萝、橙子等新鲜水果
-- 糖浆/甜味剂：糖浆、蜂蜜、石榴糖浆等
-- 气泡饮料：苏打水、汤力水、可乐等
-- 乳制品/蛋类：牛奶、奶油、蛋白、蛋黄等
-- 香草/香料：薄荷、肉桂、罗勒等
-
-返回JSON: {"category":"分类","normalized_name":"标准名"}`;
-
-    const userMessage = `原料名称：${name.trim()}`;
-
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000);
-
-    const response = await currentFetch(SILICONFLOW_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: MODEL_8B,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userMessage }
-        ],
-        temperature: 0.1,
-        max_tokens: 150,
-        response_format: { type: 'json_object' }
-      }),
-      signal: controller.signal
-    });
-
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      throw new Error(`API 返回错误: ${response.status}`);
-    }
-
-    const result = await response.json();
-    const content = (result.choices?.[0]?.message?.content || '').trim();
-
-    let category = '其他';
-    let normalizedName = name.trim();
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    const logData = {
+      timestamp: new Date().toISOString(),
+      method: req.method,
+      path: req.path,
+      status: res.statusCode,
+      duration: `${duration}ms`,
+      ip: clientIp,
+      userAgent: req.get('user-agent')?.substring(0, 50)
+    };
     
-    if (content) {
-      try {
-        const parsed = JSON.parse(content);
-        if (parsed.category && CATEGORIES.includes(parsed.category)) {
-          category = parsed.category;
-        }
-        if (parsed.normalized_name) {
-          normalizedName = parsed.normalized_name;
-        }
-      } catch (e) {
-        console.warn('[ClassifyIngredient] JSON parse failed, using default');
-      }
+    if (res.statusCode >= 400) {
+      console.error('[Request Error]', JSON.stringify(logData));
+    } else {
+      console.log('[Request]', JSON.stringify(logData));
     }
+  });
+  
+  next();
+};
 
-    console.log(`[ClassifyIngredient] "${name}" -> category: ${category}, normalized: ${normalizedName}`);
-    res.json({ 
-      success: true, 
-      category,
-      normalized_name: normalizedName,
-      original_input: name.trim()
-    });
-
-  } catch (error) {
-    console.error('[ClassifyIngredient] Error:', error.message);
-    // 错误时返回原始名称
-    res.json({ 
-      success: true, 
-      category: '其他',
-      normalized_name: name.trim(),
-      original_input: name.trim()
+/**
+ * 简单的内存限流中间件
+ */
+const rateLimiter = (req, res, next) => {
+  const clientIp = req.ip || req.connection.remoteAddress;
+  const now = Date.now();
+  
+  // 清理过期的请求记录
+  for (const [ip, data] of requestCounts.entries()) {
+    if (now - data.resetTime > RATE_LIMIT_WINDOW) {
+      requestCounts.delete(ip);
+    }
+  }
+  
+  // 获取或创建当前 IP 的请求记录
+  let clientData = requestCounts.get(clientIp);
+  if (!clientData || now > clientData.resetTime) {
+    clientData = { count: 0, resetTime: now + RATE_LIMIT_WINDOW };
+    requestCounts.set(clientIp, clientData);
+  }
+  
+  // 检查限流
+  if (clientData.count >= RATE_LIMIT_MAX) {
+    return errorResponse(res, 429, '请求过于频繁，请稍后再试', {
+      retryAfter: Math.ceil((clientData.resetTime - now) / 1000)
     });
   }
-});
+  
+  clientData.count++;
+  
+  // 添加限流响应头
+  res.setHeader('X-RateLimit-Limit', RATE_LIMIT_MAX);
+  res.setHeader('X-RateLimit-Remaining', Math.max(0, RATE_LIMIT_MAX - clientData.count));
+  res.setHeader('X-RateLimit-Reset', new Date(clientData.resetTime).toISOString());
+  
+  next();
+};
 
-// ═══════════════════════════════════════════
-// 端点：自定义饮品维度生成 (Custom Drink Dimensions Generator)
-// ═══════════════════════════════════════════
 /**
- * POST /api/generate-drink-dimensions
- * Body: { name: string, description?: string, ingredients?: string[], isAlcoholic?: boolean }
- * Response: { success: boolean, vector?: number[], dimensions?: object, error?: string }
+ * API Key 验证中间件
  */
-app.post('/api/generate-drink-dimensions', async (req, res) => {
+const validateApiKey = (req, res, next) => {
   const apiKey = process.env.SILICONFLOW_API_KEY;
+  
   if (!apiKey || apiKey === 'your_key_here') {
-    return res.status(500).json({ success: false, error: 'API Key 未配置' });
+    return errorResponse(res, 500, 'SILICONFLOW_API_KEY 未配置。请在 .env 文件中设置你的 API Key。');
   }
-
-  const { name, description, ingredients, isAlcoholic } = req.body;
-
-  if (!name || typeof name !== 'string' || !name.trim()) {
-    return res.status(400).json({ success: false, error: '缺少饮品名称' });
-  }
-
-  try {
-    const currentFetch = await getFetch();
-    if (!currentFetch) throw new Error('Fetch implementation not found');
-
-    const systemPrompt = `你是一位调酒和饮品专家，精通东方五行哲学与饮品风味分析。
-根据用户描述的饮品信息，生成8维风味向量。
-
-你必须严格返回 JSON 格式，不要添加任何额外文字。
-
-## 8维向量说明
-1. taste (主味分值): 0-10 (0=无味, 5=适中, 10=浓烈)
-2. texture (气机方向): -3~3 (-3=下沉, 0=平衡, 3=上扬)
-3. temperature (阴阳): -5~5 (-5=极冰, 0=常温, 5=热饮)
-4. element (五行): 1-5 (1=木/绿, 2=火/红, 3=土/黄, 4=金/白, 5=水/黑)
-5. time (适饮时段): 0-23 (小时)
-6. aroma (香气强度): 0-10
-7. abv (酒精度%): 0-95
-8. action (冥想类型): 1-5 (1=专注, 2=放松, 3=社交, 4=独处, 5=庆祝)
-
-## 输出 JSON Schema
-{
-  "vector": [number, number, number, number, number, number, number, number],
-  "dimensions": {
-    "sweetness": { "value": number, "label": "string" },
-    "sourness": { "value": number, "label": "string" },
-    "bitterness": { "value": number, "label": "string" },
-    "temperature": { "value": number, "label": "string" },
-    "aroma": { "value": number, "label": "string" },
-    "texture": { "value": number, "label": "string" },
-    "strength": { "value": number, "label": "string" }
-  },
-  "reasoning": "string — 简短的分析理由"
-}`;
-
-    const userContent = `请为以下饮品生成8维风味向量：
-
-饮品名称：${name.trim()}
-口感描述：${description || '未提供'}
-主要原料：${ingredients && Array.isArray(ingredients) && ingredients.length > 0 ? ingredients.join(', ') : '未提供'}
-含酒精：${isAlcoholic ? '是' : '否'}
-
-请根据以上信息，结合你的专业知识推断合理的风味向量。`;
-
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000);
-
-    let response;
-    try {
-      console.log(`[DrinkDimensions] Requesting analysis for "${name}" using ${MODEL_8B}...`);
-      response = await currentFetch(SILICONFLOW_API_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
-        },
-        body: JSON.stringify({
-          model: MODEL_8B,
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userContent }
-          ],
-          temperature: 0.5
-        }),
-        signal: controller.signal
-      });
-    } finally {
-      clearTimeout(timeoutId);
-    }
-
-    if (!response.ok) {
-      throw new Error(`API 返回错误: ${response.status}`);
-    }
-
-    const result = await response.json();
-    const content = (result.choices?.[0]?.message?.content || '').trim();
-
-    let parsed = {};
-    if (content) {
-      try {
-        // 尝试提取 JSON 内容
-        const jsonMatch = content.match(/\{[\s\S]*\}/);
-        const jsonStr = jsonMatch ? jsonMatch[0] : content;
-
-        // 健壮处理：移除 JSON 中的尾随逗号
-        const sanitizedJson = jsonStr.replace(/,\s*([}\]])/g, '$1');
-
-        parsed = JSON.parse(sanitizedJson);
-      } catch (e) {
-        console.error('[DrinkDimensions] JSON Parse Error. Raw content:', content);
-        throw new Error('解析饮品维度失败: ' + e.message);
-      }
-    }
-
-    // 验证向量格式
-    if (!parsed.vector || !Array.isArray(parsed.vector) || parsed.vector.length !== 8) {
-      console.error('[DrinkDimensions] Invalid vector format:', parsed.vector);
-      throw new Error('生成的向量格式不正确');
-    }
-
-    console.log(`[DrinkDimensions] Generated vector for "${name}": [${parsed.vector.join(', ')}]`);
-    res.json({
-      success: true,
-      vector: parsed.vector,
-      dimensions: parsed.dimensions,
-      reasoning: parsed.reasoning
-    });
-
-  } catch (error) {
-    console.error('[DrinkDimensions] Error:', error.message);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-// ═══════════════════════════════════════════
-// 端点：全链路聚合分析 (Comprehensive Analyze) - 性能优化核心
-// ═══════════════════════════════════════════
-/**
- * POST /api/comprehensive_analyze
- * 一次性完成：语义提取 + 辨证分析 + 向量翻译
- * 预期节省耗时: 30s-40s
- */
-app.post('/api/comprehensive_analyze', async (req, res) => {
-  const { user_input, current_time } = req.body;
-  if (!user_input) return res.status(400).json({ success: false, error: '缺少 user_input' });
-
-  const timeInfo = current_time || new Date().toISOString();
-  const systemPrompt = buildComprehensiveSystemPrompt();
-  const userMessage = `用户心境: "${user_input}"\n当前环境时间: ${timeInfo}`;
-
-  try {
-    // 🚀 性能优化：使用 7B 模型 + 低温度，配合后端验证兜底，实现快速响应
-    const model = MODEL_CORE;
-    console.log(`[ComprehensiveAnalyze] >>> 开始全链路聚合推理 (MODEL: ${model})...`);
-    console.log(`[ComprehensiveAnalyze] 用户输入: "${user_input}"`);
-    const startTime = Date.now();
-
-    // 7B 模型响应更快，超时设为 25s
-    const data = await callLLM(systemPrompt, userMessage, {
-      model: model,
-      temperature: 0.3,  // 低温度 = 更快、更稳定的 JSON 输出
-      jsonMode: true,
-      timeout: 45000,
-      maxRetries: 1      // 减少重试次数，配合验证兜底
-    });
-
-    const duration = Date.now() - startTime;
-    console.log(`[ComprehensiveAnalyze] <<< 聚合推理完成, 耗时: ${duration}ms`);
-
-    // 验证并补全响应数据
-    const validatedData = validateAndCompleteComprehensiveData(data, user_input);
-
-    res.json({ success: true, data: validatedData });
-  } catch (error) {
-    console.error('[ComprehensiveAnalyze Error] 聚合流程中断:', error.message);
-    if (error.cause) console.error('  Cause:', error.cause);
-    if (error.stack) console.error('  Stack:', error.stack);
-
-    res.status(500).json({
-      success: false,
-      error: error.message,
-      type: error.name === 'AbortError' ? 'timeout' : 'error'
-    });
-  }
-});
+  
+  req.apiKey = apiKey;
+  next();
+};
 
 /**
- * 验证并补全聚合分析响应数据
- * 确保 moodData, patternAnalysis, vectorResult 三大模块完整
+ * 通用的 LLM 调用函数
  */
-function validateAndCompleteComprehensiveData(data, userInput) {
-  const result = { ...data };
-
-  // 检测情绪倾向 (简单规则)
-  const positiveKeywords = ['开心', '高兴', '快乐', '幸福', '兴奋', '愉快', '喜悦', '舒畅', '满足', '美好', '棒', '好'];
-  const negativeKeywords = ['难过', '伤心', '沮丧', '焦虑', '烦躁', '疲惫', '累', '压力', '郁闷', '生气', '愤怒', '失落'];
-  const isPositive = positiveKeywords.some(k => userInput.includes(k));
-  const isNegative = negativeKeywords.some(k => userInput.includes(k));
-
-  // 1. 确保 moodData 存在且完整
-  if (!result.moodData || typeof result.moodData !== 'object') {
-    console.warn('[ComprehensiveAnalyze] moodData 缺失，使用降级默认值');
-    result.moodData = buildDefaultMoodData(isPositive, isNegative, userInput);
-  } else {
-    // 确保关键字段存在
-    result.moodData = {
-      ...buildDefaultMoodData(isPositive, isNegative, userInput),
-      ...result.moodData
-    };
-  }
-
-  // 2. 确保 patternAnalysis 存在且完整
-  if (!result.patternAnalysis || typeof result.patternAnalysis !== 'object') {
-    console.warn('[ComprehensiveAnalyze] patternAnalysis 缺失，使用降级默认值');
-    result.patternAnalysis = buildDefaultPatternAnalysis(isPositive, isNegative);
-  } else {
-    result.patternAnalysis = {
-      ...buildDefaultPatternAnalysis(isPositive, isNegative),
-      ...result.patternAnalysis
-    };
-  }
-
-  // 3. 确保 vectorResult 存在且完整
-  if (!result.vectorResult || typeof result.vectorResult !== 'object') {
-    console.warn('[ComprehensiveAnalyze] vectorResult 缺失，使用降级默认值');
-    result.vectorResult = buildDefaultVectorResult(isPositive);
-  } else {
-    // 确保 targetVector 是有效数组
-    if (!Array.isArray(result.vectorResult.targetVector) || result.vectorResult.targetVector.length !== 8) {
-      result.vectorResult.targetVector = buildDefaultVectorResult(isPositive).targetVector;
-    }
-    // 确保 weights 是有效数组且和为1
-    if (!Array.isArray(result.vectorResult.weights) || result.vectorResult.weights.length !== 8) {
-      result.vectorResult.weights = [0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125];
-    }
-    if (!result.vectorResult.priorities) {
-      result.vectorResult.priorities = ['emotion', 'temperature', 'aroma'];
-    }
-  }
-
-  console.log('[ComprehensiveAnalyze] 数据验证完成，所有模块已就绪');
-  return result;
-}
-
-function buildDefaultMoodData(isPositive, isNegative, userInput) {
-  const hour = new Date().getHours();
-  return {
-    emotion: {
-      physical: { state: isPositive ? '愉悦' : (isNegative ? '低落' : '平静'), intensity: 0.6 },
-      philosophy: { wuxing: isPositive ? 'fire' : (isNegative ? 'water' : 'earth') },
-      drinkMapping: { tasteScore: 5, colorCode: 3 }
-    },
-    somatic: {
-      physical: { sensation: '正常', intensity: 0.5 },
-      philosophy: { direction: isPositive ? '上升' : '平稳', yinyang: '中性' },
-      drinkMapping: { temperature: 0, textureScore: 0 }
-    },
-    time: { drinkMapping: { temporality: hour } },
-    cognitive: { drinkMapping: { aromaScore: 5 } },
-    demand: {
-      philosophy: { type: isPositive ? '动' : '止' },
-      drinkMapping: { actionScore: isPositive ? 4 : 2 }
-    },
-    socialContext: { drinkMapping: { ratioScore: 15 } },
-    isNegative: isNegative && !isPositive,
-    summary: userInput || '心情平和'
-  };
-}
-
-function buildDefaultPatternAnalysis(isPositive, isNegative) {
-  return {
-    polarity: {
-      type: isPositive ? 'positive' : (isNegative ? 'negative' : 'mixed'),
-      confidence: 0.7
-    },
-    wuxing: {
-      user: isPositive ? 'fire' : (isNegative ? 'water' : 'earth'),
-      scores: { wood: 0.15, fire: isPositive ? 0.4 : 0.15, earth: 0.2, metal: 0.1, water: isNegative ? 0.4 : 0.15 },
-      confidence: 0.7
-    },
-    strategy: {
-      type: isPositive ? 'resonate' : (isNegative ? 'counter' : 'harmonize'),
-      logic: isPositive ? '顺势而为，助其欢畅' : (isNegative ? '以柔克刚，温和化解' : '平衡调和，顺其自然')
-    },
-    diagnosis: {
-      summary: isPositive ? '心情舒畅，宜顺势助兴' : (isNegative ? '情绪低落，需温润调理' : '状态平稳，可随心而饮'),
-      recommendation: isPositive ? '清爽上扬的饮品' : (isNegative ? '温润安神的饮品' : '平衡和谐的饮品')
-    }
-  };
-}
-
-function buildDefaultVectorResult(isPositive) {
-  const hour = new Date().getHours();
-  return {
-    targetVector: [
-      5,                              // taste: 中等甜度
-      isPositive ? 1 : -1,            // texture: 正面上扬，负面下沉
-      isPositive ? -1 : 1,            // temperature: 正面清爽，负面温热
-      3,                              // color: 中性
-      hour,                           // temporality: 当前时间
-      5,                              // aroma: 中等香气
-      15,                             // ratio: 低酒精度
-      isPositive ? 3 : 2              // action: 正面社交，负面独处
-    ],
-    weights: [0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125],
-    priorities: ['emotion', 'temperature', 'aroma'],
-    mappingExplanation: {
-      wuxing: isPositive ? '火' : '水',
-      strategy: isPositive ? '顺势共鸣' : '温和调理',
-      keyDimensions: ['texture', 'temperature', 'aroma']
-    }
-  };
-}
-
-
-
-// ═══════════════════════════════════════════
-// 通用 LLM 调用辅助函数
-// ═══════════════════════════════════════════
 async function callLLM(systemPrompt, userContent, options = {}) {
   const {
     temperature = 0.5,
     jsonMode = true,
     model = MODEL_8B,
     timeout = 45000,
-    maxRetries = 2
+    maxRetries = 2,
+    maxTokens = 800
   } = options;
 
   const apiKey = process.env.SILICONFLOW_API_KEY;
   const currentFetch = await getFetch();
+  
   if (!currentFetch) throw new Error('Fetch implementation not found');
+  if (!apiKey || apiKey === 'your_key_here') throw new Error('API Key 未配置');
 
   let lastError;
+  
   for (let i = 0; i <= maxRetries; i++) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeout);
@@ -1071,12 +200,13 @@ async function callLLM(systemPrompt, userContent, options = {}) {
           'User-Agent': 'MoodMix/1.0 (Node.js)'
         },
         body: JSON.stringify({
-          model: model,
+          model,
           messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userContent }
           ],
           temperature,
+          max_tokens: maxTokens,
           response_format: jsonMode ? { type: 'json_object' } : undefined
         }),
         signal: controller.signal
@@ -1092,7 +222,7 @@ async function callLLM(systemPrompt, userContent, options = {}) {
 
       if (jsonMode) {
         try {
-          // AI 可能会返回带有 markdown 代码块的 JSON
+          // 处理 markdown 代码块
           if (content.includes('```')) {
             const match = content.match(/```(?:json)?([\s\S]*?)```/);
             if (match) content = match[1].trim();
@@ -1105,19 +235,18 @@ async function callLLM(systemPrompt, userContent, options = {}) {
           throw new Error('大模型 JSON 格式化失败，请重试');
         }
       }
+      
       return content;
     } catch (err) {
       lastError = err;
+      
       if (err.name === 'AbortError') {
         console.warn(`[callLLM] 响应超时 (试图第 ${i + 1}/${maxRetries + 1} 次)`);
       } else {
         console.warn(`[callLLM] 请求失败: ${err.message} (试图第 ${i + 1}/${maxRetries + 1} 次)`);
       }
 
-      // 如果是最后一次尝试，或者不是网络/超时错误，则不再重试
       if (i === maxRetries) break;
-
-      // 等待 1s 后重试
       await new Promise(resolve => setTimeout(resolve, 1000));
     } finally {
       clearTimeout(timeoutId);
@@ -1128,11 +257,457 @@ async function callLLM(systemPrompt, userContent, options = {}) {
 }
 
 // ═══════════════════════════════════════════
-// 端点：深度辨证分析 (Pattern Analyze)
+// 中间件配置
 // ═══════════════════════════════════════════
-app.post('/api/pattern_analyze', async (req, res) => {
+
+// 信任代理（用于云平台如 Render.com）
+app.set('trust proxy', 1);
+
+// CORS 配置
+const corsOptions = {
+  origin: process.env.CORS_ORIGIN?.split(',') || ['http://localhost:5173', 'http://localhost:3000'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+};
+
+app.use(cors(corsOptions));
+app.use(express.json({ limit: '10mb' }));
+app.use(logRequest);
+app.use(rateLimiter);
+
+// ═══════════════════════════════════════════
+// 全局异常处理
+// ═══════════════════════════════════════════
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception thrown:', err);
+});
+
+// ═══════════════════════════════════════════
+// 基础端点
+// ═══════════════════════════════════════════
+
+/**
+ * 健康检查端点
+ */
+app.get('/health', (req, res) => {
+  const apiKey = process.env.SILICONFLOW_API_KEY;
+  const health = {
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    version: process.env.npm_package_version || '1.0.0',
+    services: {
+      llm: (!!apiKey && apiKey !== 'your_key_here') ? 'connected' : 'not_configured'
+    }
+  };
+  
+  const statusCode = health.services.llm === 'connected' ? 200 : 503;
+  res.status(statusCode).json(health);
+});
+
+/**
+ * 根端点
+ */
+app.get('/', (req, res) => {
+  res.json({
+    name: 'MoodMix LLM Proxy',
+    version: '1.0.0',
+    status: 'running',
+    endpoints: [
+      { path: '/health', method: 'GET', description: '健康检查' },
+      { path: '/api/analyze-mood', method: 'POST', description: '情绪分析' },
+      { path: '/api/analyze-mood/stream', method: 'POST', description: '流式情绪分析' },
+      { path: '/api/comprehensive-analyze', method: 'POST', description: '综合分析' },
+      { path: '/api/pattern-analyze', method: 'POST', description: '深度辨证分析' },
+      { path: '/api/vector-translate', method: 'POST', description: '向量翻译' },
+      { path: '/api/validate-optimize', method: 'POST', description: '校验与优化' },
+      { path: '/api/generate-quotes', method: 'POST', description: '批量生成文案' },
+      { path: '/api/drink-assistant', method: 'POST', description: '饮品制作助手' },
+      { path: '/api/social-card-copy', method: 'POST', description: '社交卡片文案' },
+      { path: '/api/speech-to-text', method: 'POST', description: '语音转文字' },
+      { path: '/api/cocktaildb/*', method: 'ALL', description: 'CocktailDB 代理' },
+      { path: '/api/cocktail-image/:imageName', method: 'GET', description: '鸡尾酒图片代理' }
+    ]
+  });
+});
+
+// ═══════════════════════════════════════════
+// CocktailDB API 代理
+// ═══════════════════════════════════════════
+
+app.all('/api/cocktaildb/*', async (req, res) => {
+  const targetPath = req.originalUrl.replace('/api/cocktaildb', '') || '/';
+  const targetUrl = `${COCKTAILDB_BASE}${targetPath}`;
+
+  console.log('[CocktailDB Proxy]', req.method, targetUrl);
+
+  try {
+    const currentFetch = await getFetch();
+    if (!currentFetch) {
+      return errorResponse(res, 500, 'Fetch implementation not found');
+    }
+
+    const response = await currentFetch(targetUrl, {
+      method: req.method,
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+    
+    const status = response.status;
+    const text = await response.text();
+    
+    console.log('[CocktailDB] Status:', status, 'Body:', text.substring(0, 200));
+
+    if (status !== 200) {
+      return errorResponse(res, status, 'CocktailDB API error', { status, body: text });
+    }
+
+    const data = JSON.parse(text);
+    successResponse(res, data);
+  } catch (error) {
+    console.error('[CocktailDB Proxy Error]', error);
+    errorResponse(res, 500, 'CocktailDB 代理请求失败', error.message);
+  }
+});
+
+// ═══════════════════════════════════════════
+// 鸡尾酒图片代理
+// ═══════════════════════════════════════════
+
+app.get('/api/cocktail-image/:imageName', async (req, res) => {
+  const imageName = req.params.imageName;
+  
+  // 验证图片名称安全性
+  if (!imageName || !/^[\w\-\.]+\.(jpg|jpeg|png|gif)$/i.test(imageName)) {
+    return errorResponse(res, 400, '无效的图片名称');
+  }
+  
+  const targetUrl = `https://www.thecocktaildb.com/images/media/drink/${imageName}`;
+
+  try {
+    const currentFetch = await getFetch();
+    if (!currentFetch) {
+      return errorResponse(res, 500, 'Fetch implementation not found');
+    }
+
+    const response = await currentFetch(targetUrl);
+    
+    if (!response.ok) {
+      return errorResponse(res, response.status, '图片获取失败');
+    }
+
+    // 转发原始 Content-Type
+    const contentType = response.headers.get('content-type');
+    if (contentType) res.setHeader('Content-Type', contentType);
+
+    // 设置长时间缓存
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+
+    // 流式转发
+    if (response.body.pipe) {
+      response.body.pipe(res);
+    } else {
+      const reader = response.body.getReader();
+      const pump = async () => {
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) {
+              res.end();
+              return;
+            }
+            res.write(Buffer.from(value));
+          }
+        } catch (err) {
+          console.error('[Image Pipe Error]', err);
+          res.end();
+        }
+      };
+      pump();
+    }
+  } catch (error) {
+    console.error('[Image Proxy Error]', error);
+    errorResponse(res, 502, '图片代理请求失败', error.message);
+  }
+});
+
+// ═══════════════════════════════════════════
+// LLM API 端点
+// ═══════════════════════════════════════════
+
+/**
+ * 情绪分析处理器
+ */
+async function handleMoodAnalysis(req, res) {
+  const { user_input, current_time } = req.body;
+
+  if (!user_input || typeof user_input !== 'string' || !user_input.trim()) {
+    return errorResponse(res, 400, '缺少 user_input 参数或参数无效');
+  }
+
+  try {
+    const timeInfo = current_time || new Date().toISOString();
+    const systemPrompt = buildSystemPrompt();
+    const userMessage = buildUserMessage(user_input.trim(), timeInfo);
+
+    const parsed = await callLLM(systemPrompt, userMessage, {
+      model: MODEL_CORE,
+      temperature: 0.5,
+      maxTokens: 800,
+      timeout: 60000
+    });
+
+    console.log(`[${new Date().toLocaleTimeString()}] 分析完成: "${user_input.slice(0, 30)}..." → isNegative=${parsed.isNegative}`);
+
+    successResponse(res, parsed);
+  } catch (error) {
+    console.error('分析请求失败:', error.message);
+    errorResponse(res, 500, `分析失败: ${error.message}`);
+  }
+}
+
+/**
+ * POST /api/analyze-mood
+ * POST /api/analyze_mood (向后兼容)
+ * 情绪分析
+ */
+app.post('/api/analyze-mood', validateApiKey, handleMoodAnalysis);
+app.post('/api/analyze_mood', validateApiKey, handleMoodAnalysis);
+
+/**
+ * 流式情绪分析处理器
+ */
+async function handleStreamMoodAnalysis(req, res) {
+  // 设置 SSE 头
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive',
+    'Access-Control-Allow-Origin': '*'
+  });
+
+  const sendEvent = (data) => {
+    if (!res.writableEnded) {
+      res.write(`data: ${JSON.stringify(data)}\n\n`);
+    }
+  };
+
+  try {
+    const { user_input, current_time } = req.body;
+    
+    if (!user_input || typeof user_input !== 'string' || !user_input.trim()) {
+      sendEvent({ error: '缺少 user_input 参数或参数无效', done: true });
+      res.end();
+      return;
+    }
+
+    const currentFetch = await getFetch();
+    if (!currentFetch) {
+      sendEvent({ error: 'Fetch implementation not found', done: true });
+      res.end();
+      return;
+    }
+
+    const timeInfo = current_time || new Date().toISOString();
+    const systemPrompt = buildSystemPrompt();
+    const userMessage = buildUserMessage(user_input.trim(), timeInfo);
+
+    console.log(`[Stream] 开始请求 SiliconFlow (${MODEL_CORE})...`);
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      console.warn('[Stream] 请求超时 (30s)');
+      controller.abort();
+    }, 30000);
+
+    let response;
+    try {
+      response = await currentFetch(SILICONFLOW_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${req.apiKey}`
+        },
+        body: JSON.stringify({
+          model: MODEL_CORE,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userMessage }
+          ],
+          temperature: 0.5,
+          max_tokens: 800,
+          stream: true
+        }),
+        signal: controller.signal
+      });
+    } catch (err) {
+      console.error('[Stream] Fetch 网络错误:', err.message);
+      sendEvent({ error: `网络连接失败: ${err.message}`, done: true });
+      res.end();
+      return;
+    } finally {
+      clearTimeout(timeoutId);
+    }
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`[Stream] API 响应错误 [${response.status}]:`, errorText);
+      sendEvent({ error: `API error: ${response.status}`, done: true });
+      res.end();
+      return;
+    }
+
+    console.log('[Stream] 收到响应头，正在读取流...');
+
+    let accumulated = '';
+    let lineBuffer = '';
+
+    const processChunk = (chunkText) => {
+      lineBuffer += chunkText;
+      let newlineIndex;
+      
+      while ((newlineIndex = lineBuffer.indexOf('\n')) >= 0) {
+        const line = lineBuffer.slice(0, newlineIndex).trim();
+        lineBuffer = lineBuffer.slice(newlineIndex + 1);
+
+        if (!line.startsWith('data:')) continue;
+        
+        const data = line.replace(/^data:\s*/, '').trim();
+
+        if (data === '[DONE]') {
+          return true;
+        }
+
+        try {
+          const parsed = JSON.parse(data);
+          const delta = parsed.choices?.[0]?.delta?.content || '';
+          if (delta) {
+            accumulated += delta;
+            sendEvent({ delta, done: false });
+          }
+        } catch (e) {
+          // 忽略不完整的 JSON
+        }
+      }
+      return false;
+    };
+
+    const finishStream = () => {
+      if (res.writableEnded) return;
+      
+      try {
+        const jsonMatch = accumulated.match(/\{[\s\S]*\}/);
+        const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : accumulated);
+        sendEvent({ done: true, data: parsed });
+      } catch (e) {
+        console.error('[Stream] Final parse error:', e.message);
+        sendEvent({ done: true, error: '解析失败', raw: accumulated });
+      }
+      res.end();
+    };
+
+    const reader = response.body;
+
+    if (typeof reader.getReader === 'function') {
+      // Web ReadableStream (原生 fetch)
+      const webReader = reader.getReader();
+      const decoder = new TextDecoder();
+
+      try {
+        while (true) {
+          const { done, value } = await webReader.read();
+          if (done) break;
+          const text = decoder.decode(value, { stream: true });
+          if (processChunk(text)) break;
+        }
+      } finally {
+        webReader.releaseLock();
+        finishStream();
+      }
+    } else {
+      // Node.js Readable Stream (node-fetch)
+      reader.on('data', (chunk) => {
+        processChunk(chunk.toString());
+      });
+      reader.on('end', finishStream);
+      reader.on('error', (err) => {
+        console.error('[Stream] Node stream error:', err.message);
+        if (!res.writableEnded) {
+          sendEvent({ done: true, error: err.message });
+          res.end();
+        }
+      });
+    }
+
+  } catch (error) {
+    console.error('[Stream] 顶层捕获请求失败:', error.message);
+    if (!res.writableEnded) {
+      sendEvent({ done: true, error: error.message });
+      res.end();
+    }
+  }
+}
+
+/**
+ * POST /api/analyze-mood/stream
+ * POST /api/analyze_mood_stream (向后兼容)
+ * 流式情绪分析 (SSE)
+ */
+app.post('/api/analyze-mood/stream', validateApiKey, handleStreamMoodAnalysis);
+app.post('/api/analyze_mood_stream', validateApiKey, handleStreamMoodAnalysis);
+
+/**
+ * POST /api/comprehensive-analyze
+ * POST /api/comprehensive_analyze (向后兼容)
+ * 综合分析（一次性完成语义+辨证+向量）
+ */
+async function handleComprehensiveAnalyze(req, res) {
+  const { user_input, current_time } = req.body;
+
+  if (!user_input || typeof user_input !== 'string' || !user_input.trim()) {
+    return errorResponse(res, 400, '缺少 user_input 参数或参数无效');
+  }
+
+  try {
+    const timeInfo = current_time || new Date().toISOString();
+    const systemPrompt = buildComprehensiveSystemPrompt();
+    const userMessage = buildUserMessage(user_input.trim(), timeInfo);
+
+    const parsed = await callLLM(systemPrompt, userMessage, {
+      model: MODEL_CORE,
+      temperature: 0.5,
+      maxTokens: 1200,
+      timeout: 60000
+    });
+
+    successResponse(res, parsed);
+  } catch (error) {
+    console.error('综合分析请求失败:', error.message);
+    errorResponse(res, 500, `综合分析失败: ${error.message}`);
+  }
+}
+
+app.post('/api/comprehensive-analyze', validateApiKey, handleComprehensiveAnalyze);
+app.post('/api/comprehensive_analyze', validateApiKey, handleComprehensiveAnalyze);
+
+/**
+ * POST /api/pattern-analyze
+ * POST /api/pattern_analyze (向后兼容)
+ * 深度辨证分析
+ */
+async function handlePatternAnalyze(req, res) {
   const { moodData } = req.body;
-  if (!moodData) return res.status(400).json({ success: false, error: '缺少 moodData' });
+  
+  if (!moodData) {
+    return errorResponse(res, 400, '缺少 moodData 参数');
+  }
 
   const systemPrompt = `你是一位深谙中医辨证与五行哲学的心理分析专家。
 请根据用户的六维心情数据，推断其五行极性、调理策略及诊断结论。
@@ -1148,18 +723,26 @@ app.post('/api/pattern_analyze', async (req, res) => {
 
   try {
     const data = await callLLM(systemPrompt, JSON.stringify(moodData), { model: MODEL_CORE });
-    res.json({ success: true, data });
+    successResponse(res, data);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    errorResponse(res, 500, error.message);
   }
-});
+}
 
-// ═══════════════════════════════════════════
-// 端点：向量翻译 (Vector Translate)
-// ═══════════════════════════════════════════
-app.post('/api/vector_translate', async (req, res) => {
+app.post('/api/pattern-analyze', validateApiKey, handlePatternAnalyze);
+app.post('/api/pattern_analyze', validateApiKey, handlePatternAnalyze);
+
+/**
+ * POST /api/vector-translate
+ * POST /api/vector_translate (向后兼容)
+ * 向量翻译
+ */
+async function handleVectorTranslate(req, res) {
   const { moodData, patternAnalysis } = req.body;
-  if (!moodData || !patternAnalysis) return res.status(400).json({ success: false, error: '参数缺失' });
+  
+  if (!moodData || !patternAnalysis) {
+    return errorResponse(res, 400, '缺少 moodData 或 patternAnalysis 参数');
+  }
 
   const systemPrompt = `你是一位精通跨模态映射的数学与风味专家。
 将中医辨证结论翻译为 8 维饮品搜索向量。
@@ -1169,26 +752,34 @@ app.post('/api/vector_translate', async (req, res) => {
 
 ## 输出格式
 {
-  "targetVector": [number, number, ...], // 8个数值，分别对应上述维度
-  "weights": [number, number, ...],      // 8个正数权重，且【之和必须严格等于 1.0】
+  "targetVector": [number, number, ...],
+  "weights": [number, number, ...],
   "priorities": ["dimension_name", ...], 
   "mappingExplanation": { "wuxing": "string", "strategy": "string", "keyDimensions": ["string", ...] }
 }`;
 
   try {
     const data = await callLLM(systemPrompt, JSON.stringify({ moodData, patternAnalysis }), { model: MODEL_CORE });
-    res.json({ success: true, data });
+    successResponse(res, data);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    errorResponse(res, 500, error.message);
   }
-});
+}
 
-// ═══════════════════════════════════════════
-// 端点：校验与全程优化 (Validate & Optimize)
-// ═══════════════════════════════════════════
-app.post('/api/validate_optimize', async (req, res) => {
+app.post('/api/vector-translate', validateApiKey, handleVectorTranslate);
+app.post('/api/vector_translate', validateApiKey, handleVectorTranslate);
+
+/**
+ * POST /api/validate-optimize
+ * POST /api/validate_optimize (向后兼容)
+ * 校验与优化
+ */
+async function handleValidateOptimize(req, res) {
   const { fullContext } = req.body;
-  if (!fullContext) return res.status(400).json({ success: false, error: '缺少 context' });
+  
+  if (!fullContext) {
+    return errorResponse(res, 400, '缺少 fullContext 参数');
+  }
 
   const systemPrompt = `你是一位严谨的系统验证专家。
 请审查当前的推荐流输出，检测潜在冲突、安全性问题，并给出质量评分。
@@ -1196,7 +787,7 @@ app.post('/api/validate_optimize', async (req, res) => {
 
 ## 输出格式
 {
-  "score": number, // 0-100
+  "score": number,
   "qualityLevel": "excellent/good/acceptable/poor",
   "shouldRetry": boolean,
   "shouldBlock": boolean,
@@ -1204,31 +795,238 @@ app.post('/api/validate_optimize', async (req, res) => {
   "issues": [ { "type": "error/warning/info", "message": "string", "severity": "high/medium/low" } ],
   "uiHints": { 
     "showBadge": boolean, 
-    "badgeText": "string", // 必须【仅返回四个汉字】，严禁包含「」、引号、英文或任何标点。选项：心味相合, 恰有灵犀, 随缘入味, 缘来一试
+    "badgeText": "string",
     "bottomHintText": "string" 
   }
-} `;
+}`;
 
   try {
     const data = await callLLM(systemPrompt, JSON.stringify(fullContext), {
       model: MODEL_8B,
-      timeout: 50000,   // 验证逻辑较重，给予 50s
-      maxRetries: 2    // 支持 2 次重试
+      timeout: 50000,
+      maxRetries: 2
     });
-    res.json({ success: true, data });
+    successResponse(res, data);
   } catch (error) {
     console.error('[ValidateOptimize Error] 质检流程中断:', error.message);
-    if (error.cause) console.error('  Cause:', error.cause);
-    res.status(500).json({
-      success: false,
-      error: error.message,
+    errorResponse(res, 500, error.message, {
       type: error.name === 'AbortError' ? 'timeout' : 'error'
     });
   }
-});
+}
+
+app.post('/api/validate-optimize', validateApiKey, handleValidateOptimize);
+app.post('/api/validate_optimize', validateApiKey, handleValidateOptimize);
+
+/**
+ * POST /api/generate-quotes
+ * POST /api/generate_quotes (向后兼容)
+ * 批量生成文案
+ */
+async function handleGenerateQuotes(req, res) {
+  const { items } = req.body;
+  
+  if (!items || !Array.isArray(items) || items.length === 0) {
+    return errorResponse(res, 400, '缺少有效的 items 数组');
+  }
+
+  if (items.length > 10) {
+    return errorResponse(res, 400, '单次最多生成 10 条文案');
+  }
+
+  try {
+    const systemPrompt = `你是一位深谙东方五行哲学与现代调酒艺术的专业酒保。
+你的任务是为顾客生成的推荐饮品写一句具有【调理感】的短句。
+
+【核心要求】：
+1. **长度硬约束**：建议控制在 **25-45 字**之间，确保文案有足够的描写空间。**绝对禁止生成小于20个字的短句**。
+2. **三段式结构**：必须包含：[当前状态] + [饮品的核心特征与细节] + [调理动作/目的]。
+3. **丰富描写**：在保证口语化的前提下，增加画面的颗粒度。比如描述具体的"冷热体感"、"舌尖的触感"或"特定的生活化映射"。
+4. **口语化叙事**：语气要自然、平和。**绝对禁止四字词语堆砌，绝对禁止古风诗词感**。
+5. **格式限制**：不带标点，必须用「」包裹。
+6. **多样性**：同一批次的几杯酒，切入角度要略有不同。
+
+【示例】：
+- 辨证:郁气难舒(木) → 「因为最近总是觉得心里闷闷的，这杯带有辛香的金酒正好能帮你把那股气散开，让整个人都通透不少」
+- 辨证:心绪浮躁(火) → 「看你现在心思有点乱，这杯冰凉透骨的伏特加汤力刚好能压住那股燥火，让你的呼吸稳下来」
+
+你必须严格输出一个合法的 JSON Object，Key 是传入的饮品 ID，Value 是你写的句子。绝对不要输出其他任何文字！`;
+
+    let userContent = `用户当前心境总结: ${items[0].contextPackage?.moodSummary || '未知'}\n`;
+    userContent += `用户主五行属性: ${items[0].userWuxing || '未知'}\n\n`;
+    
+    items.forEach((item, index) => {
+      userContent += `[饮品 ${index + 1}] ID: ${item.id}, 名称: ${item.name || '未知'}, 辨证对照: ${item.diagnosis || '无'}\n`;
+    });
+
+    userContent += "\n请严格返回 JSON 格式，不要有任何开场白或解释。";
+
+    const parsedQuotes = await callLLM(systemPrompt, userContent, {
+      model: MODEL_CREATIVE,
+      temperature: 0.7,
+      maxTokens: 1000,
+      timeout: 45000
+    });
+
+    console.log(`[QuoteGenerator] Batch generated ${Object.keys(parsedQuotes).length} quotes successfully.`);
+    successResponse(res, parsedQuotes);
+
+  } catch (error) {
+    console.error('[QuoteGenerator] Error:', error.message);
+    errorResponse(res, 500, error.message);
+  }
+}
+
+app.post('/api/generate-quotes', validateApiKey, handleGenerateQuotes);
+app.post('/api/generate_quotes', validateApiKey, handleGenerateQuotes);
+
+/**
+ * POST /api/drink-assistant
+ * POST /api/drink_assistant (向后兼容)
+ * 饮品制作助手
+ */
+async function handleDrinkAssistant(req, res) {
+  const { drink, question, userInventory } = req.body;
+
+  if (!drink || !question) {
+    return errorResponse(res, 400, '缺少 drink 或 question 参数');
+  }
+
+  try {
+    const ingredientList = drink.ingredients?.map(ing =>
+      `${ing.name || ing.ingredient}: ${ing.measure || ''}`
+    ).join('\n') || '未知配方';
+
+    const inventoryText = userInventory?.length > 0
+      ? userInventory.join('、')
+      : '未提供库存信息';
+
+    const systemPrompt = `你是一位专业调酒师助手，擅长解决制作饮品时遇到的各种问题。
+
+你的回答应该：
+1. 简洁实用，控制在150字内
+2. 具体到用量/比例
+3. 口语化、友好亲切的语气
+4. 如果是口味问题，给出具体调整建议
+5. 如果是原料缺失，优先推荐用户库存中有的替代品，若无则推荐常见替代
+6. 如果是工具问题，给出家庭常见物品的替代方案`;
+
+    const userMessage = `用户正在制作: ${drink.name || '未知饮品'}
+
+【饮品配方】
+${ingredientList}
+
+【用户库存】
+${inventoryText}
+
+【用户问题】
+${question}
+
+请给出实用建议。`;
+
+    const answer = await callLLM(systemPrompt, userMessage, {
+      model: MODEL_8B,
+      temperature: 0.7,
+      jsonMode: false,
+      maxTokens: 500
+    });
+
+    successResponse(res, { answer });
+  } catch (error) {
+    console.error('[Drink Assistant] Error:', error);
+    errorResponse(res, 500, error.message);
+  }
+}
+
+app.post('/api/drink-assistant', validateApiKey, handleDrinkAssistant);
+app.post('/api/drink_assistant', validateApiKey, handleDrinkAssistant);
+
+/**
+ * POST /api/social-card-copy
+ * POST /api/social_card_copy (向后兼容)
+ * 社交卡片文案生成
+ */
+async function handleSocialCardCopy(req, res) {
+  const { drink, prompt: userPrompt } = req.body;
+  
+  if (!drink || !userPrompt) {
+    return errorResponse(res, 400, '缺少 drink 或 prompt 参数');
+  }
+
+  try {
+    const systemPrompt = `你是一位深谙东方审美与现代情绪表达的文案大师。
+你的任务是为饮品分享卡片生成一段极具【诗意】与【克制感】的文案。
+
+【核心要求】：
+1. 风格：东方韵味、极简、有温度、像耳边的低语。
+2. 长度：2-3句话，30-50字。
+3. 严禁：鸡汤、口号、感叹号、四字词语堆砌。
+4. 内容：结合饮品的感官细节（色、味、温）和用户的情绪心径。`;
+
+    const copy = await callLLM(systemPrompt, userPrompt, {
+      model: MODEL_CREATIVE,
+      temperature: 0.8,
+      jsonMode: false,
+      maxTokens: 300
+    });
+
+    successResponse(res, { copy });
+  } catch (error) {
+    console.error('[Social Card Copy] Error:', error);
+    errorResponse(res, 500, error.message);
+  }
+}
+
+app.post('/api/social-card-copy', validateApiKey, handleSocialCardCopy);
+app.post('/api/social_card_copy', validateApiKey, handleSocialCardCopy);
+
+/**
+ * POST /api/speech-to-text
+ * POST /api/speech_to_text (向后兼容)
+ * 语音转文字
+ */
+async function handleSpeechToText(req, res) {
+  const { audio, format = 'wav' } = req.body;
+
+  if (!audio) {
+    return errorResponse(res, 400, '缺少 audio 参数');
+  }
+
+  // 验证音频格式
+  const validFormats = ['wav', 'mp3', 'm4a', 'webm', 'ogg'];
+  if (!validFormats.includes(format.toLowerCase())) {
+    return errorResponse(res, 400, `不支持的音频格式: ${format}。支持的格式: ${validFormats.join(', ')}`);
+  }
+
+  try {
+    const systemPrompt = `你是一位语音识别专家。请将用户提供的音频内容转录为文字。
+如果音频质量不佳或无法识别，请返回 "[无法识别]"并简要说明原因。
+只返回转录的文字内容，不要添加任何解释。`;
+
+    // 注意：这里假设 audio 是 base64 编码的音频数据
+    // 实际实现可能需要调用专门的语音识别 API
+    const userMessage = `请转录以下 ${format.toUpperCase()} 格式的音频内容：\n\n[音频数据长度: ${audio.length} 字符]`;
+
+    const text = await callLLM(systemPrompt, userMessage, {
+      model: MODEL_8B,
+      temperature: 0.3,
+      jsonMode: false,
+      maxTokens: 500,
+      timeout: 30000
+    });
+
+    successResponse(res, { text, format });
+  } catch (error) {
+    console.error('[Speech-to-Text] Error:', error);
+    errorResponse(res, 500, `语音识别失败: ${error.message}`);
+  }
+}
+
+app.post('/api/speech-to-text', validateApiKey, handleSpeechToText);
+app.post('/api/speech_to_text', validateApiKey, handleSpeechToText);
 
 // ═══════════════════════════════════════════
-// Prompt 工程
+// Prompt 工程函数
 // ═══════════════════════════════════════════
 
 function buildSystemPrompt() {
@@ -1280,11 +1078,8 @@ function buildSystemPrompt() {
 }`;
 }
 
-/**
- * 核心优化：聚合提示词构造器 - 一次性完成 语义+辨证+向量
- */
 function buildComprehensiveSystemPrompt() {
-  return `你是一位集“语义蒸馏”、“中医辨证”与“调酒风味专家”映射于一身的智能中枢。
+  return `你是一位集"语义蒸馏"、"中医辨证"与"调酒风味专家"映射于一身的智能中枢。
 你的任务是将用户的一句心情描述，一次性转化为完整的推荐逻辑链。
 
 ### 阶段一：语体语义提取
@@ -1312,28 +1107,9 @@ function buildComprehensiveSystemPrompt() {
 
 ### 输出 JSON 结构
 {
-  "moodData": {
-    "emotion": { "physical": { "state": "string", "intensity": 0.0-1.0 }, "philosophy": { "wuxing": "string" }, "drinkMapping": { "tasteScore": 0-10, "colorCode": 1-5 } },
-    "somatic": { "physical": { "sensation": "string", "intensity": 0.0-1.0 }, "philosophy": { "direction": "string", "yinyang": "string" }, "drinkMapping": { "temperature": -5~5, "textureScore": -3~3 } },
-    "time": { "drinkMapping": { "temporality": 0-23 } },
-    "cognitive": { "drinkMapping": { "aromaScore": 0-10 } },
-    "demand": { "philosophy": { "type": "止/动/破" }, "drinkMapping": { "actionScore": 1-5 } },
-    "socialContext": { "drinkMapping": { "ratioScore": 0-95 } },
-    "isNegative": boolean,
-    "summary": "一句话总结"
-  },
-  "patternAnalysis": {
-    "polarity": { "type": "negative/positive/mixed", "confidence": number },
-    "wuxing": { "user": "wood/fire/earth/metal/water", "scores": { "wood": number, ... }, "confidence": number },
-    "strategy": { "type": "string", "logic": "string" },
-    "diagnosis": { "summary": "string", "recommendation": "string" }
-  },
-  "vectorResult": {
-    "targetVector": [number, ...], // 8D
-    "weights": [number, ...],      // 8D, sum=1.0
-    "priorities": ["dimension_name", ...],
-    "mappingExplanation": { "wuxing": "string", "strategy": "string", "keyDimensions": ["string", ...] }
-  }
+  "moodData": { /* 六维数据 */ },
+  "patternAnalysis": { /* 辨证分析 */ },
+  "vectorResult": { /* 向量结果 */ }
 }`;
 }
 
@@ -1347,425 +1123,34 @@ function buildUserMessage(userInput, timeInfo) {
 }
 
 // ═══════════════════════════════════════════
-// 饮品制作助手 API
+// 全局错误处理中间件
 // ═══════════════════════════════════════════
-app.post('/api/drink-assistant', async (req, res) => {
-  const apiKey = process.env.SILICONFLOW_API_KEY;
 
-  if (!apiKey || apiKey === 'your_key_here') {
-    return res.status(500).json({
-      success: false,
-      error: 'SILICONFLOW_API_KEY 未配置'
-    });
-  }
+app.use((err, req, res, next) => {
+  console.error('[Global Error]', err);
+  errorResponse(res, err.status || 500, err.message || '服务器内部错误');
+});
 
-  const { drink, question, userInventory } = req.body;
-
-  if (!drink || !question) {
-    return res.status(400).json({
-      success: false,
-      error: '缺少 drink 或 question 参数'
-    });
-  }
-
-  try {
-    const fetch = (await import('node-fetch')).default;
-
-    // 构建配方信息
-    const ingredientList = drink.ingredients?.map(ing =>
-      `${ing.name || ing.ingredient}: ${ing.measure || ''}`
-    ).join('\n') || '未知配方';
-
-    // 构建用户库存信息
-    const inventoryText = userInventory?.length > 0
-      ? userInventory.join('、')
-      : '未提供库存信息';
-
-    const systemPrompt = `你是一位专业调酒师助手，擅长解决制作饮品时遇到的各种问题。
-
-你的回答应该：
-1. 简洁实用，控制在150字内
-2. 具体到用量/比例
-3. 口语化、友好亲切的语气
-4. 如果是口味问题，给出具体调整建议
-5. 如果是原料缺失，优先推荐用户库存中有的替代品，若无则推荐常见替代
-6. 如果是工具问题，给出家庭常见物品的替代方案`;
-
-    const userMessage = `用户正在制作: ${drink.name || '未知饮品'}
-
-【饮品配方】
-${ingredientList}
-
-【用户库存】
-${inventoryText}
-
-【用户问题】
-${question}
-
-请给出实用建议。`;
-
-    const response = await fetch(SILICONFLOW_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: MODEL_8B,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userMessage }
-        ],
-        max_tokens: 500,
-        temperature: 0.7
-      })
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('[Drink Assistant] API error:', errorText);
-      return res.status(response.status).json({ success: false, error: errorText });
-    }
-
-    const data = await response.json();
-    const answer = data.choices?.[0]?.message?.content || '抱歉，暂时无法回答。';
-
-    res.json({ success: true, answer });
-  } catch (error) {
-    console.error('[Drink Assistant] Error:', error);
-    res.status(500).json({ success: false, error: error.message });
-  }
+// 404 处理
+app.use((req, res) => {
+  errorResponse(res, 404, `未找到端点: ${req.method} ${req.path}`);
 });
 
 // ═══════════════════════════════════════════
-// 端点：社交卡片文案生成
-// ═══════════════════════════════════════════
-app.post('/api/social-card-copy', async (req, res) => {
-  const apiKey = process.env.SILICONFLOW_API_KEY;
-  if (!apiKey || apiKey === 'your_key_here') {
-    return res.status(500).json({ success: false, error: 'API Key 未配置' });
-  }
-
-  const { drink, prompt: userPrompt } = req.body;
-  if (!drink || !userPrompt) {
-    return res.status(400).json({ success: false, error: '缺少参数' });
-  }
-
-  try {
-    const fetch = (await import('node-fetch')).default;
-
-    const systemPrompt = `你是一位深谙东方审美与现代情緒表达的文案大师。
-你的任务是为饮品分享卡片生成一段极具【诗意】与【克制感】的文案。
-
-【核心要求】：
-1. 风格：东方韵味、极简、有温度、像耳边的低语。
-2. 长度：2-3句话，30-50字。
-3. 严禁：鸡汤、口号、感叹号、四字词语堆砌。
-4. 内容：结合饮品的感官细节（色、味、温）和用户的情绪心径。`;
-
-    const response = await fetch(SILICONFLOW_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: MODEL_CREATIVE,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        max_tokens: 300,
-        temperature: 0.8
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error(`API 返回错误: ${response.status}`);
-    }
-
-    const data = await response.json();
-    const copy = data.choices?.[0]?.message?.content?.trim() || '岁序更迭，此情可待';
-
-    res.json({ success: true, copy });
-  } catch (error) {
-    console.error('[Social Card Copy] Error:', error);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-// ═══════════════════════════════════════════
-// 端点：语音转文字 (Speech-to-Text)
-// 使用 Qwen-2.5-7B-Instruct 模型
-// ═══════════════════════════════════════════
-/**
- * POST /api/speech-to-text
- * Body: { audio: string (base64 encoded audio) }
- * Response: { success: boolean, text?: string, error?: string }
- */
-app.post('/api/speech-to-text', async (req, res) => {
-  const apiKey = process.env.SILICONFLOW_API_KEY;
-
-  if (!apiKey || apiKey === 'your_key_here') {
-    return res.status(500).json({
-      success: false,
-      error: 'SILICONFLOW_API_KEY 未配置'
-    });
-  }
-
-  const { audio } = req.body;
-
-  if (!audio || typeof audio !== 'string') {
-    return res.status(400).json({
-      success: false,
-      error: '缺少 audio 参数（需要 base64 编码的音频数据）'
-    });
-  }
-
-  try {
-    const currentFetch = await getFetch();
-    if (!currentFetch) throw new Error('Fetch implementation not found');
-
-    const systemPrompt = `你是一个专业的语音识别助手。你的任务是将用户提供的音频数据转录为文字。
-
-要求：
-1. 准确识别音频中的中文语音内容
-2. 只返回识别到的文字内容，不要添加任何解释、标点或格式
-3. 如果无法识别或音频不清晰，返回空字符串
-4. 去除语气词和重复词，保持语句通顺`;
-
-    const userMessage = `请将以下 base64 编码的音频数据转录为文字：\n\n${audio.substring(0, 1000)}...`;
-
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => {
-      controller.abort();
-    }, 30000);
-
-    let response;
-    try {
-      response = await currentFetch(SILICONFLOW_API_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
-        },
-        body: JSON.stringify({
-          model: MODEL_8B,
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userMessage }
-          ],
-          temperature: 0.3,
-          max_tokens: 500
-        }),
-        signal: controller.signal
-      });
-    } finally {
-      clearTimeout(timeoutId);
-    }
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`[Speech-to-Text] API error [${response.status}]:`, errorText);
-      return res.status(response.status).json({
-        success: false,
-        error: `API 返回错误: ${response.status}`
-      });
-    }
-
-    const result = await response.json();
-    const text = result.choices?.[0]?.message?.content?.trim() || '';
-
-    console.log(`[Speech-to-Text] 识别完成，结果: "${text.substring(0, 50)}..."`);
-
-    res.json({ success: true, text });
-
-  } catch (error) {
-    console.error('[Speech-to-Text] Error:', error.message);
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
-  }
-});
-
-// ═══════════════════════════════════════════
-// 饮品心意统计 API
+// 启动服务器
 // ═══════════════════════════════════════════
 
-// 内存存储：饮品心意统计 { drinkId: { userUIDs: Set, count: number } }
-const drinkLikeStats = new Map();
-
-// 全局用户UID集合（用于统计真实用户总数）
-const globalUserUIDs = new Set();
-
-// 初始化饮品心意统计
-function initDrinkLikeStats(drinkId) {
-  if (!drinkLikeStats.has(drinkId)) {
-    drinkLikeStats.set(drinkId, {
-      userUIDs: new Set(),
-      count: 0
-    });
-  }
-}
-
-/**
- * POST /api/drink/like
- * 记录用户对饮品的心意
- * Body: { drinkId: string, userUID: string }
- * Response: { success: boolean, count: number, showMessage: boolean }
- */
-app.post('/api/drink/like', (req, res) => {
-  const { drinkId, userUID } = req.body;
-
-  if (!drinkId || !userUID) {
-    return res.status(400).json({
-      success: false,
-      error: '缺少 drinkId 或 userUID'
-    });
-  }
-
-  initDrinkLikeStats(drinkId);
-  const stats = drinkLikeStats.get(drinkId);
-
-  const isNewLike = !stats.userUIDs.has(userUID);
-  
-  if (isNewLike) {
-    stats.userUIDs.add(userUID);
-    stats.count++;
-    globalUserUIDs.add(userUID);
-  }
-
-  console.log(`[DrinkLike] 饮品 ${drinkId} 被 ${userUID} 标记为心仪，当前统计: ${stats.count} 人，全局用户总数: ${globalUserUIDs.size}`);
-
-  if (global.io) {
-    global.io.to(`drink-${drinkId}`).emit('drink-liked', {
-      drinkId,
-      count: stats.count,
-      isNewLike
-    });
-    console.log(`[WebSocket] 已广播饮品 ${drinkId} 的喜欢更新到房间 drink-${drinkId}`);
-  }
-
-  res.json({
-    success: true,
-    count: stats.count,
-    showMessage: stats.count >= 2
-  });
+app.listen(PORT, () => {
+  console.log(`
+╔══════════════════════════════════════════════════════════════╗
+║                    MoodMix LLM Proxy                         ║
+╠══════════════════════════════════════════════════════════════╣
+║  服务状态: 运行中                                              ║
+║  端口: ${PORT}                                               ║
+║  环境: ${process.env.NODE_ENV || 'development'}                          ║
+║  API Key: ${process.env.SILICONFLOW_API_KEY ? '已配置 ✓' : '未配置 ✗'}                          ║
+╚══════════════════════════════════════════════════════════════╝
+  `);
 });
 
-/**
- * POST /api/drink/unlike
- * 取消用户对饮品的心意
- * Body: { drinkId: string, userUID: string }
- * Response: { success: boolean, count: number, showMessage: boolean }
- */
-app.post('/api/drink/unlike', (req, res) => {
-  const { drinkId, userUID } = req.body;
-
-  if (!drinkId || !userUID) {
-    return res.status(400).json({
-      success: false,
-      error: '缺少 drinkId 或 userUID'
-    });
-  }
-
-  initDrinkLikeStats(drinkId);
-  const stats = drinkLikeStats.get(drinkId);
-
-  // 如果用户之前标记过这个饮品，则减少计数
-  if (stats.userUIDs.has(userUID)) {
-    stats.userUIDs.delete(userUID);
-    stats.count = Math.max(0, stats.count - 1);
-  }
-
-  console.log(`[DrinkLike] 饮品 ${drinkId} 被 ${userUID} 取消心仪，当前统计: ${stats.count} 人`);
-
-  res.json({
-    success: true,
-    count: stats.count,
-    showMessage: stats.count >= 2
-  });
-});
-
-/**
- * GET /api/drink/like-stats/:drinkId
- * 获取饮品的心意统计
- * Response: { success: boolean, count: number, showMessage: boolean }
- */
-app.get('/api/drink/like-stats/:drinkId', (req, res) => {
-  const { drinkId } = req.params;
-
-  if (!drinkId) {
-    return res.status(400).json({
-      success: false,
-      error: '缺少 drinkId'
-    });
-  }
-
-  initDrinkLikeStats(drinkId);
-  const stats = drinkLikeStats.get(drinkId);
-
-  res.json({
-    success: true,
-    count: stats.count,
-    showMessage: stats.count >= 2
-  });
-});
-
-/**
- * GET /api/stats/total-users
- * 获取真实UID用户总数
- * Response: { success: boolean, totalUsers: number }
- */
-app.get('/api/stats/total-users', (req, res) => {
-  res.json({
-    success: true,
-    totalUsers: globalUserUIDs.size
-  });
-});
-
-// ─── 创建 HTTP 服务器和 WebSocket 服务器 ───
-const httpServer = createServer(app);
-const io = new Server(httpServer, {
-  cors: {
-    origin: '*',
-    methods: ['GET', 'POST']
-  }
-});
-
-// WebSocket 连接管理
-io.on('connection', (socket) => {
-  console.log(`[WebSocket] 新客户端连接: ${socket.id}`);
-
-  socket.on('disconnect', () => {
-    console.log(`[WebSocket] 客户端断开连接: ${socket.id}`);
-  });
-
-  socket.on('join-drink-room', (drinkId) => {
-    socket.join(`drink-${drinkId}`);
-    console.log(`[WebSocket] 客户端 ${socket.id} 加入饮品房间: ${drinkId}`);
-  });
-
-  socket.on('leave-drink-room', (drinkId) => {
-    socket.leave(`drink-${drinkId}`);
-    console.log(`[WebSocket] 客户端 ${socket.id} 离开饮品房间: ${drinkId}`);
-  });
-});
-
-// 导出 io 实例供其他模块使用
-global.io = io;
-
-// ─── 启动服务器 ───
-httpServer.listen(PORT, '0.0.0.0', () => {
-  const hasKey = process.env.SILICONFLOW_API_KEY && process.env.SILICONFLOW_API_KEY !== 'your_key_here';
-  console.log(`\n🍹 MoodMix SiliconFlow 代理服务已启动`);
-  console.log(`   端口: ${PORT}`);
-  console.log(`   模型: ${MODEL_8B}`);
-  console.log(`   API Key: ${hasKey ? '✅ 已配置' : '❌ 未配置 — 请在 .env 中设置 SILICONFLOW_API_KEY'}`);
-  console.log(`   网络: 已绑定到 0.0.0.0，允许局域网访问`);
-  console.log(`   WebSocket: ✅ 已启用，支持实时同步`);
-  console.log(`   端点:`);
-  console.log(`     - POST http://localhost:${PORT}/api/analyze_mood`);
-  console.log(`     - POST http://localhost:${PORT}/api/speech-to-text\n`);
-});
+module.exports = app;

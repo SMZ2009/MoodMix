@@ -337,6 +337,7 @@ const MoodInputSection = ({
   moodInput, setMoodInput, selectedMood, setSelectedMood, onGenerate, buttonFeedback, isMixing,
   ingredientCount, onEditIngredients, onNavigate, activeTab, showFriendlyNotice
 }) => {
+  // onGenerate can optionally accept a directMood value for immediate tag clicks
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
 
   useEffect(() => {
@@ -456,7 +457,7 @@ const MoodInputSection = ({
                   setSelectedMood(nextValue);
                   // 选中东方情绪锚点时，直接进入玄学等待轮播画面
                   if (!isSelected && !isMixing) {
-                    onGenerate();
+                    onGenerate(nextValue);  // Pass mood value directly to avoid async state issue
                   }
                 }}
                 className={`mood-ink-tag ${isSelected ? 'is-selected' : ''}`}
@@ -2270,14 +2271,21 @@ const App = () => {
   }, [emotionType, interventionType, moodInput, selectedMood, sessionIngredients, apiDrinks, customDrinks, setRecommendationPool, setCurrentBatchIndex, setCurrentCardIndex, setMixMode, setShowRecommendationGallery, setCustomQuotes, showFriendlyNotice]);
 
   // 调用后端千问API进行情绪分析和饮品推荐
-  const processMoodAndGenerate = useCallback(async () => {
-    const combinedInput = (moodInput + (selectedMood || "")).trim();
+  const processMoodAndGenerate = useCallback(async (directMoodValue = null) => {
+    // Use directMoodValue if provided (from tag click), otherwise use state
+    const effectiveMood = directMoodValue !== null ? directMoodValue : selectedMood;
+    const combinedInput = (moodInput + (effectiveMood || "")).trim();
 
-    // 综合输入验证 - 检测特殊输入场景
-    const validation = validateInput(combinedInput);
-    if (!validation.valid) {
-      showFriendlyNotice(validation.title, validation.message, validation.tone || 'default');
-      return;
+    // 如果是东方情绪锚点（标签点击），跳过空输入验证
+    const isOrientalTagClick = directMoodValue && ORIENTAL_MOOD_TAGS.some(tag => tag.value === directMoodValue);
+    
+    // 综合输入验证 - 检测特殊输入场景（东方标签点击跳过空输入检查）
+    if (!isOrientalTagClick) {
+      const validation = validateInput(combinedInput);
+      if (!validation.valid) {
+        showFriendlyNotice(validation.title, validation.message, validation.tone || 'default');
+        return;
+      }
     }
 
 
@@ -2287,8 +2295,12 @@ const App = () => {
       finalInputForAI += `\n(重要参考: 用户目前拥有的原料: ${sessionIngredients.join(', ')})`;
     }
 
+    // 检查是否选中了东方情绪锚点（这些是预设的文学表达，不应被本地负面关键词检测干扰）
+    const isOrientalAnchor = ORIENTAL_MOOD_TAGS.some(tag => tag.value === effectiveMood);
+
     // 首先检查是否为负面情绪（本地快速检测）
-    const isNegativeLocal = NEGATIVE_KEYWORDS.some(kw => combinedInput.toLowerCase().includes(kw)) || selectedMood === '#难受';
+    // 注意：东方情绪锚点跳过本地负面检测，让 LLM 来判断情绪属性
+    const isNegativeLocal = !isOrientalAnchor && (NEGATIVE_KEYWORDS.some(kw => combinedInput.toLowerCase().includes(kw)) || effectiveMood === '#难受');
 
     if (isNegativeLocal) {
       // 负面情绪：尝试自动检测用户意图

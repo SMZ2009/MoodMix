@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useMemo, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useMemo, useEffect, forwardRef } from 'react';
 import html2canvas from 'html2canvas';
 import {
   ChevronLeft, Heart, HelpCircle, Flame, Search, Plus,
@@ -107,7 +107,7 @@ const ShareCardImage = ({ src }) => {
  * Redesigned Share Card Component (DOM-based)
  * 完整卡片布局，二维码包含在卡片内部
  */
-const ShareCard = React.forwardRef(({ drinkName, emotion, wuxing, imageSrc, llmCopy, qrCodeSrc }, ref) => {
+const ShareCard = forwardRef(({ drinkName, emotion, wuxing, imageSrc, llmCopy, qrCodeSrc }, ref) => {
   // 日期格式：2026.03.15
   const today = new Date();
   const formattedDate = `${today.getFullYear()}.${String(today.getMonth() + 1).padStart(2, '0')}.${String(today.getDate()).padStart(2, '0')}`;

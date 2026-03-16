@@ -14,6 +14,8 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const { createServer } = require('http');
+const { Server } = require('socket.io');
 
 // 加载 .env 文件
 require('dotenv').config({ path: path.resolve(__dirname, '..', '.env') });
@@ -1623,13 +1625,23 @@ app.post('/api/drink/like', (req, res) => {
   initDrinkLikeStats(drinkId);
   const stats = drinkLikeStats.get(drinkId);
 
-  // 如果用户之前没有标记过这个饮品，则增加计数
-  if (!stats.userUIDs.has(userUID)) {
+  const isNewLike = !stats.userUIDs.has(userUID);
+  
+  if (isNewLike) {
     stats.userUIDs.add(userUID);
     stats.count++;
   }
 
   console.log(`[DrinkLike] 饮品 ${drinkId} 被 ${userUID} 标记为心仪，当前统计: ${stats.count} 人`);
+
+  if (global.io) {
+    global.io.to(`drink-${drinkId}`).emit('drink-liked', {
+      drinkId,
+      count: stats.count,
+      isNewLike
+    });
+    console.log(`[WebSocket] 已广播饮品 ${drinkId} 的喜欢更新到房间 drink-${drinkId}`);
+  }
 
   res.json({
     success: true,
@@ -1697,14 +1709,46 @@ app.get('/api/drink/like-stats/:drinkId', (req, res) => {
   });
 });
 
+// ─── 创建 HTTP 服务器和 WebSocket 服务器 ───
+const httpServer = createServer(app);
+const io = new Server(httpServer, {
+  cors: {
+    origin: '*',
+    methods: ['GET', 'POST']
+  }
+});
+
+// WebSocket 连接管理
+io.on('connection', (socket) => {
+  console.log(`[WebSocket] 新客户端连接: ${socket.id}`);
+
+  socket.on('disconnect', () => {
+    console.log(`[WebSocket] 客户端断开连接: ${socket.id}`);
+  });
+
+  socket.on('join-drink-room', (drinkId) => {
+    socket.join(`drink-${drinkId}`);
+    console.log(`[WebSocket] 客户端 ${socket.id} 加入饮品房间: ${drinkId}`);
+  });
+
+  socket.on('leave-drink-room', (drinkId) => {
+    socket.leave(`drink-${drinkId}`);
+    console.log(`[WebSocket] 客户端 ${socket.id} 离开饮品房间: ${drinkId}`);
+  });
+});
+
+// 导出 io 实例供其他模块使用
+global.io = io;
+
 // ─── 启动服务器 ───
-app.listen(PORT, '0.0.0.0', () => {
+httpServer.listen(PORT, '0.0.0.0', () => {
   const hasKey = process.env.SILICONFLOW_API_KEY && process.env.SILICONFLOW_API_KEY !== 'your_key_here';
   console.log(`\n🍹 MoodMix SiliconFlow 代理服务已启动`);
   console.log(`   端口: ${PORT}`);
   console.log(`   模型: ${MODEL_8B}`);
   console.log(`   API Key: ${hasKey ? '✅ 已配置' : '❌ 未配置 — 请在 .env 中设置 SILICONFLOW_API_KEY'}`);
   console.log(`   网络: 已绑定到 0.0.0.0，允许局域网访问`);
+  console.log(`   WebSocket: ✅ 已启用，支持实时同步`);
   console.log(`   端点:`);
   console.log(`     - POST http://localhost:${PORT}/api/analyze_mood`);
   console.log(`     - POST http://localhost:${PORT}/api/speech-to-text\n`);

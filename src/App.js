@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import CustomMenuIcon from './components/CustomMenuIcon';
 import { QRCodeSVG, QRCodeCanvas } from 'qrcode.react';
+import { io } from 'socket.io-client';
 
 import { inventoryStorage, favoriteStorage, collectionStorage, customDrinkStorage, userStorage } from './store/localStorageAdapter';
 import HelperModal from './components/HelperModal';
@@ -1795,11 +1796,68 @@ const App = () => {
   const [isSideNavOpen, setIsSideNavOpen] = useState(false);
   const [showIngredientLibrary, setShowIngredientLibrary] = useState(false);
   const [showIngredientCustomForm, setShowIngredientCustomForm] = useState(false);
+  const [socket, setSocket] = useState(null);
+  const [liveLikeCount, setLiveLikeCount] = useState({});
 
   // Track if session ingredients have been initialized from inventory
   const isSessionInitialized = useRef(false);
   const isQuoteFetching = useRef(false);
   const mainContentRef = useRef(null);
+
+  // WebSocket 连接初始化
+  useEffect(() => {
+    const socketInstance = io('http://localhost:3001', {
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionAttempts: 5
+    });
+
+    socketInstance.on('connect', () => {
+      console.log('[WebSocket] 已连接到服务器');
+    });
+
+    socketInstance.on('disconnect', () => {
+      console.log('[WebSocket] 与服务器断开连接');
+    });
+
+    socketInstance.on('connect_error', (error) => {
+      console.error('[WebSocket] 连接错误:', error);
+    });
+
+    socketInstance.on('drink-liked', (data) => {
+      console.log('[WebSocket] 收到饮品喜欢更新:', data);
+      setLiveLikeCount(prev => ({
+        ...prev,
+        [data.drinkId]: data.count
+      }));
+
+      if (data.isNewLike && data.count >= 2) {
+        showFriendlyNotice(
+          '实时更新',
+          `有${data.count}人和你一样钟爱这款特调呢~`,
+          'success',
+          { label: '好的', onClick: () => setFriendlyNotice(prev => ({ ...prev, isOpen: false })) }
+        );
+      }
+    });
+
+    setSocket(socketInstance);
+
+    return () => {
+      socketInstance.disconnect();
+    };
+  }, []);
+
+  // 当查看饮品详情时，加入该饮品的房间
+  useEffect(() => {
+    if (socket && currentDrink) {
+      socket.emit('join-drink-room', currentDrink.id);
+      return () => {
+        socket.emit('leave-drink-room', currentDrink.id);
+      };
+    }
+  }, [socket, currentDrink]);
 
   const showFriendlyNotice = useCallback((title, message, tone = 'default', primaryAction = null, secondaryAction = null) => {
     setFriendlyNotice({
@@ -2100,10 +2158,8 @@ const App = () => {
       if (prev.some(d => d.id === drink.id)) return prev;
       return [...prev, drink];
     });
-    // 存储完整的饮品数据
     favoriteStorage.addFavorite(drink);
 
-    // 调用后端 API 记录用户心意
     try {
       const userUID = userStorage.getUID();
       const response = await fetch('http://localhost:3001/api/drink/like', {
@@ -2119,17 +2175,32 @@ const App = () => {
 
       if (response.ok) {
         const data = await response.json();
-        if (data.showMessage) {
-          showFriendlyNotice(
-            '有' + data.count + '人和你一样钟爱这款特调呢~',
-            '',
-            'success',
-            { label: '好的', onClick: () => closeFriendlyNotice() }
-          );
-        }
+        setLiveLikeCount(prev => ({
+          ...prev,
+          [drink.id]: data.count
+        }));
+        showFriendlyNotice(
+          '已将' + drink.name + '加入心仪',
+          '有' + data.count + '人和你一样钟爱这款特调呢~',
+          'success',
+          { label: '好的', onClick: () => closeFriendlyNotice() }
+        );
+      } else {
+        showFriendlyNotice(
+          '已将' + drink.name + '加入心仪',
+          '网络同步失败，但已保存在本地',
+          'warning',
+          { label: '好的', onClick: () => closeFriendlyNotice() }
+        );
       }
     } catch (error) {
       console.error('Failed to record drink like:', error);
+      showFriendlyNotice(
+        '已将' + drink.name + '加入心仪',
+        '网络同步失败，但已保存在本地',
+        'warning',
+        { label: '好的', onClick: () => closeFriendlyNotice() }
+      );
     }
   }, []);
 

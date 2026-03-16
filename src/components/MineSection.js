@@ -50,36 +50,73 @@ const MineSection = ({ favorites, onSelectDrink, cardFeedback, initialTab = 'col
                         });
                         
                         const { latitude, longitude } = position.coords;
+                        console.log('[Location] Got coordinates:', latitude, longitude);
+                        
                         // 使用高德逆地理编码API
                         const response = await fetch(
                             `https://restapi.amap.com/v3/geocode/regeo?key=${AMAP_KEY}&location=${longitude},${latitude}&extensions=base`
                         );
                         const data = await response.json();
+                        console.log('[Location] Amap regeo response:', data);
+                        
                         if (data.status === '1' && data.regeocode?.addressComponent?.city) {
                             const city = data.regeocode.addressComponent.city;
                             // 高德返回的city可能是数组或字符串
-                            setCurrentCity(Array.isArray(city) ? city[0] : city);
-                            return;
-                        } else if (data.status === '1' && data.regeocode?.addressComponent?.province) {
+                            const cityName = Array.isArray(city) ? city[0] : city;
+                            if (cityName) {
+                                setCurrentCity(cityName);
+                                return;
+                            }
+                        }
+                        if (data.status === '1' && data.regeocode?.addressComponent?.province) {
                             // 某些直辖市没有city字段，使用province
                             setCurrentCity(data.regeocode.addressComponent.province);
                             return;
                         }
+                        // 如果高德API返回错误，记录详情
+                        if (data.status !== '1') {
+                            console.warn('[Location] Amap API error:', data.info, data.infocode);
+                        }
                     } catch (geoError) {
-                        console.log('Browser geolocation failed, falling back to IP location');
+                        console.log('[Location] Browser geolocation failed:', geoError.message);
                     }
                 }
                 
                 // 备用：使用高德IP定位
+                console.log('[Location] Trying Amap IP location...');
                 const ipResponse = await fetch(`https://restapi.amap.com/v3/ip?key=${AMAP_KEY}`);
                 const ipData = await ipResponse.json();
-                if (ipData.status === '1' && ipData.city) {
-                    setCurrentCity(ipData.city);
+                console.log('[Location] Amap IP response:', ipData);
+                
+                // 检查高德返回的city是否有效（非空数组且非空字符串）
+                const amapCity = Array.isArray(ipData.city) ? (ipData.city.length > 0 ? ipData.city[0] : null) : ipData.city;
+                const amapProvince = Array.isArray(ipData.province) ? (ipData.province.length > 0 ? ipData.province[0] : null) : ipData.province;
+                
+                if (ipData.status === '1' && amapCity) {
+                    setCurrentCity(amapCity);
+                } else if (ipData.status === '1' && amapProvince) {
+                    setCurrentCity(amapProvince);
                 } else {
-                    setLocationError('无法获取位置');
+                    // 高德IP定位失败，尝试全球IP定位服务作为最终备用
+                    console.log('[Location] Amap IP empty, trying global fallback...');
+                    try {
+                        const globalResponse = await fetch('https://ipapi.co/json/');
+                        const globalData = await globalResponse.json();
+                        console.log('[Location] Global IP response:', globalData);
+                        if (globalData.city) {
+                            setCurrentCity(globalData.city);
+                        } else if (globalData.region) {
+                            setCurrentCity(globalData.region);
+                        } else {
+                            setLocationError('无法获取位置');
+                        }
+                    } catch (globalError) {
+                        console.warn('[Location] Global IP fallback failed:', globalError);
+                        setLocationError('无法获取位置');
+                    }
                 }
             } catch (error) {
-                console.log('Location fetch failed:', error);
+                console.error('[Location] Fetch failed:', error);
                 setLocationError('无法获取位置');
             } finally {
                 setLocationLoading(false);

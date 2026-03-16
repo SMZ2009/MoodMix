@@ -11,9 +11,23 @@ const StreamingAnalysisCard = ({
   const [summaryText, setSummaryText] = useState('');
   const abortControllerRef = useRef(null);
   const resultDataRef = useRef(null);
+  const isRunningRef = useRef(false);
+
+  // 用 ref 存储回调，避免回调引用变化导致 effect 重新触发
+  const onStreamCompleteRef = useRef(onStreamComplete);
+  const onErrorRef = useRef(onError);
+  useEffect(() => { onStreamCompleteRef.current = onStreamComplete; }, [onStreamComplete]);
+  useEffect(() => { onErrorRef.current = onError; }, [onError]);
 
   useEffect(() => {
-    if (!isActive || !userInput) return;
+    if (!isActive || !userInput) {
+      isRunningRef.current = false;
+      return;
+    }
+
+    // 防止重复触发：如果已经在运行中，跳过
+    if (isRunningRef.current) return;
+    isRunningRef.current = true;
 
     const startAnalysis = async () => {
       setPhase('init');
@@ -21,11 +35,9 @@ const StreamingAnalysisCard = ({
       setSummaryText('');
       resultDataRef.current = null;
 
-      // 短暂延迟后开始，让卡片动画完成
       await new Promise(resolve => setTimeout(resolve, 400));
       setPhase('analyzing');
 
-      // 动态更新状态文字
       const statusMessages = [
         '心与味，正在相遇…',
         '五行正在推演…',
@@ -83,7 +95,6 @@ const StreamingAnalysisCard = ({
                 resultDataRef.current = resultData;
                 break;
               }
-              // 不显示原始 JSON 流，只更新状态
             } catch (e) {
               // Skip parse errors for intermediate chunks
             }
@@ -96,15 +107,13 @@ const StreamingAnalysisCard = ({
         setPhase('complete');
         setStatusText('心意已达');
         
-        // 显示摘要
         if (resultData?.summary) {
           setSummaryText(resultData.summary);
         }
 
-        // 完成后短暂展示，然后回调
         setTimeout(() => {
-          if (onStreamComplete && resultDataRef.current) {
-            onStreamComplete(resultDataRef.current);
+          if (onStreamCompleteRef.current && resultDataRef.current) {
+            onStreamCompleteRef.current(resultDataRef.current);
           }
         }, 800);
 
@@ -114,7 +123,9 @@ const StreamingAnalysisCard = ({
         console.error('[StreamingAnalysisCard] Error:', error);
         setPhase('error');
         setStatusText('灵感有些迟疑…');
-        if (onError) onError(error);
+        if (onErrorRef.current) onErrorRef.current(error);
+      } finally {
+        isRunningRef.current = false;
       }
     };
 
@@ -124,8 +135,9 @@ const StreamingAnalysisCard = ({
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
+      isRunningRef.current = false;
     };
-  }, [isActive, userInput, onStreamComplete, onError]);
+  }, [isActive, userInput]);
 
   if (!isActive) return null;
 

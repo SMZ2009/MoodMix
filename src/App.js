@@ -2279,6 +2279,10 @@ const App = () => {
   const handleStartGeneration = useCallback(async (type = null) => {
     const startTime = performance.now();
     console.log(`[Timer] 0ms: 用户点击按钮，开始寻味流程`);
+    
+    // 🔥 重置上一次的文案，避免旧数据导致闪烁
+    setCustomQuotes({});
+    
     setMixMode('generating');
     // 初始玄学式 Loading 文案：先依据当前输入/情绪锚点做一次东方解读
 
@@ -2506,6 +2510,9 @@ const App = () => {
     const startTime = performance.now();
     console.log('[StreamingComplete] 流态分析完成，开始饮品推荐', moodData);
 
+    // 🔥 重置上一次的文案，避免旧数据导致闪烁
+    setCustomQuotes({});
+
     try {
       // 检查饮品数据是否已加载
       if (!apiDrinks || apiDrinks.length === 0) {
@@ -2533,9 +2540,6 @@ const App = () => {
             fetchLiveQuotes(topMatches, { moodData }, 15),
             new Promise(resolve => setTimeout(() => resolve({}), 8000)) // 最多等8秒
           ]);
-          if (Object.keys(quotesMap).length > 0) {
-            setCustomQuotes(prev => ({ ...prev, ...quotesMap }));
-          }
           console.log(`[StreamingComplete] 文案获取完成`);
         } catch (err) {
           console.warn('Live quote generation failed', err);
@@ -2544,7 +2548,11 @@ const App = () => {
         }
       }
 
-      // 设置结果并显示卡片
+      // 🔥 [关键] 批量设置所有状态，减少重复渲染
+      // 先设置文案，再显示画廊，确保卡片出现时文案已就绪
+      if (Object.keys(quotesMap).length > 0) {
+        setCustomQuotes(quotesMap);
+      }
       setMoodResult({ moodData });
       setRecommendationPool(topMatches.length > 0 ? topMatches : apiDrinks.slice(0, 9));
       setCurrentBatchIndex(0);
@@ -2598,9 +2606,7 @@ const App = () => {
         isActive={mixMode === 'generating'}
         userInput={(moodInput + (selectedMood || '')).trim()}
         onStreamComplete={(moodData) => {
-          // 存储分析结果
-          setMoodResult({ moodData });
-          // 继续执行饮品推荐流程
+          // 直接继续执行饮品推荐流程（handleStreamingComplete 内部会设置 moodResult）
           handleStreamingComplete(moodData);
         }}
         onError={(error) => {
@@ -2640,6 +2646,7 @@ const App = () => {
             onBack={() => {
               setShowRecommendationGallery(false);
               setMixMode('home');
+              setSelectedMood(null); // Reset mood tag selection
             }}
             onStartMaking={(drink) => {
               setCurrentDrink(drink); // Use the passed drink object which RecommendationGallery provides
@@ -2914,6 +2921,7 @@ const App = () => {
                   setRecommendationPool([]);
                   setShowRecommendationGallery(false);
                   setMixMode('home');
+                  setSelectedMood(null); // Reset mood tag selection
                 }}
                 className="w-10 h-10 flex items-center justify-center rounded-full bg-black/5 text-gray-800 hover:bg-black/10 transition-colors"
               >

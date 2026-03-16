@@ -13,10 +13,23 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const http = require('http');
+const { Server } = require('socket.io');
 const { existsSync } = require('fs');
 require('dotenv').config({ path: path.resolve(__dirname, '..', '.env') });
 
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: '*',
+    credentials: false,
+    methods: ['GET', 'POST']
+  },
+  transports: ['websocket', 'polling'],
+  pingTimeout: 60000,
+  pingInterval: 25000
+});
 const PORT = process.env.PORT || 3000;
 const buildPath = path.join(__dirname, '..', 'build');
 
@@ -285,6 +298,8 @@ ${contextDescriptions}
         }
       });
     }
+
+    console.log('[API] /api/generate_quotes 返回结果:', Object.keys(quotes).length, '条文案');
 
     return res.json({
       success: true,
@@ -1040,23 +1055,6 @@ function generateDefaultVectorResult(moodData) {
 }
 
 // ═══════════════════════════════════════════
-// 前端静态文件服务
-// ═══════════════════════════════════════════
-
-// 提供静态文件
-app.use(express.static(buildPath));
-
-// SPA 重定向：所有非 API 请求都返回 index.html
-app.get('*', (req, res) => {
-  // 除了 .js, .css, .json, .png, .ico 等文件外，其他请求都返回 index.html
-  if (req.url.match(/\.(js|css|json|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$/)) {
-    res.status(404).send('Not found');
-  } else {
-    res.sendFile(path.join(buildPath, 'index.html'));
-  }
-});
-
-// ═══════════════════════════════════════════
 // 启动服务器
 // ═══════════════════════════════════════════
 
@@ -1111,6 +1109,12 @@ app.post('/api/drink/like', (req, res) => {
 
   console.log(`[DrinkLike] 饮品 ${drinkId} 被 ${userUID} 标记为心仪，当前统计: ${stats.count} 人`);
 
+  io.to(`drink-${drinkId}`).emit('drink-liked', {
+    drinkId,
+    count: stats.count,
+    isNewLike
+  });
+
   res.json({
     success: true,
     count: stats.count,
@@ -1143,6 +1147,12 @@ app.post('/api/drink/unlike', (req, res) => {
   }
 
   console.log(`[DrinkLike] 饮品 ${drinkId} 被 ${userUID} 取消心仪，当前统计: ${stats.count} 人`);
+
+  io.to(`drink-${drinkId}`).emit('drink-liked', {
+    drinkId,
+    count: stats.count,
+    isNewLike: false
+  });
 
   res.json({
     success: true,
@@ -1177,17 +1187,44 @@ app.get('/api/drink/like-stats/:drinkId', (req, res) => {
 });
 
 // ═══════════════════════════════════════════
-// SPA 重定向（所有非API请求返回 index.html）
+// Socket.IO 实时通信
 // ═══════════════════════════════════════════
+io.on('connection', (socket) => {
+  console.log('[Socket] 客户端已连接:', socket.id);
+
+  socket.on('join-drink-room', (drinkId) => {
+    socket.join(`drink-${drinkId}`);
+    console.log(`[Socket] ${socket.id} 加入饮品房间: drink-${drinkId}`);
+  });
+
+  socket.on('leave-drink-room', (drinkId) => {
+    socket.leave(`drink-${drinkId}`);
+    console.log(`[Socket] ${socket.id} 离开饮品房间: drink-${drinkId}`);
+  });
+
+  socket.on('disconnect', () => {
+    console.log('[Socket] 客户端已断开:', socket.id);
+  });
+});
+
+// ═══════════════════════════════════════════
+// 前端静态文件服务（必须在所有API路由之后）
+// ═══════════════════════════════════════════
+
+// 提供静态文件
+app.use(express.static(buildPath));
+
+// SPA 重定向：所有非 API 请求都返回 index.html（必须在最后）
 app.get('*', (req, res) => {
   res.sendFile(path.join(buildPath, 'index.html'));
 });
 
-app.listen(PORT, '0.0.0.0', () => {
+server.listen(PORT, '0.0.0.0', () => {
   const hasKey = process.env.SILICONFLOW_API_KEY && process.env.SILICONFLOW_API_KEY !== 'your_key_here';
   console.log(`\n🍹 MoodMix 生产服务器已启动`);
   console.log(`   端口: ${PORT}`);
   console.log(`   前端: 从 ${buildPath} 提供`);
+  console.log(`   WebSocket: ✅ 已启用 (Socket.IO)`);
   console.log(`   API: /api/analyze_mood, /api/analyze_mood_stream, /api/generate_quotes, /api/comprehensive_analyze, /api/generate-drink-dimensions, /api/drink-assistant, /api/validate_optimize, /api/drink/like, /api/drink/unlike, /api/drink/like-stats/:drinkId`);
   console.log(`   模型: ${SILICONFLOW_MODEL}`);
   console.log(`   API Key: ${hasKey ? '✅ 已配置' : '❌ 未配置'}`);

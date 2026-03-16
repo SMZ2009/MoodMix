@@ -1810,31 +1810,38 @@ const App = () => {
 
   // WebSocket 连接初始化
   useEffect(() => {
-    const socketUrl = process.env.NODE_ENV === 'production' 
-      ? window.location.origin 
-      : 'http://localhost:3001';
-    
+    // 使用当前页面origin，确保与服务器一致
+    const socketUrl = window.location.origin;
+
+    console.log('[WebSocket] 正在连接到:', socketUrl);
+
     const socketInstance = io(socketUrl, {
       transports: ['websocket', 'polling'],
       reconnection: true,
       reconnectionDelay: 1000,
-      reconnectionAttempts: 5
+      reconnectionAttempts: 5,
+      timeout: 20000
     });
 
     socketInstance.on('connect', () => {
-      console.log('[WebSocket] 已连接到服务器');
+      console.log('[WebSocket] ✅ 已连接到服务器, socket id:', socketInstance.id);
     });
 
-    socketInstance.on('disconnect', () => {
-      console.log('[WebSocket] 与服务器断开连接');
+    socketInstance.on('disconnect', (reason) => {
+      console.log('[WebSocket] ⚠️ 与服务器断开连接, 原因:', reason);
     });
 
     socketInstance.on('connect_error', (error) => {
-      console.error('[WebSocket] 连接错误:', error);
+      console.error('[WebSocket] ❌ 连接错误:', error.message);
+      // 如果WebSocket连接失败，降级到HTTP轮询
+      if (socketInstance.io.opts.transports[0] === 'websocket') {
+        console.log('[WebSocket] 尝试降级到 polling 传输方式');
+        socketInstance.io.opts.transports = ['polling'];
+      }
     });
 
     socketInstance.on('drink-liked', (data) => {
-      console.log('[WebSocket] 收到饮品喜欢更新:', data);
+      console.log('[WebSocket] 📨 收到饮品喜欢更新:', data);
       setLiveLikeCount(prev => ({
         ...prev,
         [data.drinkId]: data.count
@@ -1853,14 +1860,36 @@ const App = () => {
     setSocket(socketInstance);
 
     return () => {
+      console.log('[WebSocket] 清理连接');
       socketInstance.disconnect();
     };
   }, []);
 
-  // 当查看饮品详情时，加入该饮品的房间
+  // 当查看饮品详情时，加入该饮品的房间并获取初始心意统计
   useEffect(() => {
     if (socket && currentDrink) {
       socket.emit('join-drink-room', currentDrink.id);
+
+      // 获取初始心意统计
+      const fetchInitialLikeStats = async () => {
+        try {
+          const response = await fetch(`/api/drink/like-stats/${currentDrink.id}`);
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success) {
+              setLiveLikeCount(prev => ({
+                ...prev,
+                [currentDrink.id]: data.count
+              }));
+              console.log('[DrinkLike] 初始统计:', currentDrink.id, data.count);
+            }
+          }
+        } catch (error) {
+          console.error('[DrinkLike] 获取初始统计失败:', error);
+        }
+      };
+      fetchInitialLikeStats();
+
       return () => {
         socket.emit('leave-drink-room', currentDrink.id);
       };

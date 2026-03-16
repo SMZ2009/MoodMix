@@ -203,9 +203,10 @@ export async function fetchLiveQuotes(drinksList, contextData, batchSize = 15, f
         }
 
         const data = await response.json();
+        console.log('[QuoteGenerator] 📥 收到服务端响应:', data);
 
         // 3. 将结果写回缓存并合并到返回集
-        if (data.quotes && typeof data.quotes === 'object') {
+        if (data.success && data.quotes && typeof data.quotes === 'object') {
             unachedItems.forEach(item => {
                 const generatedQuote = data.quotes[item.id];
                 if (generatedQuote) {

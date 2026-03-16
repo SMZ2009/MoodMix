@@ -225,3 +225,51 @@ body {
 .animate-float-in {
   animation: floatIn 1.2s ease-out forwards;
 }
+
+@keyframes cloudFloat1 {
+  0%, 100% {
+    transform: translate(0, 0) rotate(var(--rotate, 0deg)) scale(var(--scale, 0.95));
+  }
+  25% {
+    transform: translate(15px, -8px) rotate(var(--rotate, 0deg)) scale(var(--scale, 0.95));
+  }
+  50% {
+    transform: translate(25px, 3px) rotate(var(--rotate, 0deg)) scale(var(--scale, 0.95));
+  }
+  75% {
+    transform: translate(8px, 10px) rotate(var(--rotate, 0deg)) scale(var(--scale, 0.95));
+  }
+}
+
+@keyframes cloudFloat2 {
+  0%, 100% {
+    transform: translate(0, 0) rotate(var(--rotate, 0deg)) scale(var(--scale, 0.95));
+  }
+  25% {
+    transform: translate(-20px, 6px) rotate(var(--rotate, 0deg)) scale(var(--scale, 0.95));
+  }
+  50% {
+    transform: translate(-12px, -10px) rotate(var(--rotate, 0deg)) scale(var(--scale, 0.95));
+  }
+  75% {
+    transform: translate(-25px, 2px) rotate(var(--rotate, 0deg)) scale(var(--scale, 0.95));
+  }
+}
+
+@keyframes cloudFloat3 {
+  0%, 100% {
+    transform: translate(0, 0) rotate(var(--rotate, 0deg)) scale(var(--scale, 0.95));
+  }
+  33% {
+    transform: translate(18px, 12px) rotate(var(--rotate, 0deg)) scale(var(--scale, 0.95));
+  }
+  66% {
+    transform: translate(-10px, -15px) rotate(var(--rotate, 0deg)) scale(var(--scale, 0.95));
+  }
+}
+
+.mood-tag-cloud {
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-direction: normal;
+}

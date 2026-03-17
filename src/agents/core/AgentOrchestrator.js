@@ -88,48 +88,16 @@ export class AgentOrchestrator {
 
       // 根据Agent类型打印关键输出
       switch (agentName) {
-        case 'SemanticDistiller':
-          console.log('│ 📊 六维分析结果:');
-          const moodData = result.data;
-          if (moodData?.emotion?.physical?.state) {
-            console.log(`│    - 情绪: ${moodData.emotion.physical.state}`);
-          }
-          if (moodData?.emotion?.philosophy?.wuxing) {
-            console.log(`│    - 五行: ${moodData.emotion.philosophy.wuxing}`);
-          }
-          break;
-
-        case 'PatternAnalyzer':
-          console.log('│ 🔮 辨证分析:');
-          const analysis = result.data;
-          if (analysis?.diagnosis) {
-            console.log(`│    - 诊断: ${analysis.diagnosis}`);
-          }
-          if (analysis?.strategy) {
-            console.log(`│    - 策略: ${analysis.strategy}`);
-          }
-          break;
-
-        case 'VectorTranslator':
-          console.log('│ 📐 向量映射:');
-          const vector = result.data;
-          if (vector?.targetVector) {
-            console.log(`│    - 目标向量: [${vector.targetVector.slice(0, 4).join(', ')}...]`);
-          }
-          if (vector?.weights) {
-            console.log(`│    - 动态权重: [${vector.weights.slice(0, 4).join(', ')}...]`);
-          }
-          break;
-
-        case 'CreativeCopywriter':
+        case 'CreativeCopywriter': {
           console.log('│ ✍️ 创意文案:');
           const copy = result.data;
           if (copy?.quote) {
             console.log(`│    - 推荐语: ${copy.quote.substring(0, 30)}...`);
           }
           break;
+        }
 
-        case 'ValidatorOptimizer':
+        case 'ValidatorOptimizer': {
           console.log('│ ✅ 验证报告:');
           const validation = result.data;
           if (validation?.score !== undefined) {
@@ -139,6 +107,7 @@ export class AgentOrchestrator {
             console.log(`│    - 发现问题: ${validation.issues.length}个`);
           }
           break;
+        }
 
         default:
           break;
@@ -182,68 +151,6 @@ export class AgentOrchestrator {
     console.log('╚══════════════════════════════════════════════════════════════╝\n');
   }
 }
-
-/**
- * 带回调的逐步执行方法
- * 每完成一个Agent就触发回调，实现实时进度更新
- */
-AgentOrchestrator.prototype.executeWithCallback = async function (context, onStepComplete, onWorkflowStart) {
-  const workflow = this.workflow;
-
-  onWorkflowStart?.({ workflow, context });
-
-  const results = [];
-
-  for (let i = 0; i < workflow.length; i++) {
-    const agentName = workflow[i];
-    const agent = this.agents.get(agentName);
-    const nextAgent = workflow[i + 1] || null;
-
-    if (!agent) continue;
-
-    // 标记当前 Agent 开始
-    onStepComplete?.(agentName, { status: 'running' }, context, null);
-
-    const result = await agent.execute(context);
-    context.setOutput(agentName, result);
-    results.push({ agent: agentName, ...result });
-
-    // 标记完成，传入下一个 Agent
-    onStepComplete?.(agentName, result, context, nextAgent);
-
-    // VectorTranslator 完成后，插入 VectorSearch 步骤
-    if (agentName === 'VectorTranslator' && result.success) {
-      onStepComplete?.('VectorSearch', { status: 'running' }, context, null);
-
-      try {
-        const { evaluateAndSortDrinks } = await import('../../engine/vectorEngine');
-        const moodData = context.getIntermediate('moodData');
-        const allDrinks = context.allDrinks;
-        const inventory = context.inventory;
-
-        if (moodData && allDrinks?.length > 0) {
-          const pool = evaluateAndSortDrinks(moodData, allDrinks, inventory);
-          const matches = pool.map((drink, idx) => ({
-            drink,
-            similarity: drink.similarity || (1 - idx * 0.05),
-            rank: idx + 1,
-            matchDetails: { weightedScore: drink.similarity, bonus: drink.bonus || 0 }
-          }));
-          context.setIntermediate('matches', matches);
-        }
-      } catch (err) {
-        console.error('VectorSearch failed:', err);
-        context.setIntermediate('matches', []);
-      }
-
-      onStepComplete?.('VectorSearch', { success: true, status: 'done' }, context, 'CreativeCopywriter');
-    }
-
-    if (!result.success && !result.recovered) break;
-  }
-
-  return { results, context };
-};
 
 /**
  * 快速执行推荐流程的辅助函数

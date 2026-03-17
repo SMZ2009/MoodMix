@@ -25,9 +25,6 @@ export {
 
 // 专用Agent
 export {
-  SemanticDistiller,
-  PatternAnalyzer,
-  VectorTranslator,
   CreativeCopywriter,
   ValidatorOptimizer,
   MixologyExpert

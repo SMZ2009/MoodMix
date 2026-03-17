@@ -35,7 +35,7 @@ SILICONFLOW_MODEL_CREATIVE=<默认同 MODEL_30B>         # 创意与流式推理
 
 ## 2. 智能体总览 (Agent Matrix)
 
-系统包含 **7 个专用 Agent**，分为「核心推理链」和「辅助功能」两组：
+系统包含 **4 个专用 Agent**，分为「核心推理链」和「辅助功能」两组：
 
 ### 核心推理链 (主推荐流程使用)
 
@@ -45,19 +45,21 @@ SILICONFLOW_MODEL_CREATIVE=<默认同 MODEL_30B>         # 创意与流式推理
 | **CreativeCopywriter** | 意境文案师 | `MODEL_CREATIVE` (32B) / 本地 | `/api/generate_quotes`、`/api/social-card-copy`、`/api/social-card-no-mood` | 推荐文案、分享卡片诗意文案、无情绪场景文案 |
 | **ValidatorOptimizer** | 质量质检员 | `MODEL_8B` (7B) / 本地 | `/api/validate_optimize` | 审查五行生克、时段温度、情绪酒精安全，授予质量勋章 |
 
-### 遗留推理链 (逐步回调模式使用)
-
-| Agent | 角色 | 驱动模型 | 后端端点 | 核心职责 |
-| :--- | :--- | :--- | :--- | :--- |
-| **SemanticDistiller** | 语义蒸馏器 | `MODEL_CREATIVE` (32B) | `/api/analyze_mood_stream` (SSE) | 流式解析用户自然语言，提取六维结构化数据 |
-| **PatternAnalyzer** | 辨证分析师 | `MODEL_CORE` (7B) / 本地 | `/api/pattern_analyze` | 基于六维数据做中医五行辨证，确定调理策略 |
-| **VectorTranslator** | 向量翻译官 | `MODEL_CORE` (7B) / 本地 | `/api/vector_translate` | 将辨证结论翻译为 8D 目标向量 + 动态权重 |
-
 ### 独立功能 Agent
 
 | Agent | 角色 | 驱动模型 | 后端端点 | 核心职责 |
 | :--- | :--- | :--- | :--- | :--- |
 | **MixologyExpert** | 调饮专家 | `MODEL_8B` (7B) | `/api/generate-drink-dimensions`、`/api/drink-assistant` | 自定义饮品维度分析、制作过程即时问答 |
+
+### 遗留端点（保留为独立 API 工具）
+
+这些端点仍然有用，但**不再通过前端 Agent 类调用**，而是作为独立的后端工具存在：
+
+| 端点 | 模型 | 当前用途 |
+| :--- | :--- | :--- |
+| `/api/analyze_mood_stream` | `MODEL_CREATIVE` (32B) | SSE 流式六维语义蒸馏，直接由 `StreamingAnalysisCard` 调用 |
+| `/api/pattern_analyze` | `MODEL_CORE` (7B) | 独立辨证分析调试接口（可用于运维/研究） |
+| `/api/vector_translate` | `MODEL_CORE` (7B) | 独立 8D 向量翻译调试接口（可用于运维/研究） |
 
 ---
 
@@ -123,113 +125,7 @@ SILICONFLOW_MODEL_CREATIVE=<默认同 MODEL_30B>         # 创意与流式推理
 
 ---
 
-### 3.2 SemanticDistiller (语义蒸馏器)
-
-**文件**: `src/agents/specialized/SemanticDistiller.js`
-
-**设计目标**: 将用户自然语言输入解析为六维结构化数据。通过 SSE 流式传输，在流式过程中展示「流态辨证」思考过程，给用户沉浸式体验。
-
-**驱动模型**: `MODEL_CREATIVE` (`Qwen/Qwen2.5-32B-Instruct`)
-
-> 注意：流式端点使用的是 32B 大模型。这是因为流式辨证场景需要高质量的思维链输出——在最终 JSON 之前，模型会先输出一段东方哲学韵味的六维拆解文本（以 `[THOUGHT]` 标记），随后输出 `[RESULT]` 标记与严格 JSON。
-
-**调用端点**: `POST /api/analyze_mood_stream` (SSE)
-
-**超时**: 45,000ms（Agent 端），40,000ms（后端流控超时）
-
-**执行流程**:
-
-1. **输入验证** (`validateInput`): 14 项严格检查——空输入、超长 (>200字)、纯数字/字母/符号、键盘乱序、无意义重复、知识性问题、指令任务、天气新闻、技术学术问题、模糊多情绪（≥3种）。每项检查都返回富有东方韵味的用户提示语。
-2. **流式请求**: 通过 SSE 消费后端 LLM 流，逐 token 积累输出
-3. **JSON 解析**: 流结束后，从累积文本中提取最终 `[RESULT]` 后面的 JSON
-4. **重试机制**: 最多重试 3 次 (`maxRetries: 3`)，验证错误不重试
-5. **结果存储**: `context.setIntermediate('moodData', result)`
-
-**降级策略**: API 超时时，调用本地关键词分析 `localFallbackAnalysis()`，并设置 `usedFallback` 和 `timeoutOccurred` 标志。
-
-**六维输出结构** (每个维度都包含 physical + drinkMapping):
-
-| 维度 | 含义 | drinkMapping 目标 |
-| :--- | :--- | :--- |
-| `emotion` | 情绪 → 五行映射 (木怒/火喜/土思/金悲/水恐) | `tasteScore`, `colorCode` |
-| `somatic` | 躯体感受 → 气机方向 (升降浮沉) + 阴阳 | `temperature`, `textureScore` |
-| `time` | 时空 → 时辰/节气对心境的影响 | `temporality` |
-| `cognitive` | 神志 → 认知/思维模式的凝滞或散乱 | `aromaScore` |
-| `demand` | 仪轨 → 诉求逻辑 (止/动/破) | `actionScore` |
-| `socialContext` | 场域 → 社交环境对能量场的影响 | `ratioScore` |
-
----
-
-### 3.3 PatternAnalyzer (辨证分析师)
-
-**文件**: `src/agents/specialized/PatternAnalyzer.js`
-
-**设计目标**: 基于六维数据进行中医五行辨证，确定情绪极性、五行归属和调理策略。
-
-**驱动模型**: `MODEL_CORE` (`Qwen/Qwen2.5-7B-Instruct`)
-
-**调用端点**: `POST /api/pattern_analyze`
-
-**执行流程**:
-
-1. 读取 `context.getIntermediate('moodData')`
-2. 调用后端 `/api/pattern_analyze`，后端将六维数据传给 LLM 进行深度辨证
-3. LLM 返回 `polarity`、`wuxing`、`strategy`、`diagnosis` 四个结构
-4. 存储结果: `context.setIntermediate('patternAnalysis', analysis)`
-
-**降级策略**: API 失败时，本地规则引擎 `processLocal()` 接管，具体步骤：
-- `analyzePolarity()`: 基于负面关键词列表判断情绪极性（negative/positive/mixed）
-- `determineWuxing()`: 根据情绪、躯体、认知、诉求四维度的关键词，计算五行分数，取最高者
-- `determineStrategy()`: 负面 + 发泄 → `counter`；负面 + 安慰 → `harmonize`；正面 → `resonate`；混合 → `balance`
-- `buildDiagnosis()`: 生成诊断摘要
-
-**输出结构**:
-```json
-{
-  "polarity": { "type": "negative", "confidence": 0.85 },
-  "wuxing": { "user": "earth", "scores": { "wood": 0, "fire": 0, "earth": 5, "metal": 0, "water": 2 }, "confidence": 0.71 },
-  "strategy": { "type": "harmonize", "logic": "土气偏郁，宜温润化解" },
-  "diagnosis": { "summary": "土气偏郁", "emotionState": "倦怠", "somaticState": "沉闷", "recommendation": "宜疏泄土气" }
-}
-```
-
----
-
-### 3.4 VectorTranslator (向量翻译官)
-
-**文件**: `src/agents/specialized/VectorTranslator.js`
-
-**设计目标**: 将辨证结论翻译为 8 维饮品搜索向量和动态权重，实现从「哲学空间」到「数学空间」的跨模态映射。
-
-**驱动模型**: `MODEL_CORE` (`Qwen/Qwen2.5-7B-Instruct`)
-
-**调用端点**: `POST /api/vector_translate`
-
-**执行流程**:
-
-1. 读取 `moodData` 和 `patternAnalysis`
-2. 调用后端 `/api/vector_translate`，LLM 生成 8D 向量 + 权重
-3. **关键后处理**: 对 LLM 返回的 `weights` 强制归一化 (`sum → 1.0`)，防止下游校验失败
-4. 存储结果: `context.setIntermediate('vectorResult', data)`
-
-**降级策略**: API 失败时，`processLocal()` 接管：
-- `buildTargetVector()`: 直接从六维 `drinkMapping` 字段提取 8 个数值组装向量
-- `calculateWeights()`: 基于敏感度系数 κ（somatic=2.0, demand=1.8, emotion=1.5, cognitive=1.2, time=0.8, socialContext=0.7）和各维度 intensity 计算动态权重，再归一化
-- `calculatePriorities()`: 根据策略类型确定优先维度排序
-
-**输出结构**:
-```json
-{
-  "targetVector": [6, 1, 0, 3, 20, 6, 15, 2],
-  "weights": [0.14, 0.13, 0.14, 0.10, 0.09, 0.12, 0.15, 0.13],
-  "priorities": ["texture", "aroma", "taste"],
-  "mappingExplanation": { "wuxing": "土", "strategy": "harmonize", "keyDimensions": ["平和", "浓郁", "厚重"] }
-}
-```
-
----
-
-### 3.5 CreativeCopywriter (意境文案师)
+### 3.2 CreativeCopywriter (意境文案师)
 
 **文件**: `src/agents/specialized/CreativeCopywriter.js`
 
@@ -281,7 +177,7 @@ Prompt 要求：
 
 ---
 
-### 3.6 ValidatorOptimizer (质量质检员)
+### 3.3 ValidatorOptimizer (质量质检员)
 
 **文件**: `src/agents/specialized/ValidatorOptimizer.js`
 
@@ -335,7 +231,7 @@ weights = {
 
 ---
 
-### 3.7 MixologyExpert (调饮专家)
+### 3.4 MixologyExpert (调饮专家)
 
 **文件**: `src/agents/specialized/MixologyExpert.js`
 
@@ -402,12 +298,11 @@ Agent 间数据共享的核心容器：
 
 **文件**: `src/agents/core/AgentOrchestrator.js`
 
-负责 Agent 注册、工作流定义和顺序执行。提供两种执行模式：
+负责 Agent 注册、工作流定义和顺序执行。当前前端仅使用标准执行模式：
 
 | 模式 | 方法 | 用途 |
 | :--- | :--- | :--- |
 | 标准执行 | `execute(context)` | 主推荐流程，顺序执行 workflow 中定义的 Agent |
-| 回调执行 | `executeWithCallback(context, onStepComplete)` | 逐步回调模式，每完成一个 Agent 触发 UI 更新 |
 
 ---
 
@@ -496,18 +391,7 @@ Agent 间数据共享的核心容器：
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### 5.2 逐步回调流程 (`executeWithCallback`)
-
-用于需要 UI 实时展示每个 Agent 执行进度的场景，采用遗留的串行链路：
-
-```
-SemanticDistiller (32B, SSE) → PatternAnalyzer (7B) → VectorTranslator (7B)
-  → [VectorSearch 插入步骤] → CreativeCopywriter → ValidatorOptimizer
-```
-
-每完成一个 Agent，通过 `onStepComplete` 回调通知 UI 更新进度条。
-
-### 5.3 分享卡片生成流程
+### 5.2 分享卡片生成流程
 
 ```
 用户点击分享/打卡
@@ -539,7 +423,7 @@ SemanticDistiller (32B, SSE) → PatternAnalyzer (7B) → VectorTranslator (7B)
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### 5.4 独立任务流程 (`executeMixologyTask`)
+### 5.3 独立任务流程 (`executeMixologyTask`)
 
 **文件**: `src/agents/index.js` → `executeMixologyTask(taskType, data)`
 
@@ -663,9 +547,6 @@ src/
 │   │   └── BaseAgent.js             # Agent 基类 (超时/重试/日志/生命周期)
 │   ├── specialized/
 │   │   ├── ComprehensiveAnalyzer.js # [主用] 全链路聚合分析师 (7B)
-│   │   ├── SemanticDistiller.js     # [遗留] 语义蒸馏器 (32B, SSE)
-│   │   ├── PatternAnalyzer.js       # [遗留] 辨证分析师 (7B / 本地)
-│   │   ├── VectorTranslator.js      # [遗留] 向量翻译官 (7B / 本地)
 │   │   ├── CreativeCopywriter.js    # 意境文案师 (32B / 本地)
 │   │   ├── ValidatorOptimizer.js    # 质量质检员 (7B / 本地规则引擎)
 │   │   └── MixologyExpert.js        # 调饮专家 (7B)

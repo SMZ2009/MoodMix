@@ -25,3 +25,8 @@
   - **Inline Style vs CSS Class**: 发现 `InteractiveButton` 等封装组件如果内部硬编码了 `style` (background/color)，外部传入的 CSS 类无法通过普通方式覆盖（除非用 `!important`）。**最佳实践**是为封装组件增加 variant (如 `glass-primary`)，在组件内部定义对应样式逻辑，确保风格切换的确定性。
   - **全站弹窗字体对齐**: 针对非系统默认字体的应用（如 `Songti SC`, `Noto Serif SC`），需同时在 `index.css` 全局类和特定弹窗组件的内联 `style` 中完成双向覆盖，以应对复杂的嵌套层级和样式隔离。
   - **“全黑”按钮治理**: 在深色背景或玻璃态弹窗中，避免使用纯黑背景按钮。采用 `rgba(255, 255, 255, 0.75)` 配合 `backdrop-filter` 能在保证对比度的同时维持通透感。
+
+## 2026-03-17 社区图标设计与功能上线
+- **视觉一致性**: 在为现有导航系统设计新图标时，使用 `generate_image` 配合精准的 Prompt（如“Oriental Chic”, “modern ink wash painting style”）可以生成与现有手绘/水墨资产高度匹配的素材。
+- **资源管理**: 生成的图标需及时复制到 `src/assets` 并按命名规范（如 `nav_icon_community.png`）接入组件，避免使用占位符或通用 Lucide 图标导致视觉脱节。
+- **代码死活逻辑检查**: 在开启“即将上线”的功能时，除了修改 UI 状态，务必检查主应用逻辑中是否已存在对应的渲染分支或路由，避免重复劳动。本次操作发现 `App.js` 已预留 `community` 渲染分支，仅需打通导航入口。

@@ -127,28 +127,6 @@ const ShareCard = forwardRef(({ drinkName, emotion, wuxing, imageSrc, llmCopy, q
     ? '五行待定，随心入杯'
     : wuxing;
 
-  // #region agent log
-  fetch('http://127.0.0.1:7693/ingest/adc81e44-f8f0-44ea-8bd0-d1a31dbda974', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      id: `log_${Date.now()}_share_card_labels`,
-      runId: 'pre-fix',
-      hypothesisId: 'H3',
-      location: 'App.js:ShareCard',
-      message: 'ShareCard received labels',
-      data: {
-        drinkName,
-        emotion,
-        wuxing,
-        safeEmotion,
-        safeWuxing,
-      },
-      timestamp: Date.now()
-    })
-  }).catch(() => {});
-  // #endregion agent log
-
   // 日期格式：2026.03.15
   const today = new Date();
   const formattedDate = `${today.getFullYear()}.${String(today.getMonth() + 1).padStart(2, '0')}.${String(today.getDate()).padStart(2, '0')}`;
@@ -1584,27 +1562,6 @@ const DrinkDetailSection = ({ drink, checkedIngredients, onToggleIngredient, onB
   };
 
   const handleShare = async () => {
-    // #region agent log
-    fetch('http://127.0.0.1:7693/ingest/adc81e44-f8f0-44ea-8bd0-d1a31dbda974', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        id: `log_${Date.now()}_handle_share_enter`,
-        runId: 'pre-fix',
-        hypothesisId: 'H_branch',
-        location: 'App.js:DrinkDetailSection.handleShare',
-        message: 'handleShare enter',
-        data: {
-          drinkId: drink?.id || null,
-          drinkName: drink?.name || null,
-          hasMoodResult: !!moodResult,
-          moodKeys: moodResult ? Object.keys(moodResult) : [],
-        },
-        timestamp: Date.now()
-      })
-    }).catch(() => {});
-    // #endregion agent log
-
     setIsGeneratingShare(true);
     try {
       // 0. 生成二维码数据 URL
@@ -1626,27 +1583,6 @@ const DrinkDetailSection = ({ drink, checkedIngredients, onToggleIngredient, onB
         if (agentResult) {
           const payload = agentResult.data || agentResult;
           const { copy, tagEmotion, tagScene } = payload || {};
-
-          // #region agent log
-          fetch('http://127.0.0.1:7693/ingest/adc81e44-f8f0-44ea-8bd0-d1a31dbda974', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              id: `log_${Date.now()}_handle_share_no_mood_result`,
-              runId: 'pre-fix',
-              hypothesisId: 'H_no_mood_result',
-              location: 'App.js:DrinkDetailSection.handleShare',
-              message: 'SOCIAL_CARD_NO_MOOD result',
-              data: {
-                hasCopy: typeof copy === 'string' && !!copy.trim(),
-                copySample: typeof copy === 'string' ? copy.slice(0, 40) : null,
-                tagEmotion,
-                tagScene,
-              },
-              timestamp: Date.now()
-            })
-          }).catch(() => {});
-          // #endregion agent log
 
           if (typeof copy === 'string' && copy.trim()) {
             poeticalCopy = copy.trim();
@@ -1686,26 +1622,6 @@ const DrinkDetailSection = ({ drink, checkedIngredients, onToggleIngredient, onB
 
         // 使用专用的 SOCIAL_CARD 任务类型
         const agentResult = await executeMixologyTask('SOCIAL_CARD', { drink, prompt });
-
-        // #region agent log
-        fetch('http://127.0.0.1:7693/ingest/adc81e44-f8f0-44ea-8bd0-d1a31dbda974', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            id: `log_${Date.now()}_handle_share_with_mood_result`,
-            runId: 'pre-fix',
-            hypothesisId: 'H_with_mood_result',
-            location: 'App.js:DrinkDetailSection.handleShare',
-            message: 'SOCIAL_CARD result',
-            data: {
-              hasCopyProp: !!(agentResult && typeof agentResult.copy === 'string' && agentResult.copy.trim()),
-              hasDataCopy: !!(agentResult && agentResult.data && typeof agentResult.data.copy === 'string'),
-              rawType: agentResult ? typeof agentResult : null,
-            },
-            timestamp: Date.now()
-          })
-        }).catch(() => {});
-        // #endregion agent log
 
         const payload = agentResult && (agentResult.data || agentResult);
 

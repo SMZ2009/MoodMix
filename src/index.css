@@ -1,6 +1,7 @@
 @import "tailwindcss/base";
 @import "tailwindcss/components";
 @import "tailwindcss/utilities";
+@import url('https://fonts.loli.net/css2?family=Noto+Serif+SC:wght@300;400;600&display=swap');
 
 @layer utilities {
   .mood-ink-tag {
@@ -858,7 +859,7 @@ body {
 }
 
 .font-serif {
-  font-family: 'Georgia', 'Times New Roman', serif;
+  font-family: 'Noto Serif SC', 'STSongti-SC', 'Songti SC', 'SimSun', 'Source Han Serif SC', serif;
 }
 
 .italic {
@@ -2135,7 +2136,7 @@ body {
 }
 
 .oriental-title-large {
-  font-family: "Songti SC", "STKaiti", "KaiTi", serif;
+  font-family: 'Noto Serif SC', 'STSongti-SC', 'Songti SC', 'STKaiti', 'KaiTi', 'Source Han Serif SC', serif;
   font-weight: 900;
   letter-spacing: 0.12em;
   color: #1a1a1a;
@@ -2247,7 +2248,7 @@ body {
   border-radius: 32px;
   overflow: hidden;
   background: #faf8f5;
-  font-family: 'Noto Serif SC', 'Songti SC', 'STKaiti', serif;
+  font-family: 'Noto Serif SC', 'STSongti-SC', 'Songti SC', 'SimSun', 'Source Han Serif SC', serif;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.05);
   margin: 0 auto;
 }

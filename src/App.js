@@ -127,7 +127,7 @@ const ShareCard = forwardRef(({ drinkName, emotion, wuxing, imageSrc, llmCopy, q
       <div className="card-header" style={{ padding: '20px 24px', borderBottom: 'none' }}>
         <div className="flex flex-col">
           <span className="brand" style={{
-            fontFamily: '"Songti SC", "STKaiti", serif',
+            fontFamily: "'Noto Serif SC', 'STSongti-SC', 'Songti SC', 'STKaiti', 'Source Han Serif SC', serif",
             fontSize: '18px',
             fontWeight: 700,
             color: '#3c3b36',
@@ -154,7 +154,7 @@ const ShareCard = forwardRef(({ drinkName, emotion, wuxing, imageSrc, llmCopy, q
         <h2 className="drink-name" style={{
           fontSize: '32px',
           marginBottom: '12px',
-          fontFamily: '"Songti SC", "STKaiti", serif',
+          fontFamily: "'Noto Serif SC', 'STSongti-SC', 'Songti SC', 'STKaiti', 'Source Han Serif SC', serif",
           color: '#1a1a1a'
         }}>{drinkName}</h2>
 
@@ -166,7 +166,7 @@ const ShareCard = forwardRef(({ drinkName, emotion, wuxing, imageSrc, llmCopy, q
             borderRadius: '100px',
             fontSize: '13px',
             color: '#5c5b56',
-            fontFamily: '"STKaiti", serif'
+            fontFamily: "'Noto Serif SC', 'STSongti-SC', 'Songti SC', 'STKaiti', 'Source Han Serif SC', serif"
           }}>{emotion}</span>
           <span style={{ color: '#d1cdc2', fontSize: '12px' }}>|</span>
           <span style={{ fontSize: '13px', color: '#8c8b86', fontFamily: '"STKaiti", serif' }}>{wuxing}</span>
@@ -189,7 +189,7 @@ const ShareCard = forwardRef(({ drinkName, emotion, wuxing, imageSrc, llmCopy, q
             fontSize: '15px',
             lineHeight: '1.8',
             color: '#4c4b46',
-            fontFamily: '"STKaiti", "KaiTi", serif',
+            fontFamily: "'Noto Serif SC', 'STSongti-SC', 'Songti SC', 'STKaiti', 'KaiTi', 'Source Han Serif SC', serif",
             fontStyle: 'italic'
           }}>{llmCopy}</p>
         </div>
@@ -422,10 +422,10 @@ const MoodInputSection = ({
       <div className="absolute top-1/4 right-0 w-80 h-80 bg-blue-200/40 rounded-full blur-[100px] pointer-events-none mix-blend-multiply"></div>
       <div className="absolute bottom-1/3 left-0 w-72 h-72 bg-pink-200/40 rounded-full blur-[100px] pointer-events-none mix-blend-multiply"></div>
       <div className="text-center mt-12 sm:mt-16 mb-4 sm:mb-6 z-10">
-        <h2 className="text-2xl xs:text-[24px] sm:text-[28px] font-extrabold text-gray-800 mb-2 sm:mb-3 tracking-wide mx-auto text-center animate-float-in" style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif', animation: 'floatIn 1.2s ease-out forwards' }}>{greeting.main}</h2>
+        <h2 className="text-2xl xs:text-[24px] sm:text-[28px] font-extrabold text-gray-800 mb-2 sm:mb-3 tracking-wide mx-auto text-center animate-float-in" style={{ fontFamily: "'Noto Serif SC', 'STSongti-SC', 'Songti SC', 'STKaiti', 'KaiTi', 'Source Han Serif SC', serif", animation: 'floatIn 1.2s ease-out forwards' }}>{greeting.main}</h2>
         <p
           className="text-gray-500 text-xs sm:text-sm font-light tracking-wider mx-auto text-center italic animate-float-in"
-          style={{ fontFamily: '"FZYouSong", "方正悠宋", serif', animation: 'floatIn 1.2s ease-out 0.3s forwards' }}
+          style={{ fontFamily: "'Noto Serif SC', 'STSongti-SC', 'Songti SC', 'Source Han Serif SC', serif", animation: 'floatIn 1.2s ease-out 0.3s forwards' }}
         >
           {greeting.sub}
         </p>
@@ -513,7 +513,7 @@ const MoodInputSection = ({
         <button
           type="button"
           className="relative z-30 mt-28 sm:mt-32 mb-0.5 sm:mb-1 px-5 py-2 text-[13px] sm:text-[14px] text-gray-700/80 transition-colors hover:text-gray-800 group"
-          style={{ fontFamily: '"FZQingKeBenYueSongS-R-GB", "方正清刻本悦宋简体", "Songti SC", serif', fontWeight: 300, letterSpacing: '0.14em' }}
+          style={{ fontFamily: "'Noto Serif SC', 'STSongti-SC', 'Songti SC', 'Source Han Serif SC', serif", fontWeight: 300, letterSpacing: '0.14em' }}
           onClick={onEditIngredients}
           aria-label={`当前有 ${ingredientCount} 种特调原料已备齐`}
         >
@@ -591,7 +591,7 @@ const MoodInputSection = ({
               {!moodInput && (
                 <span
                   className="absolute inset-y-0 left-0 flex items-center text-gray-400 text-sm pointer-events-none transition-opacity duration-200"
-                  style={{ fontFamily: '"Songti SC", STKaiti, KaiTi, serif' }}
+                  style={{ fontFamily: "'Noto Serif SC', 'STSongti-SC', 'Songti SC', 'STKaiti', 'KaiTi', 'Source Han Serif SC', serif" }}
                 >
                   {MOOD_INPUT_PLACEHOLDERS[placeholderIndex]}
                 </span>
@@ -602,7 +602,7 @@ const MoodInputSection = ({
                 value={moodInput}
                 onChange={(e) => setMoodInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && moodInput.trim() && onGenerate()}
-                style={{ fontFamily: '"Songti SC", STKaiti, KaiTi, serif', letterSpacing: '0.05em' }}
+                style={{ fontFamily: "'Noto Serif SC', 'STSongti-SC', 'Songti SC', 'STKaiti', 'KaiTi', 'Source Han Serif SC', serif", letterSpacing: '0.05em' }}
               />
             </div>
             <button
@@ -854,7 +854,7 @@ const FriendlyNoticeModal = ({ isOpen, title, message, tone = 'default', onClose
               fontSize: '0.95rem',
               lineHeight: 1.85,
               color: 'rgba(43, 39, 36, 0.85)',
-              fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif',
+              fontFamily: "'Noto Serif SC', 'STSongti-SC', 'Songti SC', 'STKaiti', 'KaiTi', 'Source Han Serif SC', serif",
               letterSpacing: '0.04em'
             }}
           >
@@ -1043,7 +1043,7 @@ const DrinkResultCard = ({ drink, isActive, moodResult, customQuote }) => {
         <div className="absolute top-4 sm:top-6 left-4 sm:left-6">
           <div
             className="bg-white/10 backdrop-blur-md border border-white/20 px-3 sm:px-4 py-1 sm:py-1.5 rounded-full flex items-center gap-1.5 sm:gap-2 text-white/90 text-[10px] sm:text-[11px] font-bold tracking-wide"
-            style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif' }}
+            style={{ fontFamily: "'Noto Serif SC', 'STSongti-SC', 'Songti SC', 'STKaiti', 'KaiTi', 'Source Han Serif SC', serif" }}
           >
             <BriefIcon size={14} className="opacity-80 text-blue-300" />
             {drink.abv > 0 ? `微醺 | ABV ${drink.abv}%` : '无酒精'}
@@ -1053,7 +1053,7 @@ const DrinkResultCard = ({ drink, isActive, moodResult, customQuote }) => {
         <div className="absolute inset-0 flex flex-col items-center justify-end pb-6 sm:pb-10 px-4 sm:px-6 text-center">
           <h2
             className="text-2xl sm:text-3xl font-bold text-white mb-3 sm:mb-4 tracking-tight leading-none drop-shadow-md"
-            style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif', letterSpacing: '0.05em' }}
+            style={{ fontFamily: "'Noto Serif SC', 'STSongti-SC', 'Songti SC', 'STKaiti', 'KaiTi', 'Source Han Serif SC', serif", letterSpacing: '0.05em' }}
           >
             {drink.name_cn || translateDrinkName(drink.name) || drink.name}
           </h2>
@@ -1065,7 +1065,7 @@ const DrinkResultCard = ({ drink, isActive, moodResult, customQuote }) => {
                 <span
                   key={tag}
                   className="px-2 sm:px-2.5 py-[2px] sm:py-[3px] rounded bg-white/10 text-white/90 border border-white/20 text-[9px] sm:text-[10px] tracking-widest mix-blend-screen"
-                  style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif', fontWeight: 500 }}
+                  style={{ fontFamily: "'Noto Serif SC', 'STSongti-SC', 'Songti SC', 'STKaiti', 'KaiTi', 'Source Han Serif SC', serif", fontWeight: 500 }}
                 >
                   {tag}
                 </span>
@@ -1075,14 +1075,14 @@ const DrinkResultCard = ({ drink, isActive, moodResult, customQuote }) => {
             <div className="relative w-full flex justify-center min-h-[36px] sm:min-h-[40px]">
               <p
                 className={`absolute text-[11px] sm:text-[12px] text-white/70 font-light italic opacity-90 leading-relaxed max-w-[180px] sm:max-w-[220px] transition-opacity duration-1000 ${customQuote ? 'opacity-0' : 'opacity-100'}`}
-                style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif' }}
+                style={{ fontFamily: "'Noto Serif SC', 'STSongti-SC', 'Songti SC', 'STKaiti', 'KaiTi', 'Source Han Serif SC', serif" }}
               >
                 {philosophy.quote}
               </p>
               <p
                 className={`absolute text-[11px] sm:text-[12px] font-medium italic leading-relaxed max-w-[180px] sm:max-w-[220px] transition-opacity duration-1000 ${customQuote ? 'opacity-100' : 'opacity-0'}`}
                 style={{
-                  fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif',
+                  fontFamily: "'Noto Serif SC', 'STSongti-SC', 'Songti SC', 'STKaiti', 'KaiTi', 'Source Han Serif SC', serif",
                   color: '#E0E7FF',
                   textShadow: '0 0 10px rgba(167, 139, 250, 0.4)'
                 }}>
@@ -1101,7 +1101,7 @@ const DrinkResultCard = ({ drink, isActive, moodResult, customQuote }) => {
                   </div>
                   <span
                     className="text-[10px] sm:text-[11px] font-medium text-white/60 tracking-[0.1em] leading-none"
-                    style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif' }}
+                    style={{ fontFamily: "'Noto Serif SC', 'STSongti-SC', 'Songti SC', 'STKaiti', 'KaiTi', 'Source Han Serif SC', serif" }}
                   >
                     {translateIngredient(ing.label)}
                   </span>
@@ -1196,7 +1196,7 @@ const ExploreSection = ({
 
                 <input
                   className="bg-transparent border-none focus:outline-none focus:ring-0 w-full text-[15.5px] placeholder:text-gray-400/60 font-medium py-0 leading-none h-full outline-none text-gray-800"
-                  style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif', letterSpacing: '0.02em' }}
+                  style={{ fontFamily: "'Noto Serif SC', 'STSongti-SC', 'Songti SC', 'STKaiti', 'KaiTi', 'Source Han Serif SC', serif", letterSpacing: '0.02em' }}
                   placeholder="寻一抹微醺，觅万般心绪..."
                   type="text"
                   value={searchQuery}
@@ -1266,7 +1266,7 @@ const ExploreSection = ({
                     fontWeight: 700,
                     whiteSpace: 'nowrap',
                     fontSize: '0.85rem',
-                    fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif',
+                    fontFamily: "'Noto Serif SC', 'STSongti-SC', 'Songti SC', 'STKaiti', 'KaiTi', 'Source Han Serif SC', serif",
                     letterSpacing: '0.05em'
                   }}
                 >
@@ -1355,7 +1355,7 @@ const ExploreSection = ({
                 <div className="px-3 sm:px-4 py-2 sm:py-3">
                   <h3
                     className="font-bold text-sm sm:text-[15px] text-gray-800 leading-tight mb-0.5 sm:mb-1"
-                    style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif' }}
+                  style={{ fontFamily: "'Noto Serif SC', 'STSongti-SC', 'Songti SC', 'STKaiti', 'KaiTi', 'Source Han Serif SC', serif" }}
                   >
                     {drink.name_cn || translateDrinkName(drink.name) || drink.name}
                   </h3>
@@ -1366,7 +1366,7 @@ const ExploreSection = ({
                   })() && (
                     <p
                       className="text-[11px] sm:text-[12px] text-gray-400 leading-tight line-clamp-1 font-medium italic"
-                      style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif' }}
+                      style={{ fontFamily: "'Noto Serif SC', 'STSongti-SC', 'Songti SC', 'STKaiti', 'KaiTi', 'Source Han Serif SC', serif" }}
                     >
                       {drink.nameEn || drink.sub || drink.subName || ''}
                     </p>
@@ -1628,7 +1628,7 @@ const DrinkDetailSection = ({ drink, checkedIngredients, onToggleIngredient, onB
                 <div className="relative mb-8 pl-4 border-l-2 border-gray-200">
                   <p
                     className="text-[15px] text-gray-600 leading-[1.8] font-serif italic opacity-90"
-                    style={{ fontFamily: '"FZYouSong", "方正悠宋", "Songti SC", serif' }}
+                    style={{ fontFamily: "'Noto Serif SC', 'STSongti-SC', 'Songti SC', 'Source Han Serif SC', serif" }}
                   >
                     {drink.reason}
                   </p>
@@ -1639,7 +1639,7 @@ const DrinkDetailSection = ({ drink, checkedIngredients, onToggleIngredient, onB
             {/* 原料清单 */}
             <div className="bg-white/40 backdrop-blur-sm rounded-[2rem] p-6 border border-white/60">
               <div className="flex justify-between items-end mb-6">
-                <h3 className="text-[18px] font-bold text-gray-900 tracking-[0.1em]" style={{ fontFamily: '"Songti SC", serif' }}>原料清单</h3>
+                <h3 className="text-[18px] font-bold text-gray-900 tracking-[0.1em]" style={{ fontFamily: "'Noto Serif SC', 'STSongti-SC', 'Songti SC', 'Source Han Serif SC', serif" }}>原料清单</h3>
                 <span className="text-[11px] text-gray-400 bg-gray-50/80 px-3 py-1 rounded-full font-medium flex items-center gap-1">
                   <Users size={12} /> 一人份量
                 </span>
@@ -1662,7 +1662,7 @@ const DrinkDetailSection = ({ drink, checkedIngredients, onToggleIngredient, onB
                         </div>
                         <span
                           className="text-[15px] font-bold text-gray-800"
-                          style={{ fontFamily: '"Songti SC", "STKaiti", serif' }}
+                          style={{ fontFamily: "'Noto Serif SC', 'STSongti-SC', 'Songti SC', 'STKaiti', 'Source Han Serif SC', serif" }}
                         >
                           {translateIngredient(ing.name)}
                         </span>
@@ -1695,7 +1695,7 @@ const DrinkDetailSection = ({ drink, checkedIngredients, onToggleIngredient, onB
 
         {/* 下部：制作步骤 (Full Width) */}
         <div className="mt-8 border-t border-gray-100 pt-12">
-          <h3 className="text-[18px] font-bold text-gray-900 mb-10 tracking-[0.1em]" style={{ fontFamily: '"Songti SC", serif' }}>制作步骤</h3>
+          <h3 className="text-[18px] font-bold text-gray-900 mb-10 tracking-[0.1em]" style={{ fontFamily: "'Noto Serif SC', 'STSongti-SC', 'Songti SC', 'Source Han Serif SC', serif" }}>制作步骤</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-12 gap-y-10">
             {drinkSteps.map((step, idx) => (
               <div key={idx} className="flex gap-5 group">
@@ -1710,7 +1710,7 @@ const DrinkDetailSection = ({ drink, checkedIngredients, onToggleIngredient, onB
                 <div className="flex-1">
                   <h4
                     className="text-[15px] font-black text-gray-900 mb-2 tracking-wider"
-                    style={{ fontFamily: '"Songti SC", "STKaiti", serif' }}
+                    style={{ fontFamily: "'Noto Serif SC', 'STSongti-SC', 'Songti SC', 'STKaiti', 'Source Han Serif SC', serif" }}
                   >
                     {getChineseStep(idx)}
                   </h4>

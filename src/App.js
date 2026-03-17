@@ -552,7 +552,7 @@ const MoodInputSection = ({
 
         <button
           type="button"
-          className="relative z-30 mt-28 sm:mt-32 mb-0.5 sm:mb-1 px-5 py-2 text-[13px] sm:text-[14px] text-gray-700/80 transition-colors hover:text-gray-800 group"
+          className="relative z-30 mt-12 sm:mt-16 mb-0.5 sm:mb-1 px-5 py-2 text-[13px] sm:text-[14px] text-gray-700/80 transition-colors hover:text-gray-800 group"
           style={{ fontFamily: "'Noto Serif SC', 'STSongti-SC', 'Songti SC', 'Source Han Serif SC', serif", fontWeight: 300, letterSpacing: '0.14em' }}
           onClick={onEditIngredients}
           aria-label={`当前有 ${ingredientCount} 种特调原料已备齐`}

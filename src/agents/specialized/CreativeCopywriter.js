@@ -37,6 +37,13 @@ export class CreativeCopywriter extends BaseAgent {
       return { valid: true };
     }
 
+    if (taskType === 'SOCIAL_CARD_NO_MOOD') {
+      if (!data || !data.drink) {
+        return { valid: false, reason: 'Missing drink for SOCIAL_CARD_NO_MOOD' };
+      }
+      return { valid: true };
+    }
+
     if (!matches || matches.length === 0) {
       return { valid: false, reason: 'No matched drinks available' };
     }
@@ -53,6 +60,10 @@ export class CreativeCopywriter extends BaseAgent {
 
     if (taskType === 'SOCIAL_CARD') {
       return await this.fetchSocialCardCopy(data);
+    }
+
+    if (taskType === 'SOCIAL_CARD_NO_MOOD') {
+      return await this.fetchSocialCardNoMood(data);
     }
 
     const matches = context.getIntermediate('matches');
@@ -105,6 +116,34 @@ export class CreativeCopywriter extends BaseAgent {
 
     return {
       copy: result.data?.copy || '岁序更迭，此情可待。',
+      timestamp: new Date().toISOString()
+    };
+  }
+
+  /**
+   * 调用【无情绪输入】场景的社交卡片 API
+   * - 由后端 LLM 生成 tagEmotion / tagScene / copy 的结构化结果
+   */
+  async fetchSocialCardNoMood(data) {
+    const response = await fetch('/api/social-card-no-mood', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+
+    if (!response.ok) {
+      throw new Error(`分享文案服务响应异常: ${response.status}`);
+    }
+
+    const result = await response.json();
+    if (!result.success) {
+      throw new Error(result.error || '获取无情绪分享文案失败');
+    }
+
+    return {
+      copy: result.data?.copy || '这一杯，适合在你愿意停下来的时候慢慢喝完。',
+      tagEmotion: result.data?.tagEmotion || null,
+      tagScene: result.data?.tagScene || null,
       timestamp: new Date().toISOString()
     };
   }

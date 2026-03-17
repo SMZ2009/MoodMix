@@ -1002,7 +1002,7 @@ app.post('/api/drink_assistant', validateApiKey, handleDrinkAssistant);
 /**
  * POST /api/social-card-copy
  * POST /api/social_card_copy (向后兼容)
- * 社交卡片文案生成
+ * 社交卡片文案生成（有情绪输入）
  */
 async function handleSocialCardCopy(req, res) {
   const { drink, prompt: userPrompt } = req.body;
@@ -1037,6 +1037,83 @@ async function handleSocialCardCopy(req, res) {
 
 app.post('/api/social-card-copy', validateApiKey, handleSocialCardCopy);
 app.post('/api/social_card_copy', validateApiKey, handleSocialCardCopy);
+
+/**
+ * POST /api/social-card-no-mood
+ * POST /api/social_card_no_mood (向后兼容)
+ * 社交卡片文案生成（无情绪输入，仅基于饮品画像）
+ * - 返回结构化 JSON：{ tagEmotion, tagScene, copy }
+ */
+async function handleSocialCardNoMood(req, res) {
+  const { drink } = req.body || {};
+
+  if (!drink) {
+    return errorResponse(res, 400, '缺少 drink 参数');
+  }
+
+  try {
+    const systemPrompt = `你是一位东方情绪酒馆的策展人兼文案。
+
+场景条件：
+- 用户此刻没有提供任何情绪输入。
+- 你只知道这杯饮品本身的风味与属性。
+
+你的任务：
+基于【饮品本身】，为分享卡片生成：
+1) 一枚描述这杯酒「气质/氛围」的短标签 tagEmotion（3-6个汉字，不要标点，不要出现“你”“我”“现在”等指代用户的词）。
+2) 一枚描述这杯酒「适合的场景/节奏」的短标签 tagScene（4-10个汉字，例如“下班后小酌”“周末放空”“深夜收尾”等，不要医学或“调理中”字眼）。
+3) 一段分享文案 copy，用于卡片正文（2-3句，30-50字，风格克制、有画面感，结合饮品的颜色/温度/口感/香气，并轻轻暗示适合的饮用时刻；不要推测用户心情，不要使用感叹号）。
+
+重要限制：
+- 语气要像朋友间的低语，东方审美，避免鸡汤和励志口号。
+- 不要使用“待辨证”“调理中”“疗愈”“治愈”这类医学感或过重的词汇。
+
+你必须严格只输出一个 JSON 对象，不要任何解释或自然语言。JSON 结构如下：
+{
+  "tagEmotion": "夜航微醺",
+  "tagScene": "下班后小酌",
+  "copy": "……30-50字文案……"
+}`;
+
+    const userMessage = `以下是这杯饮品的关键信息，请据此完成任务：
+- 名称：${drink.name || '未知饮品'}
+- 中文名：${drink.name_cn || '（可能为空）'}
+- 类型：${drink.category || drink.categoryName || '未知类型'}
+- 酒精度（ABV）：${typeof drink.abv === 'number' ? drink.abv + '%' : '未知'}
+- 主要风味/原料：${Array.isArray(drink.briefIngredients) && drink.briefIngredients.length > 0
+  ? drink.briefIngredients.map(i => i.label || i.name).join('、')
+  : (drink.ingredients || []).map(i => i.name).join('、') || '未标注'}
+- 推荐理由：${drink.reason || '暂无'}
+
+请根据上述信息，生成符合要求的 tagEmotion、tagScene 和 copy。`;
+
+    const result = await callLLM(systemPrompt, userMessage, {
+      model: MODEL_CREATIVE,
+      temperature: 0.8,
+      jsonMode: true,
+      maxTokens: 400
+    });
+
+    const safe = {
+      tagEmotion: typeof result.tagEmotion === 'string' ? result.tagEmotion.trim() : null,
+      tagScene: typeof result.tagScene === 'string' ? result.tagScene.trim() : null,
+      copy: typeof result.copy === 'string' ? result.copy.trim() : ''
+    };
+
+    // 兜底：确保 copy 总是有值
+    if (!safe.copy) {
+      safe.copy = '这一杯，适合在你愿意停下来的时候，慢慢喝完。';
+    }
+
+    successResponse(res, safe);
+  } catch (error) {
+    console.error('[Social Card No Mood] Error:', error);
+    errorResponse(res, 500, error.message);
+  }
+}
+
+app.post('/api/social-card-no-mood', validateApiKey, handleSocialCardNoMood);
+app.post('/api/social_card_no_mood', validateApiKey, handleSocialCardNoMood);
 
 /**
  * POST /api/speech-to-text

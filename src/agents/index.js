@@ -40,7 +40,7 @@ export async function executeMixologyTask(taskType, data) {
   const { AgentContext } = await import('./core/AgentContext');
   let AgentClass;
 
-  if (taskType === 'SOCIAL_CARD') {
+  if (taskType === 'SOCIAL_CARD' || taskType === 'SOCIAL_CARD_NO_MOOD') {
     const { CreativeCopywriter } = await import('./specialized/CreativeCopywriter');
     AgentClass = CreativeCopywriter;
   } else {

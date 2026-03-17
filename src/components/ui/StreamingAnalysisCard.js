@@ -51,7 +51,7 @@ const StreamingAnalysisCard = ({
           summaryTimerRef.current = null;
         }
       }
-    }, 40);
+    }, 80);
 
     return () => {
       if (summaryTimerRef.current) {

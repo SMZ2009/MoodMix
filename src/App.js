@@ -99,6 +99,7 @@ const ShareCardImage = ({ src }) => {
     }}>
       <img
         src={src}
+        crossOrigin="anonymous"
         alt="Drink"
         style={{
           width: '100%',

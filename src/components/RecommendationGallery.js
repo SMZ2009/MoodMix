@@ -240,7 +240,7 @@ const CardContent = ({ drink, isActive, isLiked, moodResult, customQuote, valida
       setIsTyping(true);
       setDisplayedQuote('');
       let index = 0;
-      const typingSpeed = 35; // 每个字的间隔时间(ms)
+      const typingSpeed = 70; // 每个字的间隔时间(ms)
       
       const typeNextChar = () => {
         if (index < customQuote.length) {

@@ -87,17 +87,15 @@ function getImageDisplayStyle(imgWidth, imgHeight) {
  * - 宽高比 0.55-0.9：保留原比例，max-height 420px
  * - 宽高比 <0.55：aspect-ratio 9/16，max-height 450px
  */
-/**
- * ShareCardImage component - Forced 3:4 aspect ratio with cover fit
- */
 const ShareCardImage = ({ src }) => {
   return (
     <div style={{
-      width: '100%',
-      aspectRatio: '1 / 1', // Aligned with detail page
+      width: '92%',
+      margin: '0 auto',
+      aspectRatio: '1 / 1',
       overflow: 'hidden',
-      borderRadius: '40px', // Matches detail page's 2.5rem
-      background: '#f0ebe3'
+      borderRadius: '32px',
+      background: '#f0ebe3',
     }}>
       <img
         src={src}
@@ -117,43 +115,54 @@ const ShareCardImage = ({ src }) => {
  * 完整卡片布局，二维码包含在卡片内部
  */
 const ShareCard = forwardRef(({ drinkName, emotion, wuxing, imageSrc, llmCopy, qrCodeSrc }, ref) => {
+  // 整体缩放系数：让卡片与文字更紧凑
+  const SCALE = 0.9;
+
   // 日期格式：2026.03.15
   const today = new Date();
   const formattedDate = `${today.getFullYear()}.${String(today.getMonth() + 1).padStart(2, '0')}.${String(today.getDate()).padStart(2, '0')}`;
 
   return (
-    <div ref={ref} className="share-card" style={{ background: '#FAF8F5' }}>
+    <div
+      ref={ref}
+      className="share-card"
+      style={{
+        background: '#FAF8F5',
+        transform: `scale(${SCALE})`,
+        transformOrigin: 'top left',
+      }}
+    >
       {/* 顶部品牌栏 - 优化版 */}
-      <div className="card-header" style={{ padding: '20px 24px', borderBottom: 'none' }}>
+      <div className="card-header" style={{ padding: '16px 20px', borderBottom: 'none' }}>
         <div className="flex flex-col">
           <span className="brand" style={{
             fontFamily: "'Noto Serif SC', 'STSongti-SC', 'Songti SC', 'STKaiti', 'Source Han Serif SC', serif",
-            fontSize: '18px',
+            fontSize: '16px',
             fontWeight: 700,
             color: '#3c3b36',
             letterSpacing: '0.1em'
           }}>MoodMix | 心绪调饮</span>
           <span style={{
-            fontSize: '10px',
+            fontSize: '9px',
             color: '#a09382',
             textTransform: 'uppercase',
             letterSpacing: '0.2em',
             marginTop: '2px'
           }}>Oriental Alchemy</span>
         </div>
-        <span className="date" style={{ color: '#8c8b86', fontSize: '14px', fontFamily: '"FZYouSong", serif' }}>{formattedDate}</span>
+        <span className="date" style={{ color: '#8c8b86', fontSize: '12px', fontFamily: '"FZYouSong", serif' }}>{formattedDate}</span>
       </div>
 
       {/* 图片区域 - 强制 3:4 */}
-      <div style={{ padding: '0 24px' }}>
+      <div style={{ padding: '0 20px' }}>
         <ShareCardImage src={imageSrc} />
       </div>
 
       {/* 内容区域 */}
-      <div className="card-body" style={{ padding: '24px' }}>
+      <div className="card-body" style={{ padding: '20px' }}>
         <h2 className="drink-name" style={{
-          fontSize: '32px',
-          marginBottom: '12px',
+          fontSize: '28px',
+          marginBottom: '10px',
           fontFamily: "'Noto Serif SC', 'STSongti-SC', 'Songti SC', 'STKaiti', 'Source Han Serif SC', serif",
           color: '#1a1a1a'
         }}>{drinkName}</h2>
@@ -164,29 +173,29 @@ const ShareCard = forwardRef(({ drinkName, emotion, wuxing, imageSrc, llmCopy, q
             background: 'rgba(60, 59, 54, 0.05)',
             padding: '4px 12px',
             borderRadius: '100px',
-            fontSize: '13px',
+            fontSize: '12px',
             color: '#5c5b56',
             fontFamily: "'Noto Serif SC', 'STSongti-SC', 'Songti SC', 'STKaiti', 'Source Han Serif SC', serif"
           }}>{emotion}</span>
-          <span style={{ color: '#d1cdc2', fontSize: '12px' }}>|</span>
-          <span style={{ fontSize: '13px', color: '#8c8b86', fontFamily: '"STKaiti", serif' }}>{wuxing}</span>
+          <span style={{ color: '#d1cdc2', fontSize: '11px' }}>|</span>
+          <span style={{ fontSize: '12px', color: '#8c8b86', fontFamily: '"STKaiti", serif' }}>{wuxing}</span>
         </div>
 
         <div className="card-divider" style={{
           height: '1px',
           background: 'linear-gradient(90deg, #d1cdc2 0%, transparent 100%)',
-          margin: '20px 0',
+          margin: '16px 0',
           opacity: 0.5
         }} />
 
         {/* 推荐语对齐画廊风格 */}
         <div style={{
           borderLeft: '2px solid #d1cdc2',
-          paddingLeft: '16px',
-          marginTop: '16px'
+          paddingLeft: '14px',
+          marginTop: '12px'
         }}>
           <p className="llm-copy" style={{
-            fontSize: '15px',
+            fontSize: '14px',
             lineHeight: '1.8',
             color: '#4c4b46',
             fontFamily: "'Noto Serif SC', 'STSongti-SC', 'Songti SC', 'STKaiti', 'KaiTi', 'Source Han Serif SC', serif",
@@ -196,17 +205,17 @@ const ShareCard = forwardRef(({ drinkName, emotion, wuxing, imageSrc, llmCopy, q
       </div>
 
       {/* 底部引流区 */}
-      <div className="card-footer" style={{ borderTop: 'none', padding: '24px', paddingTop: '0' }}>
+      <div className="card-footer" style={{ borderTop: 'none', padding: '18px', paddingTop: '0' }}>
         <div className="flex items-center justify-between w-full">
           <div className="flex flex-col">
-            <span className="cta" style={{ fontSize: '12px', color: '#a09382', letterSpacing: '0.05em' }}>扫码试试你的情绪饮品</span>
-            <span style={{ fontSize: '10px', color: '#d1cdc2', textTransform: 'uppercase', marginTop: '2px' }}>Scan for your Mood Mix</span>
+            <span className="cta" style={{ fontSize: '11px', color: '#a09382', letterSpacing: '0.05em' }}>扫码试试你的情绪饮品</span>
+            <span style={{ fontSize: '9px', color: '#d1cdc2', textTransform: 'uppercase', marginTop: '2px' }}>Scan for your Mood Mix</span>
           </div>
           <div className="qr-code-box" style={{
-            width: '64px',
-            height: '64px',
+            width: '56px',
+            height: '56px',
             background: '#fff',
-            padding: '6px',
+            padding: '5px',
             borderRadius: '8px',
             boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
           }}>
@@ -1375,7 +1384,11 @@ const BulbIcon = ({ isDaka }) => (
   />
 );
 
-const DrinkDetailSection = ({ drink, checkedIngredients, onToggleIngredient, onBack, onMore, onFocusMode, currentStep, cardFeedback, isLiked, onLikeDrink, isDaka, onDakaDrink, onHelp }) => {
+const DrinkDetailSection = ({ drink, checkedIngredients, onToggleIngredient, onBack, onMore, onFocusMode, currentStep, cardFeedback, isLiked, onLikeDrink, isDaka, onDakaDrink, onHelp, moodResult }) => {
+  const philosophy = generatePhilosophyTags(drink.dimensions, moodResult, drink.name);
+  const diagnosisTag = philosophy?.tags?.[0] || drink.dimensions?.mood || '气机待调';
+  const strategyTag = philosophy?.tags?.[1] || (drink.dimensions?.wuxing ? `五行属${drink.dimensions.wuxing}` : '调和气机');
+  const shareCopy = (llmCopy && llmCopy.trim()) ? llmCopy : (philosophy?.quote || '「请先描述你此刻的心情，让我为你找到那杯对的酒」');
   const [shareCardUrl, setShareCardUrl] = useState(null);
   const [isGeneratingShare, setIsGeneratingShare] = useState(false);
   const [llmCopy, setLlmCopy] = useState('');
@@ -1753,10 +1766,10 @@ const DrinkDetailSection = ({ drink, checkedIngredients, onToggleIngredient, onB
           <ShareCard
             ref={cardRef}
             drinkName={drink.name}
-            emotion={drink.dimensions?.mood || '悠然'}
-            wuxing={drink.dimensions?.wuxing ? `五行属${drink.dimensions.wuxing}` : '五行调和'}
+            emotion={diagnosisTag}
+            wuxing={strategyTag}
             imageSrc={drink.image}
-            llmCopy={llmCopy}
+            llmCopy={shareCopy}
             qrCodeSrc={qrCodeDataUrl}
           />
         </div>
@@ -3008,6 +3021,7 @@ const App = () => {
               }}
               isDaka={dakaDrinks.some(d => d.id === currentDrink?.id)}
               onDakaDrink={handleOpenDakaModal}
+              moodResult={moodResult}
               onHelp={(drink) => {
                 setDrinkHelpTarget(drink);
                 setShowDrinkHelpModal(true);

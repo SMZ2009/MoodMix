@@ -227,7 +227,7 @@ const MineSection = ({ favorites, onSelectDrink, cardFeedback, initialTab = 'col
                         <h2 className="text-xl font-bold text-center text-gray-800 mb-4" style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif' }}>填写个人信息</h2>
                         <form onSubmit={handleProfileSubmit} className="space-y-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">姓名（化名）</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">昵称</label>
                                 <div className="relative">
                                     <input
                                         type="text"
@@ -235,7 +235,7 @@ const MineSection = ({ favorites, onSelectDrink, cardFeedback, initialTab = 'col
                                         onChange={(e) => setProfileForm(prev => ({ ...prev, name: e.target.value }))}
                                         required
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 pr-20"
-                                        placeholder="请输入您的化名"
+                                        placeholder="请输入您的昵称"
                                     />
                                     <div
                                         className="absolute right-3 top-1/2 transform -translate-y-1/2 cursor-pointer group"

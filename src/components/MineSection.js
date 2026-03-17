@@ -222,26 +222,30 @@ const MineSection = ({ favorites, onSelectDrink, cardFeedback, initialTab = 'col
         >
             {/* 首次访问个人信息填写表单 */}
             {isFirstVisit && (
-                <div className="fixed inset-0 bg-dreamy-gradient backdrop-blur-md z-50 flex items-center justify-center p-6">
-                    <div className="bg-white rounded-2xl shadow-lg w-full max-w-md p-6 space-y-4">
-                        <h2 className="text-xl font-bold text-center text-gray-800 mb-4" style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif' }}>填写个人信息</h2>
+                <div className="fixed inset-0 bg-white/20 backdrop-blur-xl z-50 flex items-center justify-center p-6">
+                    <div className="glass-panel w-full max-w-md p-8 space-y-6 relative overflow-hidden">
+                        {/* 装饰性背景光晕 */}
+                        <div className="absolute -top-24 -left-24 w-48 h-48 bg-purple-400/20 blur-[60px] rounded-full pointer-events-none" />
+                        <div className="absolute -bottom-24 -right-24 w-48 h-48 bg-blue-400/10 blur-[60px] rounded-full pointer-events-none" />
+
+                        <h2 className="text-2xl font-bold text-center text-gray-800 mb-6" style={{ fontFamily: '"Noto Serif SC", serif', letterSpacing: '0.1em' }}>填写个人信息</h2>
                         <form onSubmit={handleProfileSubmit} className="space-y-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">昵称</label>
+                                <label className="glass-label">昵称</label>
                                 <div className="relative">
                                     <input
                                         type="text"
                                         value={profileForm.name}
                                         onChange={(e) => setProfileForm(prev => ({ ...prev, name: e.target.value }))}
                                         required
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 pr-20"
+                                        className="w-full px-6 py-3 glass-input pr-20"
                                         placeholder="请输入您的昵称"
                                     />
                                     <div
-                                        className="absolute right-3 top-1/2 transform -translate-y-1/2 cursor-pointer group"
+                                        className="absolute right-2 top-1/2 transform -translate-y-1/2 cursor-pointer group p-1"
                                         onClick={() => fileInputRef.current?.click()}
                                     >
-                                        <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-gray-300">
+                                        <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-white/80 shadow-sm glass-pill-container">
                                             <img
                                                 alt="Avatar"
                                                 className="w-full h-full object-cover"
@@ -275,57 +279,60 @@ const MineSection = ({ favorites, onSelectDrink, cardFeedback, initialTab = 'col
                                 </div>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">生日</label>
-                                <div className="space-y-2">
-                                    <div className="flex gap-2">
-                                        <input
-                                            type="number"
-                                            placeholder="年"
-                                            value={profileForm.birthday ? profileForm.birthday.split('-')[0] : ''}
-                                            onChange={(e) => {
-                                                const year = e.target.value;
-                                                const current = profileForm.birthday ? profileForm.birthday.split('-') : ['', '', ''];
-                                                const newDate = `${year}-${current[1] || '01'}-${current[2] || '01'}`;
-                                                setProfileForm(prev => ({ ...prev, birthday: newDate }));
-                                            }}
-                                            required
-                                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 text-center"
-                                            min="1900"
-                                            max="2026"
-                                        />
-                                        <span className="flex items-center justify-center">年</span>
-                                        <input
-                                            type="number"
-                                            placeholder="月"
-                                            value={profileForm.birthday ? profileForm.birthday.split('-')[1] : ''}
-                                            onChange={(e) => {
-                                                const month = String(e.target.value).padStart(2, '0');
-                                                const current = profileForm.birthday ? profileForm.birthday.split('-') : ['2000', '', ''];
-                                                const newDate = `${current[0] || '2000'}-${month}-${current[2] || '01'}`;
-                                                setProfileForm(prev => ({ ...prev, birthday: newDate }));
-                                            }}
-                                            required
-                                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 text-center"
-                                            min="1"
-                                            max="12"
-                                        />
-                                        <span className="flex items-center justify-center">月</span>
-                                        <input
-                                            type="number"
-                                            placeholder="日"
-                                            value={profileForm.birthday ? profileForm.birthday.split('-')[2] : ''}
-                                            onChange={(e) => {
-                                                const day = String(e.target.value).padStart(2, '0');
-                                                const current = profileForm.birthday ? profileForm.birthday.split('-') : ['2000', '01', ''];
-                                                const newDate = `${current[0] || '2000'}-${current[1] || '01'}-${day}`;
-                                                setProfileForm(prev => ({ ...prev, birthday: newDate }));
-                                            }}
-                                            required
-                                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 text-center"
-                                            min="1"
-                                            max="31"
-                                        />
-                                        <span className="flex items-center justify-center">日</span>
+                                <label className="glass-label">生日</label>
+                                <div className="space-y-3">
+                                    <div className="flex gap-3">
+                                        <div className="relative flex-1">
+                                            <input
+                                                type="number"
+                                                placeholder="年"
+                                                value={profileForm.birthday ? profileForm.birthday.split('-')[0] : ''}
+                                                onChange={(e) => {
+                                                    const year = e.target.value;
+                                                    const current = profileForm.birthday ? profileForm.birthday.split('-') : ['', '', ''];
+                                                    const newDate = `${year}-${current[1] || '01'}-${current[2] || '01'}`;
+                                                    setProfileForm(prev => ({ ...prev, birthday: newDate }));
+                                                }}
+                                                required
+                                                className="w-full px-2 py-3 glass-input text-center"
+                                                min="1900"
+                                                max="2026"
+                                            />
+                                        </div>
+                                        <div className="relative flex-1">
+                                            <input
+                                                type="number"
+                                                placeholder="月"
+                                                value={profileForm.birthday ? profileForm.birthday.split('-')[1] : ''}
+                                                onChange={(e) => {
+                                                    const month = String(e.target.value).padStart(2, '0');
+                                                    const current = profileForm.birthday ? profileForm.birthday.split('-') : ['2000', '', ''];
+                                                    const newDate = `${current[0] || '2000'}-${month}-${current[2] || '01'}`;
+                                                    setProfileForm(prev => ({ ...prev, birthday: newDate }));
+                                                }}
+                                                required
+                                                className="w-full px-2 py-3 glass-input text-center"
+                                                min="1"
+                                                max="12"
+                                            />
+                                        </div>
+                                        <div className="relative flex-1">
+                                            <input
+                                                type="number"
+                                                placeholder="日"
+                                                value={profileForm.birthday ? profileForm.birthday.split('-')[2] : ''}
+                                                onChange={(e) => {
+                                                    const day = String(e.target.value).padStart(2, '0');
+                                                    const current = profileForm.birthday ? profileForm.birthday.split('-') : ['2000', '01', ''];
+                                                    const newDate = `${current[0] || '2000'}-${current[1] || '01'}-${day}`;
+                                                    setProfileForm(prev => ({ ...prev, birthday: newDate }));
+                                                }}
+                                                required
+                                                className="w-full px-2 py-3 glass-input text-center"
+                                                min="1"
+                                                max="31"
+                                            />
+                                        </div>
                                     </div>
                                     {profileForm.birthday && (
                                         <div className="text-right text-gray-500 text-sm">
@@ -335,18 +342,18 @@ const MineSection = ({ favorites, onSelectDrink, cardFeedback, initialTab = 'col
                                 </div>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">出生地（选填）</label>
+                                <label className="glass-label">出生地（选填）</label>
                                 <input
                                     type="text"
                                     value={profileForm.birthplace}
                                     onChange={(e) => setProfileForm(prev => ({ ...prev, birthplace: e.target.value }))}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400"
+                                    className="w-full px-6 py-3 glass-input"
                                     placeholder="请输入您的出生地"
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">当前城市</label>
-                                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg">
+                                <label className="glass-label">当前城市</label>
+                                <div className="flex items-center gap-2 px-6 py-3 glass-input bg-white/20">
                                     {locationLoading ? (
                                         <>
                                             <Loader2 size={16} className="text-purple-500 animate-spin" />
@@ -355,26 +362,24 @@ const MineSection = ({ favorites, onSelectDrink, cardFeedback, initialTab = 'col
                                     ) : currentCity ? (
                                         <>
                                             <MapPin size={16} className="text-purple-500" />
-                                            <span className="text-gray-700">{currentCity}</span>
+                                            <span className="text-gray-700 font-medium">{currentCity}</span>
                                         </>
-                                    ) : locationError ? (
-                                        <span className="text-gray-400 text-sm">{locationError}</span>
                                     ) : (
                                         <span className="text-gray-400 text-sm">未能获取位置</span>
                                     )}
                                 </div>
                             </div>
-                            <div className="flex gap-2">
+                            <div className="flex gap-4 pt-4">
                                 <button
                                     type="submit"
-                                    className="flex-1 bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700 transition-colors font-medium"
+                                    className="flex-1 glass-button-primary py-4 font-bold text-lg"
                                 >
                                     保存信息
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => setIsFirstVisit(false)}
-                                    className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+                                    className="flex-1 glass-button-secondary py-4 font-medium"
                                 >
                                     跳过
                                 </button>
@@ -558,12 +563,9 @@ const MineSection = ({ favorites, onSelectDrink, cardFeedback, initialTab = 'col
                                     ...cardFeedback,
                                     borderRadius: '20px',
                                     overflow: 'hidden',
-                                    background: 'rgba(255, 255, 255, 0.45)',
-                                    backdropFilter: 'blur(12px)',
-                                    border: '1px solid rgba(255, 255, 255, 0.6)',
-                                    boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.07)',
                                     minWidth: 0
                                 }}
+                                className="glass-card glass-card-interactive"
                             >
                                 <div className="p-2 sm:p-3 pb-0">
                                     <div

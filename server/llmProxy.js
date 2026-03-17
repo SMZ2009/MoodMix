@@ -1194,11 +1194,6 @@ app.use((err, req, res, next) => {
   errorResponse(res, err.status || 500, err.message || '服务器内部错误');
 });
 
-// 404 处理
-app.use((req, res) => {
-  errorResponse(res, 404, `未找到端点: ${req.method} ${req.path}`);
-});
-
 // ═══════════════════════════════════════════
 // 饮品心意统计 API
 // ═══════════════════════════════════════════
@@ -1264,6 +1259,11 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => {
     console.log('[Socket] 客户端已断开:', socket.id);
   });
+});
+
+// 404 处理
+app.use((req, res) => {
+  errorResponse(res, 404, `未找到端点: ${req.method} ${req.path}`);
 });
 
 // ═══════════════════════════════════════════

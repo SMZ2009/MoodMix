@@ -5,45 +5,25 @@ import { InteractiveButton } from './ui';
 const HelperModal = ({ onClose }) => {
 
   return (
-    <div style={{
-      width: '100%',
-      borderRadius: '1.5rem',
-      padding: '1.25rem',
-      background: 'rgba(255, 255, 255, 0.78)',
-      backdropFilter: 'blur(40px) saturate(1.3)',
-      WebkitBackdropFilter: 'blur(40px) saturate(1.3)',
-      boxShadow: '0 8px 32px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.5)',
-      border: '1px solid rgba(255, 255, 255, 0.5)'
-    }}>
-      <div className="flex justify-between items-center mb-5">
+    <div className="glass-modal rounded-[2.8rem] p-8 w-full shadow-2xl overflow-hidden flex flex-col">
+      <div className="flex justify-between items-center mb-6">
         <h3 style={{
-          fontSize: '1.1rem',
+          fontSize: '1.25rem',
           fontWeight: 700,
-          fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif',
-          color: '#000000',
-          letterSpacing: '0.1em'
+          fontFamily: '"Noto Serif SC", serif',
+          color: '#1a1a1a',
+          letterSpacing: '0.08em'
         }}>生活容器对照表</h3>
         <button
           type="button"
           onClick={onClose}
-          aria-label="关闭"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: 'rgba(0,0,0,0.05)',
-            width: '36px',
-            height: '36px',
-            borderRadius: '999px',
-            border: '1px solid rgba(0,0,0,0.04)',
-            color: '#2f2b29',
-            cursor: 'pointer'
-          }}
+          className="w-10 h-10 rounded-full flex items-center justify-center bg-white/5 text-white/40 hover:text-white/80 hover:bg-white/10 transition-all border border-white/10"
         >
-          <X size={18} strokeWidth={2.2} color="#2f2b29" />
+          <X size={20} />
         </button>
       </div>
-      <div className="space-y-3">
+      
+      <div className="space-y-4">
         {[
           { label: "1 瓶盖", value: "≈ 5ml", icon: "🍼" },
           { label: "1 汤勺", value: "≈ 15ml", icon: "🥄" },
@@ -51,36 +31,21 @@ const HelperModal = ({ onClose }) => {
         ].map((item, idx) => (
           <div
             key={idx}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              padding: '1rem',
-              background: 'rgba(255, 255, 255, 0.45)',
-              border: '1px solid rgba(0, 0, 0, 0.15)',
-              borderRadius: '0.75rem'
-            }}
+            className="flex items-center p-4 bg-white/40 border border-black/5 rounded-2xl transition-all hover:bg-white/60"
           >
-            <span className="text-2.5xl mr-3">{item.icon}</span>
-            <div style={{ flex: 1, fontWeight: 700, color: '#000000', fontSize: '0.875rem' }}>{item.label}</div>
-            <div style={{ fontSize: '1.1rem', fontWeight: 900, color: '#000000', fontFamily: 'serif' }}>{item.value}</div>
+            <span className="text-2xl mr-4 drop-shadow-lg">{item.icon}</span>
+            <div style={{ flex: 1, fontWeight: 500, color: 'rgba(0, 0, 0, 0.7)', fontSize: '0.9rem', fontFamily: '"Songti SC", serif' }}>{item.label}</div>
+            <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1a1a1a', letterSpacing: '0.05em', fontFamily: '"Noto Serif SC", serif' }}>{item.value}</div>
           </div>
         ))}
       </div>
+
       <InteractiveButton
-        variant="primary"
-        fullWidth
+        variant="glass-primary"
         onClick={onClose}
-        style={{
-          marginTop: '20px',
-          height: '48px',
-          background: '#3c3b36',
-          border: '1px solid #2a2924',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1)',
-          color: '#ebdfc8',
-          fontWeight: 600
-        }}
+        className="w-full h-14 mt-8"
       >
-        知道了
+        <span>我知道了</span>
       </InteractiveButton>
     </div>
   );

@@ -2339,3 +2339,159 @@ body {
 .im-tag-delete-btn:active {
   transform: scale(0.9) !important;
 }
+
+/* --- Glassmorphism UI System (Inspired by Reference) --- */
+
+:root {
+  --glass-bg: rgba(255, 255, 255, 0.45);
+  --glass-bg-accent: rgba(255, 255, 255, 0.65);
+  --glass-border: rgba(255, 255, 255, 0.5);
+  --glass-inner-glow: inset 0 1px 1px rgba(255, 255, 255, 0.8), inset 0 -1px 1px rgba(255, 255, 255, 0.2);
+  --glass-shadow: 0 8px 32px rgba(31, 38, 135, 0.08);
+  --glass-pill-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(255, 255, 255, 0.5);
+}
+
+.glass-panel {
+  background: var(--glass-bg);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  border-radius: 2rem;
+}
+
+.glass-pill-container {
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: var(--glass-pill-shadow);
+  border-radius: 9999px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-input {
+  background: rgba(255, 255, 255, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.03);
+  border-radius: 9999px;
+  color: #1a1a1a;
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+.glass-input:focus {
+  background: rgba(255, 255, 255, 0.65);
+  border-color: rgba(255, 255, 255, 0.8);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.02), 0 0 0 4px rgba(255, 255, 255, 0.2);
+}
+
+.glass-button-primary {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: #1a1a1a;
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  border-radius: 9999px;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  letter-spacing: 0.05em;
+  font-family: 'Noto Serif SC', serif;
+}
+
+/* 流光背景层 */
+.glass-button-primary::before {
+  content: '';
+  position: absolute;
+  top: -50%; right: -20%;
+  width: 140%; height: 200%;
+  background: radial-gradient(circle at center, 
+    rgba(147, 197, 253, 0.4) 0%, 
+    rgba(167, 139, 250, 0.3) 25%, 
+    rgba(252, 165, 165, 0.2) 50%, 
+    transparent 80%);
+  filter: blur(25px);
+  opacity: 0.6;
+  z-index: 0;
+  animation: glow-rotate 8s infinite linear;
+}
+
+/* 文字层级置顶 */
+.glass-button-primary span, 
+.glass-button-primary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+}
+
+.glass-button-primary:hover {
+  transform: translateY(-2px) scale(1.02);
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow: 0 8px 25px rgba(139, 92, 246, 0.15);
+}
+
+.glass-button-primary:active {
+  transform: translateY(0) scale(0.98);
+}
+
+@keyframes glow-rotate {
+  0% { transform: rotate(0deg) translate(0, 0); }
+  33% { transform: rotate(120deg) translate(-10%, 10%); }
+  66% { transform: rotate(240deg) translate(5%, -5%); }
+  100% { transform: rotate(360deg) translate(0, 0); }
+}
+
+.glass-button-secondary {
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(8px);
+  color: #4a4a4a;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 9999px;
+  transition: all 0.3s ease;
+  font-family: 'Noto Serif SC', serif;
+}
+
+.glass-label {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+/* 玻璃态弹窗通用样式 */
+.glass-modal {
+  background: rgba(255, 255, 255, 0.45);
+  backdrop-filter: blur(40px) saturate(1.8);
+  -webkit-backdrop-filter: blur(40px) saturate(1.8);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 
+    0 24px 64px rgba(0, 0, 0, 0.3),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  position: relative;
+  overflow: hidden;
+}
+
+.glass-tag {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 9999px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  padding: 0.25rem 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.glass-tag span {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: #1a1a1a;
+}

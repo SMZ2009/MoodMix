@@ -263,12 +263,12 @@ const CardContent = ({ drink, isActive, isLiked, moodResult, customQuote, valida
 
   return (
     <div
-      className="relative overflow-hidden group w-full h-full flex flex-col rounded-2xl"
+      className="relative overflow-hidden group w-full h-full flex flex-col glass-card border-none"
       style={{
+        borderRadius: '1rem',
         boxShadow: isActive
-          ? '0 20px 50px -12px rgba(0, 0, 0, 0.35)'
-          : '0 8px 24px -8px rgba(0, 0, 0, 0.3)',
-        background: 'linear-gradient(180deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.02) 100%)',
+          ? '0 25px 60px -15px rgba(0, 0, 0, 0.4)'
+          : '0 8px 24px -8px rgba(0, 0, 0, 0.2)',
       }}
     >
       {/* Background Image */}
@@ -291,7 +291,7 @@ const CardContent = ({ drink, isActive, isLiked, moodResult, customQuote, valida
 
       <div className="absolute top-4 left-4 z-20">
         {validation?.uiHints?.badgeText && validation?.uiHints?.showBadge !== false && (
-          <div className="flex h-8 items-center justify-center rounded-full px-4 text-[11px] font-bold backdrop-blur-md border bg-white/15 border-white/30 text-white shadow-lg animate-in fade-in duration-500">
+          <div className="glass-tag font-bold border-white/40 shadow-lg animate-in fade-in duration-500">
             <span>{validation.uiHints.badgeText}</span>
           </div>
         )}
@@ -343,7 +343,7 @@ const CardContent = ({ drink, isActive, isLiked, moodResult, customQuote, valida
               {philosophy.tags.map(tag => (
                 <span
                   key={tag}
-                  className="px-3 py-1 rounded-full bg-white/15 text-white/90 border border-white/20 text-xs tracking-wider font-medium backdrop-blur-sm"
+                  className="glass-tag border-white/20 text-xs tracking-wider font-medium"
                   style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif' }}
                 >
                   {tag}

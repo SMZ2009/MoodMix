@@ -1,6 +1,8 @@
 import React from 'react';
 import { X, Users, TrendingUp, Sparkles } from 'lucide-react';
 import { recommendGroups } from '../engine/groupRecommendationEngine';
+import { InteractiveButton } from './ui';
+
 
 const GroupRecommendationModal = ({ drink, isOpen, onClose, onJoinGroup, onNavigateToCommunity }) => {
   if (!isOpen || !drink) return null;
@@ -45,112 +47,103 @@ const GroupRecommendationModal = ({ drink, isOpen, onClose, onJoinGroup, onNavig
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
-      <div 
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-        onClick={onClose}
-      />
-      
-      <div className="relative bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-lg max-h-[85vh] overflow-hidden shadow-2xl animate-in slide-in-from-bottom duration-300">
-        <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-              <Sparkles size={16} className="text-white" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="glass-modal rounded-[2.8rem] w-full max-w-lg max-h-[85vh] overflow-hidden flex flex-col shadow-2xl">
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 pb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-white/10 flex items-center justify-center">
+              <Sparkles size={18} className="text-indigo-300" />
             </div>
             <div>
-              <h3 className="font-bold text-gray-800 text-lg">为你推荐</h3>
-              <p className="text-xs text-gray-500">基于 {drink.name} 的风格</p>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 700, fontFamily: '"Noto Serif SC", serif', color: '#1a1a1a', letterSpacing: '0.08em' }}>寻找同好</h3>
+              <p style={{ fontSize: '0.75rem', color: 'rgba(0, 0, 0, 0.6)', marginTop: '2px', fontFamily: '"Songti SC", serif' }}>基于 {drink.name} 的独特品味</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+            className="w-10 h-10 rounded-full flex items-center justify-center bg-white/5 text-white/40 hover:text-white/80 hover:bg-white/10 transition-all border border-white/10"
           >
-            <X size={20} className="text-gray-500" />
+            <X size={20} />
           </button>
         </div>
 
-        <div className="p-6 space-y-4 overflow-y-auto max-h-[60vh]">
+        <div className="p-6 pt-2 space-y-4 overflow-y-auto flex-1">
           {recommendedGroups.map((group, index) => {
             const Icon = iconMap[group.icon];
             return (
               <div
                 key={group.id}
-                className="bg-gradient-to-br from-gray-50 to-white rounded-2xl p-4 border border-gray-100 hover:shadow-lg transition-all duration-300 cursor-pointer group-hover:scale-[1.02]"
+                className="relative bg-white/5 rounded-[2rem] p-5 border border-white/10 hover:bg-white/10 transition-all group cursor-default"
               >
-                <div className="flex items-start gap-4">
-                  <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${group.color} flex items-center justify-center shadow-lg flex-shrink-0`}>
-                    {Icon && <Icon size={28} className="text-white" />}
+                <div className="flex items-start gap-5">
+                  <div className={`w-16 h-16 rounded-[1.25rem] bg-gradient-to-br ${group.color} flex items-center justify-center shadow-inner flex-shrink-0 border border-white/10`}>
+                    {Icon && <Icon size={32} className="text-white/90" />}
                   </div>
 
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between mb-1">
-                      <h4 className="font-bold text-gray-800 text-base">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#1a1a1a', fontFamily: '"Noto Serif SC", serif' }}>
                         {group.name}
                       </h4>
-                      <div className="flex items-center gap-1 bg-purple-100 px-2 py-0.5 rounded-full">
-                        <TrendingUp size={12} className="text-purple-600" />
-                        <span className="text-xs font-medium text-purple-700">
-                          {group.matchPercentage}% 匹配
+                      <div className="flex items-center gap-1.5 px-3 py-1 bg-black/5 rounded-full border border-black/10">
+                        <TrendingUp size={12} className="text-indigo-600" />
+                        <span style={{ fontSize: '0.75rem', color: '#1a1a1a', fontWeight: 600 }}>
+                          {group.matchPercentage}%
                         </span>
                       </div>
                     </div>
 
-                    <p className="text-sm text-gray-600 mb-2 line-clamp-2">
+                    <p style={{ fontSize: '0.85rem', color: 'rgba(0, 0, 0, 0.55)', lineHeight: 1.5, marginBottom: '1rem', fontFamily: '"Songti SC", serif' }} className="line-clamp-2">
                       {group.description}
                     </p>
 
-                    <div className="flex flex-wrap gap-1.5 mb-2">
+                    <div className="flex flex-wrap gap-2 mb-4">
                       {group.tags.map((tag, idx) => (
-                        <span key={idx} className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full">
+                        <span key={idx} className="px-2.5 py-1 bg-black/5 text-black/40 text-[10px] rounded-lg border border-black/5">
                           {tag}
                         </span>
                       ))}
                     </div>
 
-                    <div className="flex items-center gap-3 text-xs text-gray-400">
-                      <span className="flex items-center gap-1">
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-1.5 text-xs text-black/40">
                         <Users size={12} />
-                        {group.memberCount} 成员
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span>
-                        {group.onlineCount} 在线
-                      </span>
+                        <span>{group.memberCount} 成员</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-xs text-black/40">
+                        <div className="w-1.5 h-1.5 bg-emerald-600/60 rounded-full animate-pulse" />
+                        <span>{group.onlineCount} 在线</span>
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                <button
+                <InteractiveButton
+                  variant="glass-primary"
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (onJoinGroup) {
-                      onJoinGroup(group);
-                    }
-                    if (onNavigateToCommunity) {
-                      onNavigateToCommunity(group);
-                    }
+                    if (onJoinGroup) onJoinGroup(group);
+                    if (onNavigateToCommunity) onNavigateToCommunity(group);
                   }}
-                  className="w-full mt-3 py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-sm font-medium rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all duration-300 active:scale-[0.98]"
+                  className="w-full mt-6 h-12"
                 >
-                  加入群聊
-                </button>
+                  <span>加入此地</span>
+                </InteractiveButton>
               </div>
             );
           })}
         </div>
 
-        <div className="sticky bottom-0 bg-white border-t border-gray-100 px-6 py-4">
+        <div className="p-6 pt-0">
           <button
             onClick={() => {
-              if (onNavigateToCommunity) {
-                onNavigateToCommunity(null);
-              }
+              if (onNavigateToCommunity) onNavigateToCommunity(null);
               onClose();
             }}
-            className="w-full py-3 text-sm text-gray-600 hover:text-gray-800 font-medium transition-colors"
+            className="w-full py-4 text-sm text-black/40 hover:text-black/80 font-medium transition-all"
           >
-            查看所有群聊
+            探索更多微醺社区
           </button>
         </div>
       </div>

@@ -104,18 +104,44 @@ const StreamingAnalysisCard = ({
                 if (resultIndex !== -1) {
                     // 已到达结果区，取 [THOUGHT] 之后到 [RESULT] 之前的全部内容
                     const start = thoughtIndex !== -1 ? thoughtIndex + 9 : 0;
-                    displayText = fullText.slice(start, resultIndex).trim();
+                    let rawText = fullText.slice(start, resultIndex).trim();
+                    
+                    // 同样需要过滤可能混入的JSON片段
+                    const sentenceEndRegex = /[。！？\.\!\?][^。！？\.\!\?]*$/;
+                    const sentenceMatch = rawText.match(sentenceEndRegex);
+                    
+                    if (sentenceMatch && sentenceMatch.index && sentenceMatch.index > 20) {
+                        rawText = rawText.slice(0, sentenceMatch.index + 1);
+                    }
+                    
+                    const trimmed = rawText.trim();
+                    const hasJsonStart = trimmed.startsWith('{') || trimmed.startsWith('[');
+                    const hasJsonKeyPattern = /"\w+"\s*:/.test(trimmed);
+                    
+                    if (!hasJsonStart && !hasJsonKeyPattern && trimmed.length > 0) {
+                        displayText = trimmed;
+                    }
                 } else {
-                    // 还在思绪区
-                    if (thoughtIndex !== -1) {
-                        // 有明确标记
-                        displayText = fullText.slice(thoughtIndex + 9).trim();
-                    } else {
-                        // 无明确标记：启发式过滤掉可能的 JSON 开头内容
-                        // 如果内容以 { 开头，说明模型可能直接输出了 JSON，不展示
-                        if (!fullText.trim().startsWith('{')) {
-                            displayText = fullText.trim();
-                        }
+                    // 还在思绪区，需要过滤掉JSON部分
+                    let textToShow = fullText;
+                    
+                    // 策略：找到最后一个完整的句子结尾（句号、问号、感叹号）作为截止点
+                    const sentenceEndRegex = /[。！？\.\!\?][^。！？\.\!\?]*$/;
+                    const sentenceMatch = textToShow.match(sentenceEndRegex);
+                    
+                    if (sentenceMatch && sentenceMatch.index && sentenceMatch.index > 20) {
+                        textToShow = textToShow.slice(0, sentenceMatch.index + 1);
+                    }
+                    
+                    // 强化过滤：检测JSON特征
+                    // 1. 以 { 或 [ 开头
+                    // 2. 包含 "key": 模式（JSON键值对）
+                    const trimmed = textToShow.trim();
+                    const hasJsonStart = trimmed.startsWith('{') || trimmed.startsWith('[');
+                    const hasJsonKeyPattern = /"\w+"\s*:/.test(trimmed);
+                    
+                    if (!hasJsonStart && !hasJsonKeyPattern && trimmed.length > 0) {
+                        displayText = trimmed;
                     }
                 }
                 

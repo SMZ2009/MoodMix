@@ -139,15 +139,77 @@ const StreamingAnalysisCard = ({
           if (resultData) break;
         }
 
+        // 如果整个流结束仍然没有解析到结构化结果，则视为错误，交给 onError 处理
+        if (!resultData) {
+          // #region agent log
+          fetch('http://127.0.0.1:7693/ingest/adc81e44-f8f0-44ea-8bd0-d1a31dbda974', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              id: `log_${Date.now()}_stream_missing_result`,
+              runId: 'pre-fix',
+              hypothesisId: 'H6',
+              location: 'StreamingAnalysisCard.js:startAnalysis',
+              message: 'Stream finished without resultData',
+              data: {
+                hasAccumulatedText: !!fullText && fullText.length > 0
+              },
+              timestamp: Date.now()
+            })
+          }).catch(() => {});
+          // #endregion agent log
+
+          throw new Error('STREAMING_NO_RESULT');
+        }
+
         clearInterval(statusInterval);
         setPhase('complete');
         setStatusText('心意已达');
-        
+
+        // #region agent log
+        fetch('http://127.0.0.1:7693/ingest/adc81e44-f8f0-44ea-8bd0-d1a31dbda974', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: `log_${Date.now()}_stream_result`,
+            runId: 'pre-fix',
+            hypothesisId: 'H1',
+            location: 'StreamingAnalysisCard.js:startAnalysis',
+            message: 'SSE stream finished',
+            data: {
+              hasResultData: !!resultData,
+              hasResultRef: !!resultDataRef.current,
+              phaseAfterStream: 'complete'
+            },
+            timestamp: Date.now()
+          })
+        }).catch(() => {});
+        // #endregion agent log
+
         if (resultData?.summary) {
           setSummaryText(resultData.summary);
         }
 
         setTimeout(() => {
+          // #region agent log
+          fetch('http://127.0.0.1:7693/ingest/adc81e44-f8f0-44ea-8bd0-d1a31dbda974', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              id: `log_${Date.now()}_stream_callback_check`,
+              runId: 'pre-fix',
+              hypothesisId: 'H2',
+              location: 'StreamingAnalysisCard.js:onStreamCompleteTimeout',
+              message: 'Checking and possibly firing onStreamComplete',
+              data: {
+                hasCallback: !!onStreamCompleteRef.current,
+                hasResultRef: !!resultDataRef.current
+              },
+              timestamp: Date.now()
+            })
+          }).catch(() => {});
+          // #endregion agent log
+
           if (onStreamCompleteRef.current && resultDataRef.current) {
             onStreamCompleteRef.current(resultDataRef.current);
           }
@@ -164,6 +226,26 @@ const StreamingAnalysisCard = ({
         isRunningRef.current = false;
       }
     };
+
+    // #region agent log
+    fetch('http://127.0.0.1:7693/ingest/adc81e44-f8f0-44ea-8bd0-d1a31dbda974', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: `log_${Date.now()}_stream_render`,
+        runId: 'pre-fix',
+        hypothesisId: 'H4',
+        location: 'StreamingAnalysisCard.js:effect',
+        message: 'StreamingAnalysisCard effect triggered',
+        data: {
+          isActive,
+          hasUserInput: !!userInput,
+          isAlreadyRunning: isRunningRef.current
+        },
+        timestamp: Date.now()
+      })
+    }).catch(() => {});
+    // #endregion agent log
 
     startAnalysis();
 

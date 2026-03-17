@@ -3095,6 +3095,22 @@ const App = () => {
     const startTime = performance.now();
     console.log('[StreamingComplete] 收到原始流式结果:', resultData);
     
+    // #region agent log
+    fetch('http://127.0.0.1:7693/ingest/adc81e44-f8f0-44ea-8bd0-d1a31dbda974', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: `log_${Date.now()}_stream_handler_entry`,
+        runId: 'pre-fix',
+        hypothesisId: 'H3',
+        location: 'App.js:handleStreamingComplete',
+        message: 'Entered handleStreamingComplete',
+        data: { hasResultData: !!resultData },
+        timestamp: Date.now()
+      })
+    }).catch(() => {});
+    // #endregion agent log
+    
     if (!resultData) {
         console.error('[StreamingComplete] 错误：收到空的 resultData');
         return;
@@ -3243,6 +3259,28 @@ const App = () => {
     return 'bg-[#FAFAFA]';
   }, []);
 
+
+  // #region agent log
+  useEffect(() => {
+    fetch('http://127.0.0.1:7693/ingest/adc81e44-f8f0-44ea-8bd0-d1a31dbda974', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: `log_${Date.now()}_app_state_change`,
+        runId: 'pre-fix',
+        hypothesisId: 'H5',
+        location: 'App.js:stateWatcher',
+        message: 'Core UI state changed',
+        data: {
+          mixMode,
+          activeTab,
+          showRecommendationGallery
+        },
+        timestamp: Date.now()
+      })
+    }).catch(() => {});
+  }, [mixMode, activeTab, showRecommendationGallery]);
+  // #endregion agent log
 
   return (
     <div

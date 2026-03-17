@@ -20,7 +20,7 @@ export class AgentContext {
     this.allDrinks = initialData.allDrinks || [];
 
     // 当前时间（用于时序分析）
-    this.currentTime = initialData.currentTime || new Date().toISOString();
+    this.currentTime = initialData.currentTime || new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false }).replace(/\//g, '-');
 
     // Agent中间输出存储
     this.intermediate = new Map();

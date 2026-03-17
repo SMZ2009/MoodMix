@@ -2920,7 +2920,7 @@ const App = () => {
       const agentPromise = executeRecommendationPipeline(finalInputForAI, {
         inventory: sessionIngredients,
         allDrinks: allDrinksForPipeline,
-        currentTime: new Date().toISOString(),
+        currentTime: new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false }).replace(/\//g, '-'),
         interventionType: currentInterventionType,
         // 🔥 [优化] 核心机制：在预览饮品计算完成后，立即并行触发文案生成
         onVectorSearchSuccess: (matches, contextData) => {
@@ -3579,6 +3579,13 @@ const App = () => {
                 <h1 className="text-xl font-bold tracking-tight text-gray-800" style={{ fontFamily: '"Songti SC", serif' }}>原料</h1>
               </div>
             </div>
+            <button
+              onClick={() => setShowIngredientCustomForm(true)}
+              className="w-10 h-10 flex items-center justify-center rounded-full bg-black/5 text-gray-800 hover:bg-black/10 transition-colors"
+              aria-label="添加自定义原料"
+            >
+              <Plus size={20} />
+            </button>
           </div>
 
           <div className="flex-1 overflow-hidden px-6 pb-2">

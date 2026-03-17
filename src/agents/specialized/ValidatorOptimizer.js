@@ -71,7 +71,7 @@ export class ValidatorOptimizer extends BaseAgent {
       })).slice(0, 5), // 仅取前 5 个进行质量校验
       creativeCopy: context.getIntermediate('creativeCopy'),
       inventoryCount: (context.input?.inventory || []).length,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false }).replace(/\//g, '-')
     };
 
     try {
@@ -91,7 +91,7 @@ export class ValidatorOptimizer extends BaseAgent {
       const report = {
         ...result.data,
         isAI: true,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false }).replace(/\//g, '-')
       };
 
       context.setIntermediate('validationReport', report);
@@ -196,7 +196,7 @@ export class ValidatorOptimizer extends BaseAgent {
       feasibility,
       uiHints,
       recommendations: this.generateRecommendations(issues, qualityLevel),
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false }).replace(/\//g, '-')
     };
   }
 

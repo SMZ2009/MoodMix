@@ -213,7 +213,7 @@ export async function executeRecommendationPipeline(userInput, options = {}) {
   // 2. 候选池过滤（结合库存与当前时间，提前裁掉明显不适合的长尾）
   const filterResult = filterDrinkPool(allDrinksOriginal, entities, {
     inventory: options.inventory || [],
-    currentTime: options.currentTime || new Date().toISOString()
+    currentTime: options.currentTime || new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false }).replace(/\//g, '-')
   });
 
   console.log('│');
@@ -249,7 +249,7 @@ export async function executeRecommendationPipeline(userInput, options = {}) {
     originalInput: userInput,                   // 保留原始输入
     inventory: options.inventory || [],
     allDrinks: filterResult.filtered,           // 使用过滤后的候选池
-    currentTime: options.currentTime || new Date().toISOString()
+    currentTime: options.currentTime || new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false }).replace(/\//g, '-')
   });
 
   // 存储实体提取结果到上下文，供后续Agent使用

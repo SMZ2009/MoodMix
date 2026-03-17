@@ -116,7 +116,7 @@ export class CreativeCopywriter extends BaseAgent {
 
     return {
       copy: result.data?.copy || '岁序更迭，此情可待。',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false }).replace(/\//g, '-')
     };
   }
 
@@ -144,7 +144,7 @@ export class CreativeCopywriter extends BaseAgent {
       copy: result.data?.copy || '这一杯，适合在你愿意停下来的时候慢慢喝完。',
       tagEmotion: result.data?.tagEmotion || null,
       tagScene: result.data?.tagScene || null,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false }).replace(/\//g, '-')
     };
   }
 
@@ -244,7 +244,7 @@ export class CreativeCopywriter extends BaseAgent {
       console.warn('[CreativeCopywriter] Social card API failed, using fallback:', error.message);
       return {
         copy: '岁序更迭，此情可待。在这个瞬间，找到属于你的宁静。',
-        timestamp: new Date().toISOString(),
+        timestamp: new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false }).replace(/\//g, '-'),
         _fallback: true
       };
     }

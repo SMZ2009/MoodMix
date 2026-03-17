@@ -95,6 +95,19 @@ const InteractiveButton = forwardRef(({
       background: 'rgba(255, 255, 255, 0.9)',
       color: '#1F2937',
       boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
+    },
+    'glass-primary': {
+      background: 'rgba(255, 255, 255, 0.85)',
+      color: '#1a1a1a',
+      border: '1px solid rgba(255, 255, 255, 0.9)',
+      backdropFilter: 'blur(12px)',
+      boxShadow: '0 4px 15px rgba(0, 0, 0, 0.08)',
+    },
+    'glass-secondary': {
+      background: 'rgba(255, 255, 255, 0.5)',
+      color: '#4a4a4a',
+      border: '1px solid rgba(255, 255, 255, 0.6)',
+      backdropFilter: 'blur(8px)',
     }
   };
 

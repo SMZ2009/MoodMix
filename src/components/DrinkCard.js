@@ -47,7 +47,7 @@ const DrinkCard = ({ drink, isActive, onClick, onLike, onUnlike, customQuote }) 
       onKeyDown={eventHandlers.onKeyDown}
       onKeyUp={eventHandlers.onKeyUp}
     >
-      <div className="relative aspect-[3/4.5] rounded-[2.8rem] overflow-hidden shadow-[0_25px_60px_-12px_rgba(0,0,0,0.22)] bg-white border border-black/[0.02]" style={{ minWidth: 0, width: '100%' }}>
+      <div className="relative aspect-[3/4.5] rounded-[2.8rem] overflow-hidden glass-panel" style={{ minWidth: 0, width: '100%' }}>
         <img src={drink.image} className="w-full h-full object-cover" alt={drink.name} />
         <div className="absolute inset-0 bg-gradient-to-b from-black/5 via-transparent to-black/85" />
 
@@ -65,7 +65,7 @@ const DrinkCard = ({ drink, isActive, onClick, onLike, onUnlike, customQuote }) 
           <div className="mb-6 flex flex-col items-center w-full px-2">
             <div className="flex flex-wrap justify-center gap-2 mb-2">
               {philosophy.tags.map(tag => (
-                <span key={tag} className="px-2.5 py-[3px] rounded bg-white/10 text-white/90 border border-white/20 text-[10px] tracking-widest font-light mix-blend-screen">
+                <span key={tag} className="glass-tag bg-white/10 text-white/90 border border-white/20 text-[10px] tracking-widest font-light mix-blend-screen">
                   {tag}
                 </span>
               ))}

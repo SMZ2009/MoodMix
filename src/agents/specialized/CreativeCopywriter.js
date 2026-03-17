@@ -104,7 +104,7 @@ export class CreativeCopywriter extends BaseAgent {
     }
 
     return {
-      copy: result.copy,
+      copy: result.data?.copy || '岁序更迭，此情可待。',
       timestamp: new Date().toISOString()
     };
   }

@@ -780,24 +780,24 @@ const FriendlyNoticeModal = ({ isOpen, title, message, tone = 'default', onClose
 
   const toneStyles = {
     default: {
-      accent: 'rgba(118, 98, 126, 0.92)',
-      glow: 'rgba(137, 156, 196, 0.22)',
-      border: 'rgba(140, 129, 158, 0.22)'
+      accent: 'rgba(255, 255, 255, 0.95)',
+      glow: 'rgba(255, 255, 255, 0.05)',
+      border: 'rgba(255, 255, 255, 0.1)'
     },
     warning: {
-      accent: 'rgba(147, 109, 72, 0.92)',
-      glow: 'rgba(214, 184, 137, 0.24)',
-      border: 'rgba(170, 134, 98, 0.24)'
+      accent: 'rgba(251, 191, 36, 0.95)',
+      glow: 'rgba(251, 191, 36, 0.1)',
+      border: 'rgba(251, 191, 36, 0.2)'
     },
     error: {
-      accent: 'rgba(143, 90, 84, 0.92)',
-      glow: 'rgba(194, 136, 126, 0.22)',
-      border: 'rgba(171, 110, 103, 0.24)'
+      accent: 'rgba(248, 113, 113, 0.95)',
+      glow: 'rgba(248, 113, 113, 0.1)',
+      border: 'rgba(248, 113, 113, 0.2)'
     },
     success: {
-      accent: 'rgba(52, 116, 84, 0.92)', // Jade / Oriental Green
-      glow: 'rgba(100, 180, 140, 0.22)',
-      border: 'rgba(80, 140, 110, 0.24)'
+      accent: 'rgba(52, 211, 153, 0.95)',
+      glow: 'rgba(52, 211, 153, 0.1)',
+      border: 'rgba(52, 211, 153, 0.2)'
     }
   };
 
@@ -806,110 +806,77 @@ const FriendlyNoticeModal = ({ isOpen, title, message, tone = 'default', onClose
   return (
     <Modal isOpen={isOpen} onClose={onClose} position="center" closeOnBackdrop>
       <div
-        className="rounded-[2rem] p-5 sm:p-6 w-[calc(100vw-3rem)] max-w-[18rem] sm:max-w-[20rem] mx-auto"
+        className="glass-modal rounded-[2.8rem] p-8 w-[calc(100vw-3rem)] max-w-[20rem] mx-auto"
         style={{
-          position: 'relative',
-          overflow: 'hidden',
-          background: 'linear-gradient(180deg, rgba(255,255,255,0.82), rgba(250,246,241,0.76))',
-          backdropFilter: 'blur(38px) saturate(1.25)',
-          WebkitBackdropFilter: 'blur(38px) saturate(1.25)',
           border: `1px solid ${currentTone.border}`,
-          boxShadow: `0 20px 48px rgba(70, 62, 74, 0.16), inset 0 1px 0 rgba(255,255,255,0.58), 0 0 0 1px rgba(255,255,255,0.16)`
+          boxShadow: `0 24px 64px rgba(0, 0, 0, 0.4), inset 0 0 0 1px rgba(255, 255, 255, 0.05)`
         }}
       >
         <div
-          className="absolute -top-12 -left-10 w-36 h-36 rounded-full blur-3xl pointer-events-none"
+          className="absolute -top-12 -left-10 w-48 h-48 rounded-full blur-[80px] pointer-events-none opacity-50"
           style={{ background: currentTone.glow }}
         />
-        <div
-          className="absolute -bottom-10 -right-8 w-32 h-32 rounded-full blur-3xl pointer-events-none"
-          style={{ background: 'rgba(235, 223, 200, 0.28)' }}
-        />
-
-        <div className="relative">
-          <div
-            className="inline-flex items-center justify-center px-3 py-1 rounded-full mb-4"
-            style={{
-              background: 'rgba(255,255,255,0.54)',
-              border: '1px solid rgba(255,255,255,0.44)',
-              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.5)'
-            }}
-          >
-            <span
-              style={{
-                fontSize: '0.72rem',
-                letterSpacing: '0.16em',
-                fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif',
-                color: currentTone.accent,
-                fontWeight: 700
-              }}
-            >
-              小提醒
-            </span>
+        
+        <div className="relative z-10">
+          <div className="glass-tag mb-6">
+            <span style={{ color: currentTone.accent }}>{title || '小提醒'}</span>
           </div>
 
           <p
+            className="mb-8 leading-relaxed"
             style={{
-              marginTop: '0.5rem',
-              fontSize: '0.95rem',
-              lineHeight: 1.85,
-              color: 'rgba(43, 39, 36, 0.85)',
-              fontFamily: "'Noto Serif SC', 'STSongti-SC', 'Songti SC', 'STKaiti', 'KaiTi', 'Source Han Serif SC', serif",
-              letterSpacing: '0.04em'
+              fontSize: '1.05rem',
+              color: '#1a1a1a',
+              fontFamily: '"Noto Serif SC", serif',
+              letterSpacing: '0.02em'
             }}
           >
             {message}
           </p>
 
-          <div className="flex flex-col gap-3 mt-6">
+          <div className="flex flex-col gap-3">
             {primaryAction && (
               <InteractiveButton
-                variant="primary"
-                fullWidth
+                variant="glass-primary"
                 onClick={primaryAction.onClick}
-                style={{
-                  height: '50px',
-                  background: currentTone.accent,
-                  color: '#f7f0e4',
-                  border: '1px solid rgba(66, 55, 60, 0.14)',
-                  boxShadow: '0 10px 24px rgba(86, 73, 80, 0.18), inset 0 1px 0 rgba(255,255,255,0.18)',
-                  fontWeight: 600
-                }}
+                disabled={isLoading}
+                className="w-full h-12"
               >
-                {primaryAction.label}
+                {isLoading ? (
+                  <Loader2 size={18} className="animate-spin opacity-70" />
+                ) : (
+                  <span>{primaryAction.label}</span>
+                )}
+              </InteractiveButton>
+            )}
+            
+            {secondaryAction && (
+              <InteractiveButton
+                variant="glass-secondary"
+                onClick={secondaryAction.onClick}
+                disabled={isLoading}
+                className="w-full h-12"
+              >
+                <span>{secondaryAction.label}</span>
               </InteractiveButton>
             )}
 
-            <InteractiveButton
-              variant={primaryAction ? "text" : "primary"}
-              fullWidth
-              onClick={secondaryAction?.onClick || onClose}
-              disabled={isLoading}
-              style={{
-                height: '50px',
-                background: primaryAction ? 'transparent' : currentTone.accent,
-                color: primaryAction ? currentTone.accent : '#f7f0e4',
-                border: primaryAction ? 'none' : '1px solid rgba(66, 55, 60, 0.14)',
-                boxShadow: primaryAction ? 'none' : '0 10px 24px rgba(86, 73, 80, 0.18), inset 0 1px 0 rgba(255,255,255,0.18)',
-                fontWeight: 600
-              }}
-              className="flex items-center justify-center gap-2"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 size={16} className="animate-spin" />
-                  生成中...
-                </>
-              ) : (
-                secondaryAction?.label || (primaryAction ? '分享' : '知道了')
-              )}
-            </InteractiveButton>
+            {!primaryAction && !secondaryAction && (
+              <InteractiveButton
+                variant="glass-primary"
+                onClick={onClose}
+                className="w-full h-12"
+              >
+                <span>好的</span>
+              </InteractiveButton>
+            )}
           </div>
         </div>
       </div>
     </Modal>
   );
 };
+
 
 
 
@@ -1895,8 +1862,8 @@ const App = () => {
 
       if (data.isNewLike && data.count >= 2) {
         showFriendlyNotice(
-          '实时更新',
-          `有${data.count}人和你一样钟爱这款特调呢~`,
+          '「同饮」',
+          `还有 ${data.count} 人，也为这一杯停留`,
           'success',
           { label: '好的', onClick: () => setFriendlyNotice(prev => ({ ...prev, isOpen: false })) }
         );
@@ -2062,11 +2029,11 @@ const App = () => {
       const updatedDakaDrinks = collectionStorage.getDakaNotes();
       setDakaDrinks(updatedDakaDrinks);
       showFriendlyNotice(
-        '保存成功',
-        '记录已存入“我的”页面，随时可查。',
+        '「已记录」',
+        '这一刻的味道，已留在你的赏味集里',
         'success',
-        { label: '返回', onClick: () => { handleCloseDakaModal(); closeFriendlyNotice(); } },
-        { label: '分享', onClick: handleShare }
+        { label: '「回到这杯」', onClick: () => { handleCloseDakaModal(); closeFriendlyNotice(); } },
+        { label: '「分享此刻」', onClick: handleShare }
       );
     }
     // handleCloseDakaModal(); // Removed to allow DakaModal to show share card preview
@@ -2283,8 +2250,8 @@ const App = () => {
         }
         
         showFriendlyNotice(
-          '已将' + drink.name + '加入心仪',
-          '有' + data.count + '人和你一样钟爱这款特调呢~',
+          '「同饮」',
+          '还有 ' + data.count + ' 人，也为这一杯停留',
           'success',
           { label: '好的', onClick: () => closeFriendlyNotice() }
         );
@@ -3091,76 +3058,12 @@ const App = () => {
         onSave={handleSaveCustomDrink}
       />
 
-      {/* Share Card Preview Modal */}
-      {shareCardUrl && (
-        <div
-          className="fixed inset-0 z-[100] flex items-center justify-center px-4 overflow-y-auto py-8"
-          style={{
-            background: 'rgba(0,0,0,0.5)',
-            backdropFilter: 'blur(10px)',
-            WebkitBackdropFilter: 'blur(10px)'
-          }}
-          onClick={() => setShareCardUrl(null)}
-        >
-          <img
-            src={shareCardUrl}
-            alt="Share Card"
-            className="w-full max-w-[320px] h-auto object-contain rounded-2xl shadow-2xl my-auto"
-            onClick={(e) => e.stopPropagation()}
-          />
-        </div>
-      )}
-
-      {/* Hidden Share Card for generating image */}
-      {currentDrink && !shareCardUrl && (
-        <div style={{ position: 'fixed', left: '-2000px', top: '0', pointerEvents: 'none', zIndex: -1 }}>
-          {/* Hidden QR Code Canvas for generating data URL */}
-          <div ref={qrCanvasRef} style={{ width: '88px', height: '88px' }}>
-            <QRCodeCanvas
-              value={`${window.location.origin}?drink=${encodeURIComponent(currentDrink.name)}`}
-              size={88}
-              level="M"
-              includeMargin={false}
-              bgColor="#ffffff"
-              fgColor="#3a3226"
-            />
-          </div>
-          <ShareCard
-            ref={cardRef}
-            drinkName={currentDrink.name}
-            emotion={currentDrink.dimensions?.mood || '悠然'}
-            wuxing={currentDrink.dimensions?.wuxing ? `五行属${currentDrink.dimensions.wuxing}` : '五行调和'}
-            imageSrc={currentDrink.image}
-            llmCopy={llmCopy}
-            qrCodeSrc={qrCodeDataUrl}
-          />
-        </div>
-      )}
-
-      {/* Ingredient Edit Modal */}
-      <Modal isOpen={showIngredientModal} onClose={() => setShowIngredientModal(false)} position="center">
-        <IngredientEditModal
-          currentIngredients={sessionIngredients}
-          onUpdate={(newList) => setSessionIngredients(newList)}
-          onClose={() => setShowIngredientModal(false)}
-          onReset={() => {
-            // Reset to inventory
-            const list = [
-              ...(userInventory.standard || []).map(i => i.name_cn || i.name),
-              ...(userInventory.custom || []).map(i => i.name_cn || i.name)
-            ].filter(Boolean);
-            setSessionIngredients([...new Set(list)]);
-          }}
-        />
-      </Modal>
-
       <ConfirmDeleteModal
         isOpen={showDeleteConfirm}
         onClose={handleCancelDeleteNote}
         onConfirm={handleConfirmDeleteNote}
       />
 
-      {/* Drink Help Modal */}
       {showDrinkHelpModal && (
         <DrinkHelpModal
           drink={drinkHelpTarget}
@@ -3171,7 +3074,6 @@ const App = () => {
         />
       )}
 
-      {/* Group Recommendation Modal */}
       {showGroupRecommendation && (
         <GroupRecommendationModal
           drink={lastLikedDrink}
@@ -3212,7 +3114,7 @@ const App = () => {
                   setRecommendationPool([]);
                   setShowRecommendationGallery(false);
                   setMixMode('home');
-                  setSelectedMood(null); // Reset mood tag selection
+                  setSelectedMood(null);
                 }}
                 className="w-10 h-10 flex items-center justify-center rounded-full bg-black/5 text-gray-800 hover:bg-black/10 transition-colors"
               >
@@ -3220,36 +3122,8 @@ const App = () => {
               </button>
               <div>
                 <h1 className="text-xl font-bold tracking-tight text-gray-800" style={{ fontFamily: '"Songti SC", serif' }}>原料</h1>
-                <p className="text-[10px] text-gray-400 mt-0.5 tracking-[0.2em] font-medium" style={{ fontFamily: '"Songti SC", serif' }}>
-                  {new Set([
-                    ...(userInventory.standard || []).filter(i => i.in_stock).map(i => i.name_cn || i.name),
-                    ...(userInventory.custom || []).filter(i => i.in_stock).map(i => i.name_cn || i.name)
-                  ].filter(Boolean)).size} 味存货
-                </p>
               </div>
             </div>
-
-            {!showIngredientCustomForm && (
-              <InteractiveButton
-                variant="primary"
-                onClick={() => setShowIngredientCustomForm(true)}
-                style={{
-                  background: 'linear-gradient(135deg, #3c3b36 0%, #2c2b26 100%)',
-                  color: '#f7f0e4',
-                  fontFamily: '"Songti SC", serif',
-                  fontSize: '0.875rem',
-                  paddingLeft: '1.25rem',
-                  paddingRight: '1.25rem',
-                  letterSpacing: '0.1em',
-                  fontWeight: 'bold',
-                  height: '2.5rem'
-                }}
-                className="flex items-center gap-2"
-              >
-                <Plus size={14} />
-                自定义
-              </InteractiveButton>
-            )}
           </div>
 
           <div className="flex-1 overflow-hidden px-6 pb-2">
@@ -3266,37 +3140,33 @@ const App = () => {
   );
 };
 
-
-
 const ConfirmDeleteModal = ({ isOpen, onClose, onConfirm }) => {
   if (!isOpen) return null;
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} position="center">
-      <div style={{ background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(40px) saturate(1.2)', WebkitBackdropFilter: 'blur(40px) saturate(1.2)', border: '1px solid rgba(255,255,255,0.15)', boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.2)' }} className="rounded-2xl p-6 w-full max-w-sm mx-auto">
-        <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem', fontFamily: '"Noto Sans SC", sans-serif', color: 'rgba(255,255,255,0.95)', letterSpacing: '0.08em', textShadow: '0 1px 4px rgba(0,0,0,0.4)' }}>确认删除</h2>
-        <p style={{ color: 'rgba(255,255,255,0.65)', marginBottom: '1.5rem', fontSize: '0.875rem', fontFamily: '"Noto Sans SC", sans-serif' }}>确定要删除这条赏味记录吗？此操作无法撤销。</p>
-        <div className="flex justify-end space-x-3">
+      <div className="glass-modal rounded-[2.8rem] p-8 w-[calc(100vw-3rem)] max-sm mx-auto shadow-2xl">
+        <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '1rem', fontFamily: '"Noto Serif SC", serif', color: '#1a1a1a', letterSpacing: '0.08em' }}>确认删除</h2>
+        <p style={{ color: '#4a4a4a', marginBottom: '2rem', fontSize: '0.95rem', fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif', lineHeight: 1.6 }}>确定要删除这条赏味记录吗？此操作无法撤销。</p>
+        <div className="flex justify-end space-x-4">
           <InteractiveButton
-            variant="text"
+            variant="glass-secondary"
             onClick={onClose}
-            style={{ fontFamily: '"Noto Sans SC", sans-serif', color: 'rgba(255,255,255,0.5)', letterSpacing: '0.03em' }}
+            className="px-6 h-11"
           >
-            取消
+            <span>取消</span>
           </InteractiveButton>
           <InteractiveButton
-            variant="primary"
+            variant="glass-primary"
             onClick={onConfirm}
-            style={{
-              background: 'linear-gradient(135deg, #991b1b 0%, #7f1d1d 100%)',
-              color: '#f7f0e4',
-              fontFamily: '"Noto Sans SC", sans-serif',
-              letterSpacing: '0.08em',
-              fontWeight: '600',
-              boxShadow: '0 4px 12px rgba(153, 27, 27, 0.2)'
+            className="px-8 h-11"
+            style={{ 
+              background: 'linear-gradient(135deg, rgba(200, 80, 70, 0.8) 0%, rgba(180, 60, 50, 0.9))',
+              border: '1px solid rgba(255, 255, 255, 0.2)',
+              color: 'white'
             }}
           >
-            确认删除
+            <span>确认删除</span>
           </InteractiveButton>
         </div>
       </div>
@@ -3308,200 +3178,97 @@ const DakaModal = ({ drink, onClose, onSave }) => {
   const [note, setNote] = useState('');
   const [customImage, setCustomImage] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
-  const [shareCardUrl, setShareCardUrl] = useState(null);
   const [llmCopy, setLlmCopy] = useState('');
-  const [qrCodeDataUrl, setQrCodeDataUrl] = useState(null);
-  const fileInputRef = useRef(null);
+  const [qrCodeDataUrl, setQrCodeDataUrl] = useState('');
   const cardRef = useRef(null);
   const qrCanvasRef = useRef(null);
-
-  // 生成分享链接
-  const getShareLink = () => {
-    const baseUrl = window.location.origin;
-    return `${baseUrl}?drink_id=${drink.id}`;
-  };
+  const fileInputRef = useRef(null);
+  const [shareCardUrl, setShareCardUrl] = useState(null);
 
   const handleImageUpload = (e) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 2 * 1024 * 1024) {
-        alert('图片大小不能超过2MB');
-        return;
-      }
+      if (file.size > 5 * 1024 * 1024) return;
       const reader = new FileReader();
-      reader.onload = (event) => {
-        setCustomImage(event.target?.result);
-      };
+      reader.onload = (event) => setCustomImage(event.target?.result);
       reader.readAsDataURL(file);
     }
   };
 
-  const handleRemoveImage = (e) => {
-    e.stopPropagation();
-    setCustomImage('');
-    if (fileInputRef.current) fileInputRef.current.value = '';
+  const handleRemoveImage = () => setCustomImage('');
+
+  const getShareLink = () => {
+    return `${window.location.origin}/share/drink/${drink.id || 'custom'}`;
   };
 
   const handleSave = async () => {
-    setIsGenerating(true);
-    try {
-      // 持久化存储
-      onSave(drink.id, note, customImage || null);
-      // 保存成功后关闭打卡弹窗
+    if (onSave) {
+      onSave({ note, image: customImage });
       onClose();
-    } catch (err) {
-      console.error('Failed to save:', err);
-      alert('保存失败，请稍后重试');
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
-  const downloadImage = async () => {
-    if (!shareCardUrl) return;
-    try {
-      // 对于移动设备，尝试使用更可靠的下载方法
-      if ('download' in document.createElement('a')) {
-        const link = document.createElement('a');
-        link.href = shareCardUrl;
-        link.download = `MoodMix_Daka_${drink.name}.png`;
-        document.body.appendChild(link);
-        // 在移动设备上，需要触发真实的点击事件
-        link.dispatchEvent(new MouseEvent('click', {
-          bubbles: true,
-          cancelable: true,
-          view: window
-        }));
-        document.body.removeChild(link);
-      } else {
-        // 降级方案：在新窗口打开图片，让用户手动保存
-        window.open(shareCardUrl, '_blank');
-      }
-    } catch (error) {
-      console.error('下载失败:', error);
-      alert('保存失败，请稍后重试');
     }
   };
 
   const handleShare = async () => {
+    if (isGenerating) return;
     setIsGenerating(true);
     try {
-      // 0. 生成二维码数据 URL
       if (qrCanvasRef.current) {
         const qrCanvas = qrCanvasRef.current.querySelector('canvas');
         if (qrCanvas) {
-          const qrUrl = qrCanvas.toDataURL('image/png');
-          setQrCodeDataUrl(qrUrl);
+          setQrCodeDataUrl(qrCanvas.toDataURL('image/png'));
         }
       }
 
-      // 1. 获取 LLM 文案
-      const prompt = `你是 MoodMix 的文案诗人。请为分享卡片生成一段情绪文案。
-
-要求：
-- 2-3 句话，总字数控制在 30-50 字
-- 东方诗意的克制感，像朋友间的低语
-- 结合饮品的具体感官细节（颜色、温度、口感、气味）
-- 温柔地回应用户当下的情绪，给予认可或鼓励
-- 不要说教，不要鸡汤，不要感叹号
-
-输入信息：
-- 饮品名：${drink.name}
-- 推荐理由：${drink.reason || '无'}
-- 五行属性：${drink.dimensions?.wuxing || '未知'}
-
-请直接输出文案，不要任何前缀或解释。`;
-
-      // 使用专用的 SOCIAL_CARD 任务类型
+      const prompt = `你是 MoodMix 的文案诗人。请为分享卡片生成一段情绪文案。结合饮品名：${drink.name}，推荐理由：${drink.reason || '无'}。`;
       const agentResult = await executeMixologyTask('SOCIAL_CARD', { drink, prompt });
-
-      // 安全提取文案
+      
       let poeticalCopy = '岁序更迭，此情可待';
-      if (agentResult && agentResult.success && agentResult.data && typeof agentResult.data.copy === 'string') {
+      if (agentResult && agentResult.success && agentResult.data?.copy) {
         poeticalCopy = agentResult.data.copy;
-      } else if (typeof agentResult === 'string') {
-        poeticalCopy = agentResult;
       }
-
       setLlmCopy(poeticalCopy);
 
-      // Wait for state to update
       await new Promise(resolve => setTimeout(resolve, 800));
 
-      // 再次获取二维码（确保状态已更新）
-      if (qrCanvasRef.current) {
-        const qrCanvas = qrCanvasRef.current.querySelector('canvas');
-        if (qrCanvas) {
-          const qrUrl = qrCanvas.toDataURL('image/png');
-          setQrCodeDataUrl(qrUrl);
-        }
-      }
-
-      await new Promise(resolve => setTimeout(resolve, 200));
-
-      // 2. 将 DOM 生成图片
       if (cardRef.current) {
         const blob = await exportShareCard(cardRef.current);
         const imageUrl = URL.createObjectURL(blob);
         setShareCardUrl(imageUrl);
-        // 图片生成完成后关闭打卡弹窗
-        onClose();
       }
     } catch (error) {
       console.error('Failed to generate share card:', error);
-      alert('生成分享卡片失败，请稍后重试');
     } finally {
       setIsGenerating(false);
     }
   };
 
-  if (!drink) return null;
-
-  // 如果已经生成过卡片，展示预览与下载页
   if (shareCardUrl) {
     return (
       <Modal isOpen={true} onClose={onClose} position="center">
-        <div
-          style={{ background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(40px) saturate(1.2)', WebkitBackdropFilter: 'blur(40px) saturate(1.2)', border: '1px solid rgba(255,255,255,0.15)', boxShadow: '0 8px 32px rgba(0,0,0,0.08)' }}
-          className="rounded-2xl p-6 w-full max-w-sm mx-auto text-center"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="flex justify-center mb-4">
-            <div className="w-12 h-12 bg-green-500/20 rounded-full flex items-center justify-center text-green-400 mb-2">
-              <CheckCircle size={24} />
-            </div>
-          </div>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.2rem', fontFamily: '"Noto Sans SC", sans-serif', color: 'white' }}>记录已珍存</h2>
-          <p style={{ color: 'rgba(255,255,255,0.6)', marginBottom: '1.2rem', fontSize: '0.8rem', fontFamily: '"Noto Sans SC", sans-serif' }}>分享卡片已为您调成，岁序更迭，此情可待</p>
-
-          <div className="relative w-full rounded-xl overflow-hidden mb-6 shadow-2xl border border-white/10 bg-black/20">
+        <div className="glass-modal rounded-[2.8rem] p-8 w-[calc(100vw-3rem)] max-w-sm mx-auto text-center shadow-2xl">
+          <div className="relative w-full rounded-2xl overflow-hidden mb-6 shadow-2xl border border-white/10">
             <img src={shareCardUrl} alt="Share Card" className="w-full h-auto" />
           </div>
-
           <div className="flex flex-col gap-3">
             <InteractiveButton
-              variant="primary"
-              onClick={downloadImage}
-              fullWidth
-              style={{
-                background: 'linear-gradient(135deg, #3c3b36 0%, #1a1a1a 100%)',
-                color: '#f7f0e4',
-                fontFamily: '"Noto Sans SC", sans-serif',
-                letterSpacing: '0.1em',
-                fontWeight: '600'
+              variant="glass-primary"
+              onClick={() => {
+                const link = document.createElement('a');
+                link.href = shareCardUrl;
+                link.download = `MoodMix_${drink.name}.png`;
+                link.click();
               }}
-              className="flex items-center justify-center gap-2"
+              className="w-full h-12"
             >
-              <Download size={18} />
-              保存到相册
+              <Download size={18} className="mr-2" />
+              <span>保存到相册</span>
             </InteractiveButton>
             <InteractiveButton
-              variant="text"
+              variant="glass-secondary"
               onClick={onClose}
-              fullWidth
-              style={{ fontFamily: '"Noto Sans SC", sans-serif', color: 'rgba(255,255,255,0.5)', letterSpacing: '0.05em' }}
+              className="w-full h-12"
             >
-              返回
+              <span>返回</span>
             </InteractiveButton>
           </div>
         </div>
@@ -3511,14 +3278,12 @@ const DakaModal = ({ drink, onClose, onSave }) => {
 
   return (
     <Modal isOpen={true} onClose={onClose} position="center">
-      <div style={{ background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(40px) saturate(1.2)', WebkitBackdropFilter: 'blur(40px) saturate(1.2)', border: '1px solid rgba(255,255,255,0.15)', boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.2)' }} className="rounded-2xl p-6 w-full max-w-sm mx-auto">
-        <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '1rem', fontFamily: '"Noto Sans SC", sans-serif', color: 'rgba(255,255,255,0.95)', letterSpacing: '0.08em', textShadow: '0 1px 4px rgba(0,0,0,0.4)' }}>为 {drink.name} 打卡</h2>
+      <div className="glass-modal rounded-[2.8rem] p-8 w-[calc(100vw-3rem)] max-w-sm mx-auto shadow-2xl">
+        <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '1.5rem', fontFamily: '"Noto Serif SC", serif', color: '#1a1a1a', letterSpacing: '0.08em' }}>为 {drink.name} 打卡</h2>
 
-        {/* 左右布局：图片 + 文本输入 */}
-        <div className="flex gap-4 mb-4">
-          {/* 左侧：可选图片上传 */}
+        <div className="flex gap-5 mb-8">
           <div
-            className="relative flex-shrink-0 w-24 h-24 rounded-xl overflow-hidden cursor-pointer group"
+            className="relative flex-shrink-0 w-24 h-24 rounded-2xl overflow-hidden cursor-pointer group glass-panel border-white/20"
             onClick={() => fileInputRef.current?.click()}
           >
             {customImage ? (
@@ -3526,7 +3291,7 @@ const DakaModal = ({ drink, onClose, onSave }) => {
                 <img src={customImage} alt="打卡照片" className="w-full h-full object-cover" />
                 <button
                   onClick={handleRemoveImage}
-                  className="absolute top-1 right-1 w-5 h-5 bg-black/50 rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-colors z-10"
+                  className="absolute top-1 right-1 w-5 h-5 bg-black/50 rounded-full flex items-center justify-center text-white"
                 >
                   <X size={12} />
                 </button>
@@ -3542,71 +3307,43 @@ const DakaModal = ({ drink, onClose, onSave }) => {
                 </div>
               </div>
             )}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleImageUpload}
-            />
+            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
           </div>
 
-          {/* 右侧：文本输入区 */}
           <div className="flex-1 flex flex-col min-w-0">
-            <p style={{ color: 'rgba(255,255,255,0.65)', marginBottom: '0.5rem', fontSize: '0.75rem', fontFamily: '"Noto Sans SC", sans-serif' }}>记录口味、心情或任何想法…</p>
+            <p style={{ color: 'rgba(0, 0, 0, 0.6)', marginBottom: '0.6rem', fontSize: '0.75rem', fontFamily: '"Songti SC", serif' }}>记录口味、心情或任何想法…</p>
             <textarea
               value={note}
               onChange={(e) => setNote(e.target.value)}
-              className="oriental-textarea flex-1"
-              style={{ minHeight: '4.5rem', resize: 'none' }}
+              className="glass-input flex-1 p-3 text-sm focus:outline-none placeholder-black/30"
+              style={{ minHeight: '5.5rem', resize: 'none', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(0, 0, 0, 0.1)', borderRadius: '1rem', color: '#1a1a1a', fontFamily: '"Songti SC", serif' }}
               placeholder="例如：口感非常清爽，柠檬的酸味很突出…"
             />
           </div>
         </div>
-        <div className="flex justify-end space-x-3">
+        
+        <div className="flex justify-end space-x-4">
           <InteractiveButton
-            variant="text"
+            variant="glass-secondary"
             onClick={onClose}
-            disabled={isGenerating}
-            style={{ fontFamily: '"Noto Sans SC", sans-serif', color: 'rgba(255,255,255,0.5)', letterSpacing: '0.03em' }}
+            className="px-6 h-11"
           >
-            取消
+            <span>取消</span>
           </InteractiveButton>
           <InteractiveButton
-            variant="primary"
+            variant="glass-primary"
             onClick={handleSave}
             disabled={isGenerating}
-            style={{
-              background: 'linear-gradient(135deg, #3c3b36 0%, #2c2b26 100%)',
-              color: '#f7f0e4',
-              fontFamily: '"Noto Sans SC", sans-serif',
-              letterSpacing: '0.08em',
-              fontWeight: '600'
-            }}
-            className="flex items-center gap-2"
+            className="px-8 h-11"
           >
-            {isGenerating ? (
-              <>
-                <Loader2 size={16} className="animate-spin" />
-                生成中...
-              </>
-            ) : '保存记录'}
+            {isGenerating ? <Loader2 size={18} className="animate-spin opacity-70" /> : <span>保存记录</span>}
           </InteractiveButton>
         </div>
 
-        {/* Hidden Share Card for generating image */}
         {!shareCardUrl && (
           <div style={{ position: 'fixed', left: '-2000px', top: '0', pointerEvents: 'none', zIndex: -1 }}>
-            {/* Hidden QR Code Canvas for generating data URL */}
             <div ref={qrCanvasRef} style={{ width: '88px', height: '88px' }}>
-              <QRCodeCanvas
-                value={getShareLink()}
-                size={88}
-                level="M"
-                includeMargin={false}
-                bgColor="#ffffff"
-                fgColor="#3a3226"
-              />
+              <QRCodeCanvas value={getShareLink()} size={88} level="M" includeMargin={false} bgColor="#ffffff" fgColor="#3a3226" />
             </div>
             <ShareCard
               ref={cardRef}
@@ -3624,7 +3361,6 @@ const DakaModal = ({ drink, onClose, onSave }) => {
   );
 };
 
-// 自定义饮品添加弹窗
 const CustomDrinkModal = ({ isOpen, onClose, onSave }) => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -3661,32 +3397,14 @@ const CustomDrinkModal = ({ isOpen, onClose, onSave }) => {
     setError('');
 
     try {
-      // 解析原料
-      const ingredientList = ingredients
-        .split(/[,，、\s]+/)
-        .map(s => s.trim())
-        .filter(Boolean);
-
-      const result = await executeMixologyTask('ANALYZE', {
-        name: name.trim(),
-        description: description.trim(),
-        ingredients: ingredientList,
-        isAlcoholic
-      });
-
-      if (!result.success) {
-        throw new Error(result.error || '生成失败');
-      }
-
+      const ingredientList = ingredients.split(/[,，、\s]+/).map(s => s.trim()).filter(Boolean);
+      const result = await executeMixologyTask('ANALYZE', { name: name.trim(), description: description.trim(), ingredients: ingredientList, isAlcoholic });
+      if (!result.success) throw new Error(result.error || '生成失败');
       const analysisData = result.data;
-
-      // 构建饮品对象
       const drinkData = {
         name: name.trim(),
-        nameEn: null,
         description: description.trim(),
         ingredients: ingredientList.map(ing => ({ label: ing, name: ing })),
-        briefIngredients: ingredientList.map(ing => ({ label: ing })),
         isAlcoholic,
         image: image || 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=400&h=400&fit=crop',
         vector: analysisData.vector,
@@ -3694,17 +3412,8 @@ const CustomDrinkModal = ({ isOpen, onClose, onSave }) => {
         abv: isAlcoholic ? (analysisData.vector?.[6] || 15) : 0,
         tags: isAlcoholic ? ['含酒精'] : ['无酒精']
       };
-
-      // 保存到本地存储
       const savedDrink = customDrinkStorage.addCustomDrink(drinkData);
-
-      // 清空表单
-      setName('');
-      setDescription('');
-      setIngredients('');
-      setIsAlcoholic(false);
-      setImage('');
-
+      setName(''); setDescription(''); setIngredients(''); setIsAlcoholic(false); setImage('');
       onSave(savedDrink);
       onClose();
     } catch (err) {
@@ -3719,140 +3428,40 @@ const CustomDrinkModal = ({ isOpen, onClose, onSave }) => {
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} position="center">
-      <div className="ingredient-modal-container" style={{ maxWidth: '440px' }}>
-        {/* Header */}
-        <div className="flex items-center justify-between mb-1">
-          <h2 className="ingredient-modal-title">灵感入壶</h2>
-          <button onClick={onClose} className="p-2 -mr-2 text-gray-400/60 hover:text-gray-600/80 transition-colors rounded-full">
-            <X size={20} />
+      <div className="glass-modal rounded-[2.8rem] p-8 w-[calc(100vw-3rem)] max-w-md mx-auto shadow-2xl">
+        <div className="flex items-center justify-between mb-2">
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#1a1a1a', fontFamily: '"Noto Serif SC", serif' }}>灵感入壶</h2>
+          <button onClick={onClose} className="p-2 -mr-2 text-white/40 hover:text-white/80 transition-colors rounded-full">
+            <X size={24} />
           </button>
         </div>
-        <p className="ingredient-modal-subtitle">一饮一味，皆是灵感</p>
-        <div className="ink-divider" />
+        <p style={{ color: 'rgba(0, 0, 0, 0.6)', marginBottom: '1.5rem', fontSize: '0.875rem', fontFamily: '"Songti SC", serif' }}>一饮一味，皆是灵感</p>
 
-        {/* Image Upload */}
-        <div
-          className="oriental-upload-area mb-4"
-          onClick={() => fileInputRef.current?.click()}
-        >
-          {image ? (
-            <img src={image} alt="Preview" className="w-full h-full object-cover" />
-          ) : (
-            <div className="oriental-upload-placeholder">
-              <Camera size={28} />
-              <span>点击上传图片</span>
-            </div>
-          )}
-          <div className="oriental-upload-overlay">
-            <Camera size={22} className="text-white/90" />
-          </div>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={handleImageUpload}
-          />
+        <div className="oriental-upload-area mb-6 glass-panel border-white/10 overflow-hidden rounded-2xl h-40 flex items-center justify-center bg-white/5 cursor-pointer hover:bg-white/10 transition-colors" onClick={() => fileInputRef.current?.click()}>
+          {image ? <img src={image} alt="Preview" className="w-full h-full object-cover" /> : <div className="text-center text-white/40"><Camera size={32} className="mx-auto mb-2" /><span>上传图片展示灵感</span></div>}
+          <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
         </div>
 
-        {/* Name */}
-        <div className="mb-3">
-          <label className="oriental-label">饮品名称 *</label>
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="如：蜜桃乌龙"
-            className="oriental-input"
-            maxLength={30}
-          />
-        </div>
-
-        {/* Description */}
-        <div className="mb-3">
-          <label className="oriental-label">口感描述</label>
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="描述一下这款饮品的口感、风味…"
-            className="oriental-textarea"
-            style={{ height: '5rem' }}
-            maxLength={200}
-          />
-        </div>
-
-        {/* Ingredients */}
-        <div className="mb-3">
-          <label className="oriental-label">主要原料（可选）</label>
-          <input
-            type="text"
-            value={ingredients}
-            onChange={(e) => setIngredients(e.target.value)}
-            placeholder="用逗号分隔，如：乌龙茶, 蜜桃, 冰块"
-            className="oriental-input"
-          />
-        </div>
-
-        {/* Alcoholic Toggle */}
         <div className="mb-4">
-          <label className="oriental-label">含酒精</label>
-          <div className="oriental-toggle-group">
-            <button
-              onClick={() => setIsAlcoholic(false)}
-              className={`oriental-toggle-btn ${!isAlcoholic ? 'is-active' : ''}`}
-            >
-              无酒精
-            </button>
-            <button
-              onClick={() => setIsAlcoholic(true)}
-              className={`oriental-toggle-btn ${isAlcoholic ? 'is-active' : ''}`}
-            >
-              含酒精
-            </button>
-          </div>
+          <label className="glass-label">饮品名称 *</label>
+          <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="如：蜜桃乌龙" className="glass-input w-full p-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none" />
         </div>
 
-        {/* Error */}
-        {error && (
-          <div className="oriental-error mb-3">
-            {error}
-          </div>
-        )}
+        <div className="mb-4">
+          <label className="glass-label">描述与配料</label>
+          <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="描述一下风味…" className="glass-input w-full p-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none h-24 resize-none" />
+        </div>
 
-        {/* Submit Button */}
-        <InteractiveButton
-          variant="primary"
-          onClick={handleSubmit}
-          disabled={isLoading || !name.trim()}
-          className="ingredient-btn-confirm"
-          style={{
-            width: '100%',
-            background: isLoading || !name.trim() ? 'rgba(0,0,0,0.1)' : '#3c3b36',
-            color: isLoading || !name.trim() ? 'rgba(0,0,0,0.4)' : '#ebdfc8',
-            border: isLoading || !name.trim() ? '1px solid rgba(0,0,0,0.1)' : '1px solid #2a2924',
-            boxShadow: isLoading || !name.trim() ? 'none' : '0 4px 12px rgba(0,0,0,0.3)',
-            opacity: isLoading || !name.trim() ? 0.6 : 1,
-            fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif',
-            fontSize: '1rem',
-            letterSpacing: '0.08em',
-            fontWeight: 700
-          }}
-        >
-          {isLoading ? (
-            <span className="flex items-center justify-center gap-2">
-              <Loader2 size={18} className="animate-spin" />
-              正在分析风味...
-            </span>
-          ) : (
-            <span className="flex items-center justify-center gap-2">
-              保存饮品
-            </span>
-          )}
+        <div className="mb-6 flex gap-3">
+          <button onClick={() => setIsAlcoholic(false)} className={`flex-1 p-2 rounded-xl border transition-all ${!isAlcoholic ? 'bg-white/20 border-white/40 text-white' : 'bg-white/5 border-white/10 text-white/40'}`}>无酒精</button>
+          <button onClick={() => setIsAlcoholic(true)} className={`flex-1 p-2 rounded-xl border transition-all ${isAlcoholic ? 'bg-white/20 border-white/40 text-white' : 'bg-white/5 border-white/10 text-white/40'}`}>含酒精</button>
+        </div>
+
+        {error && <div className="text-red-400 text-sm mb-4">{error}</div>}
+
+        <InteractiveButton variant="glass-primary" onClick={handleSubmit} disabled={isLoading || !name.trim()} className="w-full h-12">
+          {isLoading ? <Loader2 size={18} className="animate-spin" /> : <span>保存灵感</span>}
         </InteractiveButton>
-
-        <p className="oriental-hint">
-          AI 将根据您的描述自动分析饮品风味特征
-        </p>
       </div>
     </Modal>
   );
@@ -3942,5 +3551,6 @@ const CustomMineIcon = ({ size = 26, className = "" }) => (
     <path fill="none" d="M15 18v3" />
   </svg>
 );
+
 
 

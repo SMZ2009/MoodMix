@@ -65,64 +65,39 @@ const DrinkHelpModal = ({ drink, onClose }) => {
   if (!drink) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.08)', backdropFilter: 'blur(12px)' }}>
-      <div style={{ background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(40px) saturate(1.3)', WebkitBackdropFilter: 'blur(40px) saturate(1.3)', border: '1px solid rgba(255,255,255,0.5)', boxShadow: '0 8px 32px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.5)' }} className="rounded-2xl w-full max-w-md max-h-[85vh] overflow-hidden flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="glass-modal rounded-[2.8rem] w-full max-w-md max-h-[85vh] overflow-hidden flex flex-col shadow-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between p-4" style={{ borderBottom: '1px solid rgba(0, 0, 0, 0.1)' }}>
+        <div className="flex items-center justify-between p-6 pb-4">
           <div>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 700, fontFamily: '"Songti SC","STKaiti","KaiTi",serif', color: '#000000', letterSpacing: '0.1em' }}>制作遇到问题？</h3>
-            <p style={{ fontSize: '0.75rem', color: 'rgba(0, 0, 0, 0.6)', marginTop: '2px' }}>{drink.name}</p>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, fontFamily: '"Noto Serif SC", serif', color: '#1a1a1a', letterSpacing: '0.08em' }}>制作遇到问题？</h3>
+            <p style={{ fontSize: '0.875rem', color: 'rgba(0, 0, 0, 0.65)', marginTop: '4px', fontFamily: '"Songti SC", serif' }}>{drink.name}</p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            aria-label="关闭"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              background: 'rgba(0,0,0,0.05)',
-              width: '36px',
-              height: '36px',
-              borderRadius: '999px',
-              border: '1px solid rgba(0,0,0,0.04)',
-              color: '#2f2b29',
-              cursor: 'pointer'
-            }}
+            className="w-10 h-10 rounded-full flex items-center justify-center bg-white/5 text-white/40 hover:text-white/80 hover:bg-white/10 transition-all border border-white/10"
           >
-            <X size={18} strokeWidth={2.2} color="#2f2b29" />
+            <X size={20} />
           </button>
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div className="flex-1 overflow-y-auto p-6 pt-2 space-y-6">
           {/* Quick questions */}
           <div>
-            <p style={{ fontSize: '0.75rem', color: 'rgba(0, 0, 0, 0.6)', marginBottom: '0.5rem', fontFamily: '"Songti SC",serif', letterSpacing: '0.06em' }}>快捷问题</p>
-            <div
-              className="flex flex-nowrap gap-2 overflow-x-auto"
-              style={{ paddingBottom: '0.25rem' }}
-            >
+            <p style={{ fontSize: '0.75rem', color: 'rgba(0, 0, 0, 0.45)', marginBottom: '0.75rem', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', fontFamily: '"Songti SC", serif' }}>快捷问题</p>
+            <div className="flex flex-wrap gap-2">
               {QUICK_QUESTIONS.map((q, idx) => (
                 <button
                   key={idx}
                   onClick={() => handleQuickQuestion(q.question)}
-                  style={{
-                    padding: '0.375rem 0.75rem',
-                    borderRadius: '9999px',
-                    fontSize: '0.82rem',
-                    fontFamily: '"Songti SC",serif',
-                    letterSpacing: '0.04em',
-                    transition: 'all 0.25s ease',
-                    whiteSpace: 'nowrap',
-                    background: question === q.question
-                      ? '#3c3b36'
-                      : 'rgba(255,255,255,0.5)',
-                    color: question === q.question ? '#ebdfc8' : 'rgba(0, 0, 0, 0.7)',
-                    border: question === q.question ? '1px solid #2a2924' : '1px solid rgba(0, 0, 0, 0.15)',
-                    cursor: 'pointer',
-                    boxShadow: question === q.question ? '0 2px 8px rgba(0, 0, 0, 0.2)' : 'none'
-                  }}
+                  className={`px-4 py-1.5 rounded-full text-sm transition-all border ${
+                    question === q.question
+                      ? 'bg-black/10 border-black/20 text-black'
+                      : 'bg-white/40 border-black/5 text-black/50 hover:bg-white/60'
+                  }`}
+                  style={{ fontFamily: '"Songti SC", serif' }}
                 >
                   {q.label}
                 </button>
@@ -131,8 +106,8 @@ const DrinkHelpModal = ({ drink, onClose }) => {
           </div>
 
           {/* Question input */}
-          <div>
-            <p style={{ fontSize: '0.75rem', color: 'rgba(0, 0, 0, 0.6)', marginBottom: '0.5rem', fontFamily: '"Songti SC",serif', letterSpacing: '0.06em' }}>描述你的问题</p>
+          <div className="space-y-3">
+            <p style={{ fontSize: '0.75rem', color: 'rgba(0, 0, 0, 0.45)', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', fontFamily: '"Songti SC", serif' }}>描述你的问题</p>
             <textarea
               value={question}
               onChange={(e) => {
@@ -140,58 +115,48 @@ const DrinkHelpModal = ({ drink, onClose }) => {
                 setError('');
               }}
               placeholder="例如：没有青柠汁可以用什么代替？摇酒器没有怎么办？"
-              className="oriental-textarea"
-              style={{ height: '6rem', background: 'rgba(255,255,255,0.5)', color: '#000000', border: '1px solid rgba(0, 0, 0, 0.15)' }}
+              className="glass-input w-full p-4 text-sm min-h-[6rem] focus:outline-none placeholder-black/20 resize-none"
+              style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(0, 0, 0, 0.1)', borderRadius: '1.25rem', color: '#1a1a1a', fontFamily: '"Songti SC", serif' }}
             />
           </div>
 
           {/* Error message */}
           {error && (
-            <div className="oriental-error">
-              <p>{error}</p>
+            <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs text-center">
+              {error}
             </div>
           )}
 
           {/* AI Answer */}
           {answer && (
-            <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.5)', borderRadius: '0.75rem', border: '1px solid rgba(0, 0, 0, 0.1)' }}>
-              <p style={{ fontSize: '0.75rem', color: 'rgba(0, 0, 0, 0.8)', fontWeight: 500, marginBottom: '0.5rem', fontFamily: '"Songti SC",serif', letterSpacing: '0.06em' }}>调酒师建议</p>
-              <p style={{ fontSize: '0.85rem', color: '#000000', lineHeight: 1.7, whiteSpace: 'pre-wrap', fontFamily: '"Songti SC",serif' }}>{answer}</p>
+            <div className="p-5 space-y-3 rounded-2xl bg-white/5 border border-white/10">
+              <div className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-600/80 animate-pulse" />
+                <p style={{ fontSize: '0.75rem', color: 'rgba(0, 0, 0, 0.5)', fontWeight: 600, fontFamily: '"Songti SC", serif' }}>调酒师建议</p>
+              </div>
+              <p style={{ fontSize: '0.9rem', color: '#1a1a1a', lineHeight: 1.7, whiteSpace: 'pre-wrap', fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif' }}>{answer}</p>
             </div>
           )}
 
           {/* Loading state */}
           {isLoading && (
-            <div className="flex items-center justify-center py-6">
-              <Loader2 style={{ width: '1.5rem', height: '1.5rem', color: 'rgba(168, 134, 230, 0.8)' }} className="animate-spin" />
-              <span style={{ marginLeft: '0.5rem', fontSize: '0.85rem', color: 'rgba(0, 0, 0, 0.65)', fontFamily: '"Songti SC",serif' }}>正在思考…</span>
+            <div className="flex flex-col items-center justify-center py-8 gap-3">
+              <Loader2 className="w-8 h-8 text-white/20 animate-spin" />
+              <span style={{ fontSize: '0.875rem', color: 'rgba(255,255,255,0.35)' }}>正在思考方案…</span>
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div style={{ padding: '1rem', borderTop: '1px solid rgba(0, 0, 0, 0.1)' }}>
+        <div className="p-6 pt-0">
           <InteractiveButton
-            variant="primary"
-            fullWidth
+            variant="glass-primary"
             onClick={handleSubmit}
             disabled={isLoading || !question.trim()}
-            style={{
-              height: '48px',
-              background: isLoading || !question.trim()
-                ? 'rgba(0, 0, 0, 0.1)'
-                : '#3c3b36',
-              opacity: isLoading || !question.trim() ? 0.5 : 1,
-              color: isLoading || !question.trim() ? 'rgba(0, 0, 0, 0.4)' : '#ebdfc8',
-              border: isLoading || !question.trim() ? '1px solid rgba(0,0,0,0.1)' : '1px solid #2a2924',
-              boxShadow: isLoading || !question.trim() ? 'none' : '0 4px 12px rgba(0,0,0,0.3)',
-              fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif',
-              letterSpacing: '0.15em',
-              fontWeight: 700
-            }}
+            className="w-full h-14"
           >
             <Send size={18} className="mr-2" />
-            获取建议
+            <span>获取解答</span>
           </InteractiveButton>
         </div>
       </div>

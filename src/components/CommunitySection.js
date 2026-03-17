@@ -206,7 +206,7 @@ const GroupCard = ({ group, onClick, isJoined, onJoin }) => {
   return (
     <div 
       onClick={onClick}
-      className="bg-white/70 backdrop-blur-sm rounded-2xl p-4 shadow-sm border border-white/60 hover:shadow-md transition-all duration-300 cursor-pointer active:scale-[0.98]"
+      className="glass-card glass-card-interactive rounded-2xl p-4 cursor-pointer active:scale-[0.98]"
     >
       <div className="flex items-start gap-4">
         {/* Icon */}
@@ -222,10 +222,10 @@ const GroupCard = ({ group, onClick, isJoined, onJoin }) => {
             </h3>
             <button
               onClick={onJoin}
-              className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+              className={`glass-tag text-xs font-medium cursor-pointer transition-colors ${
                 isJoined 
-                  ? 'bg-gray-100 text-gray-600' 
-                  : 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+                  ? 'bg-gray-400/20 text-gray-600 border-none shadow-none' 
+                  : 'bg-purple-100/40 text-purple-700 hover:bg-purple-200/60'
               }`}
             >
               {isJoined ? '已加入' : '加入'}
@@ -234,10 +234,9 @@ const GroupCard = ({ group, onClick, isJoined, onJoin }) => {
           
           <p className="text-sm text-gray-500 mt-1 line-clamp-2">{group.description}</p>
           
-          {/* Tags */}
           <div className="flex flex-wrap gap-1.5 mt-2">
             {group.tags.map((tag, idx) => (
-              <span key={idx} className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full">
+              <span key={idx} className="glass-tag glass-tag-dark scale-90 -ml-1">
                 {tag}
               </span>
             ))}

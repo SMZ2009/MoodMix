@@ -54,16 +54,13 @@ const SideNavigation = ({ isOpen, onClose, activeTab, onTabChange, onOpenIngredi
           </button>
 
           <button
-            onClick={() => {
-              onTabChange('community');
-              onClose();
-            }}
-            className={`flex items-center gap-3 w-full p-2 rounded-lg transition-colors ${activeTab === 'community' ? 'bg-purple-50 text-purple-700' : 'text-gray-600 hover:bg-gray-50'}`}
+            disabled
+            className="flex items-center gap-3 w-full p-2 rounded-lg text-gray-400 cursor-not-allowed"
           >
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${activeTab === 'community' ? 'scale-110 drop-shadow-md bg-purple-100' : ''}`}>
-              <Users size={20} className={activeTab === 'community' ? 'text-purple-600' : 'text-gray-500'} />
+            <div className="w-8 h-8 rounded-full flex items-center justify-center">
+              <Users size={20} className="text-gray-400" />
             </div>
-            <span className="text-sm font-medium" style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif' }}>社区</span>
+            <span className="text-sm font-medium" style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif' }}>即将上线</span>
           </button>
 
           <button

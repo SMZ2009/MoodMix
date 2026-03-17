@@ -1978,6 +1978,9 @@ const App = () => {
   const [lastLikedDrink, setLastLikedDrink] = useState(null);
   const [socket, setSocket] = useState(null);
   const [liveLikeCount, setLiveLikeCount] = useState({});
+  const [currentCity, setCurrentCity] = useState('');
+  const [locationLoading, setLocationLoading] = useState(false);
+  const [locationError, setLocationError] = useState('');
 
   // Track if session ingredients have been initialized from inventory
   const isSessionInitialized = useRef(false);
@@ -2042,6 +2045,98 @@ const App = () => {
       console.log('[WebSocket] 清理连接');
       socketInstance.disconnect();
     };
+  }, []);
+
+  // 高德地图 API Key
+  const AMAP_KEY = '40103397884c52085af7f3bc3fc9d267';
+
+  // 页面刷新时自动获取当前城市
+  useEffect(() => {
+    const fetchCurrentCity = async () => {
+      setLocationLoading(true);
+      setLocationError('');
+      
+      try {
+        // 先尝试使用浏览器定位 + 高德逆地理编码
+        if ('geolocation' in navigator) {
+          try {
+            const position = await new Promise((resolve, reject) => {
+              navigator.geolocation.getCurrentPosition(resolve, reject, {
+                enableHighAccuracy: false,
+                timeout: 5000,
+                maximumAge: 300000
+              });
+            });
+            
+            const { latitude, longitude } = position.coords;
+            console.log('[Location] Got coordinates:', latitude, longitude);
+            
+            const response = await fetch(
+              `https://restapi.amap.com/v3/geocode/regeo?key=${AMAP_KEY}&location=${longitude},${latitude}&extensions=base`
+            );
+            const data = await response.json();
+            console.log('[Location] Amap regeo response:', data);
+            
+            if (data.status === '1' && data.regeocode?.addressComponent?.city) {
+              const city = data.regeocode.addressComponent.city;
+              const cityName = Array.isArray(city) ? city[0] : city;
+              if (cityName) {
+                setCurrentCity(cityName);
+                return;
+              }
+            }
+            if (data.status === '1' && data.regeocode?.addressComponent?.province) {
+              setCurrentCity(data.regeocode.addressComponent.province);
+              return;
+            }
+            if (data.status !== '1') {
+              console.warn('[Location] Amap API error:', data.info, data.infocode);
+            }
+          } catch (geoError) {
+            console.log('[Location] Browser geolocation failed:', geoError.message);
+          }
+        }
+        
+        // 备用：使用高德IP定位
+        console.log('[Location] Trying Amap IP location...');
+        const ipResponse = await fetch(`https://restapi.amap.com/v3/ip?key=${AMAP_KEY}`);
+        const ipData = await ipResponse.json();
+        console.log('[Location] Amap IP response:', ipData);
+        
+        const amapCity = Array.isArray(ipData.city) ? (ipData.city.length > 0 ? ipData.city[0] : null) : ipData.city;
+        const amapProvince = Array.isArray(ipData.province) ? (ipData.province.length > 0 ? ipData.province[0] : null) : ipData.province;
+        
+        if (ipData.status === '1' && amapCity) {
+          setCurrentCity(amapCity);
+        } else if (ipData.status === '1' && amapProvince) {
+          setCurrentCity(amapProvince);
+        } else {
+          console.log('[Location] Amap IP empty, trying global fallback...');
+          try {
+            const globalResponse = await fetch('https://ipapi.co/json/');
+            const globalData = await globalResponse.json();
+            console.log('[Location] Global IP response:', globalData);
+            if (globalData.city) {
+              setCurrentCity(globalData.city);
+            } else if (globalData.region) {
+              setCurrentCity(globalData.region);
+            } else {
+              setLocationError('无法获取位置');
+            }
+          } catch (globalError) {
+            console.warn('[Location] Global IP fallback failed:', globalError);
+            setLocationError('无法获取位置');
+          }
+        }
+      } catch (error) {
+        console.error('[Location] Fetch failed:', error);
+        setLocationError('无法获取位置');
+      } finally {
+        setLocationLoading(false);
+      }
+    };
+    
+    fetchCurrentCity();
   }, []);
 
   // 当查看饮品详情时，加入该饮品的房间并获取初始心意统计
@@ -3171,6 +3266,9 @@ const App = () => {
               activeTab={activeTab}
               dakaNotes={dakaDrinks}
               onDeleteDakaNote={handleRequestDeleteNote}
+              currentCity={currentCity}
+              locationLoading={locationLoading}
+              locationError={locationError}
             />
           </PageTransition>
         )}

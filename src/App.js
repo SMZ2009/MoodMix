@@ -2314,7 +2314,10 @@ const App = () => {
     setShowDakaModal(false);
   };
 
-  const handleSaveDakaNote = (drinkId, note, customImage = null) => {
+  const handleSaveDakaNote = (payloadOrDrinkId, legacyNote, legacyImage = null) => {
+    const isPayloadObject = payloadOrDrinkId && typeof payloadOrDrinkId === 'object' && !Array.isArray(payloadOrDrinkId);
+    const note = isPayloadObject ? (payloadOrDrinkId.note || '') : legacyNote;
+    const customImage = isPayloadObject ? (payloadOrDrinkId.image || null) : legacyImage;
     const drinkToSave = dakaDrink;
     if (drinkToSave) {
       collectionStorage.saveDakaNote(drinkToSave, note, customImage);

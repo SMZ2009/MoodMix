@@ -9,16 +9,57 @@ const StreamingAnalysisCard = ({
   const [phase, setPhase] = useState('init'); // init, analyzing, complete
   const [statusText, setStatusText] = useState('以意入味…');
   const [summaryText, setSummaryText] = useState('');
+  const [summaryDisplayText, setSummaryDisplayText] = useState('');
   const [streamingText, setStreamingText] = useState('');
   const abortControllerRef = useRef(null);
   const resultDataRef = useRef(null);
   const isRunningRef = useRef(false);
+  const summaryTimerRef = useRef(null);
 
   // 用 ref 存储回调，避免回调引用变化导致 effect 重新触发
   const onStreamCompleteRef = useRef(onStreamComplete);
   const onErrorRef = useRef(onError);
   useEffect(() => { onStreamCompleteRef.current = onStreamComplete; }, [onStreamComplete]);
   useEffect(() => { onErrorRef.current = onError; }, [onError]);
+
+  // 完成阶段对摘要文字做流态打字机输出
+  useEffect(() => {
+    if (phase !== 'complete' || !summaryText) {
+      setSummaryDisplayText('');
+      if (summaryTimerRef.current) {
+        clearInterval(summaryTimerRef.current);
+        summaryTimerRef.current = null;
+      }
+      return;
+    }
+
+    // 从头开始播放打字效果
+    setSummaryDisplayText('');
+    let index = 0;
+
+    if (summaryTimerRef.current) {
+      clearInterval(summaryTimerRef.current);
+      summaryTimerRef.current = null;
+    }
+
+    summaryTimerRef.current = setInterval(() => {
+      index += 1;
+      setSummaryDisplayText(summaryText.slice(0, index));
+      if (index >= summaryText.length) {
+        if (summaryTimerRef.current) {
+          clearInterval(summaryTimerRef.current);
+          summaryTimerRef.current = null;
+        }
+      }
+    }, 40);
+
+    return () => {
+      if (summaryTimerRef.current) {
+        clearInterval(summaryTimerRef.current);
+        summaryTimerRef.current = null;
+      }
+    };
+  }, [phase, summaryText]);
 
   useEffect(() => {
     if (!isActive || !userInput) {
@@ -359,7 +400,7 @@ const StreamingAnalysisCard = ({
               </div>
             )}
 
-            {/* 完成状态 - 显示摘要 */}
+            {/* 完成状态 - 显示摘要（流态打字） */}
             {phase === 'complete' && (
               <div className="flex flex-col items-center gap-4">
                 <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center">
@@ -372,7 +413,7 @@ const StreamingAnalysisCard = ({
                     className="text-white/80 text-base leading-relaxed tracking-wide"
                     style={{ fontFamily: '"Songti SC", "STKaiti", serif' }}
                   >
-                    {summaryText}
+                    {summaryDisplayText || summaryText}
                   </p>
                 )}
               </div>
@@ -404,7 +445,7 @@ const StreamingAnalysisCard = ({
           >
             {phase === 'init' && '正在感知…'}
             {phase === 'analyzing' && '缓缓酿成…'}
-            {phase === 'complete' && '即将呈现'}
+            {phase === 'complete' && '流态输出'}
             {phase === 'error' && '请稍后再试'}
           </span>
         </div>

@@ -2029,11 +2029,11 @@ const App = () => {
       const updatedDakaDrinks = collectionStorage.getDakaNotes();
       setDakaDrinks(updatedDakaDrinks);
       showFriendlyNotice(
-        '「已记录」',
-        '这一刻的味道，已留在你的赏味集里',
+        '已记录',
+        '这一刻的味道，\n已留在你的赏味集里。',
         'success',
-        { label: '「回到这杯」', onClick: () => { handleCloseDakaModal(); closeFriendlyNotice(); } },
-        { label: '「分享此刻」', onClick: handleShare }
+        { label: '回到这杯', onClick: () => { handleCloseDakaModal(); closeFriendlyNotice(); } },
+        { label: '分享此刻', onClick: handleShare }
       );
     }
     // handleCloseDakaModal(); // Removed to allow DakaModal to show share card preview

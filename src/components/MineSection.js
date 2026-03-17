@@ -6,6 +6,50 @@ import { userStorage } from '../store/localStorageAdapter';
 
 const STORAGE_KEY_PROFILE = 'moodmix_profile';
 
+// 获取时区偏移量（分钟）
+const getTimezoneOffset = () => {
+    // 默认东八区（UTC+8）
+    const defaultOffset = 8 * 60;
+    
+    try {
+        // 尝试使用浏览器的时区设置
+        const date = new Date();
+        // 浏览器返回的是UTC与本地时间的差值（分钟），取反得到本地时区偏移
+        const localOffset = -date.getTimezoneOffset();
+        return localOffset;
+    } catch (error) {
+        // 如果出错，使用默认东八区
+        return defaultOffset;
+    }
+};
+
+// 格式化日期时间，考虑时区
+const formatDateTimeWithTimezone = (dateString, options = {}) => {
+    try {
+        const date = new Date(dateString);
+        const offset = getTimezoneOffset();
+        // 调整时区偏移
+        const adjustedDate = new Date(date.getTime() + offset * 60 * 1000);
+        return adjustedDate.toLocaleString('zh-CN', options);
+    } catch (error) {
+        return dateString;
+    }
+};
+
+// 获取日期键值，考虑时区
+const getDateKeyWithTimezone = (dateString) => {
+    try {
+        const date = new Date(dateString);
+        const offset = getTimezoneOffset();
+        // 调整时区偏移
+        const adjustedDate = new Date(date.getTime() + offset * 60 * 1000);
+        return `${adjustedDate.getFullYear()}-${adjustedDate.getMonth()}-${adjustedDate.getDate()}`;
+    } catch (error) {
+        const date = new Date(dateString);
+        return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+    }
+};
+
 const MineSection = ({ favorites, onSelectDrink, cardFeedback, initialTab = 'collections', dakaNotes = [], onDeleteDakaNote, onNavigate, currentCity, locationLoading, locationError }) => {
     const [mineTab, setMineTab] = useState(initialTab);
 
@@ -528,8 +572,7 @@ const CollectionsCalendar = ({ dakaNotes, onDeleteDakaNote }) => {
     const notesByDate = useMemo(() => {
         const map = {};
         dakaNotes.forEach(note => {
-            const date = new Date(note.dakaTime);
-            const key = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+            const key = getDateKeyWithTimezone(note.dakaTime);
             if (!map[key]) map[key] = [];
             map[key].push(note);
         });
@@ -549,7 +592,9 @@ const CollectionsCalendar = ({ dakaNotes, onDeleteDakaNote }) => {
         }
         // Days of the month
         for (let day = 1; day <= daysInMonth; day++) {
-            const dateKey = `${year}-${month}-${day}`;
+            // 创建当天的日期对象，考虑时区
+            const date = new Date(year, month, day);
+            const dateKey = getDateKeyWithTimezone(date);
             days.push({
                 day,
                 key: dateKey,
@@ -575,7 +620,9 @@ const CollectionsCalendar = ({ dakaNotes, onDeleteDakaNote }) => {
 
     const handleDayClick = (day) => {
         if (!day) return;
-        const dateKey = `${year}-${month}-${day}`;
+        // 创建当天的日期对象，考虑时区
+        const date = new Date(year, month, day);
+        const dateKey = getDateKeyWithTimezone(date);
         if (notesByDate[dateKey]) {
             setSelectedDate(selectedDate === dateKey ? null : dateKey);
         }
@@ -721,7 +768,7 @@ const DakaNoteCard = ({ note, onDelete }) => {
                     <img src={note.customImage || note.image} alt={note.name} className="w-16 h-16 rounded-lg object-cover flex-shrink-0" />
                     <div className="flex-1 min-w-0">
                         <h4 className="font-bold text-gray-800 truncate">{note.name}</h4>
-                        <p className="text-xs text-gray-400 mb-2">{new Date(note.dakaTime).toLocaleString()}</p>
+                        <p className="text-xs text-gray-400 mb-2">{formatDateTimeWithTimezone(note.dakaTime)}</p>
                         <p className="text-sm text-gray-600 break-words">{note.note}</p>
                     </div>
                 </div>

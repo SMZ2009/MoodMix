@@ -222,14 +222,14 @@ const MineSection = ({ favorites, onSelectDrink, cardFeedback, initialTab = 'col
         >
             {/* 首次访问个人信息填写表单 */}
             {isFirstVisit && (
-                <div className="fixed inset-0 bg-white/20 backdrop-blur-xl z-50 flex items-center justify-center p-6">
-                    <div className="glass-panel w-full max-w-md p-8 space-y-6 relative overflow-hidden">
+                <div className="fixed inset-0 bg-white/20 backdrop-blur-xl z-50 flex items-center justify-center p-4">
+                    <div className="glass-panel w-full max-w-sm p-6 space-y-4 relative overflow-hidden">
                         {/* 装饰性背景光晕 */}
                         <div className="absolute -top-24 -left-24 w-48 h-48 bg-purple-400/20 blur-[60px] rounded-full pointer-events-none" />
                         <div className="absolute -bottom-24 -right-24 w-48 h-48 bg-blue-400/10 blur-[60px] rounded-full pointer-events-none" />
 
-                        <h2 className="text-2xl font-bold text-center text-gray-800 mb-6" style={{ fontFamily: '"Noto Serif SC", serif', letterSpacing: '0.1em' }}>填写个人信息</h2>
-                        <form onSubmit={handleProfileSubmit} className="space-y-4">
+                        <h2 className="text-xl font-semibold text-center text-gray-800 mb-4" style={{ fontFamily: '"Noto Serif SC", serif', letterSpacing: '0.08em' }}>填写个人信息</h2>
+                        <form onSubmit={handleProfileSubmit} className="space-y-3 text-[13px]">
                             <div>
                                 <label className="glass-label">昵称</label>
                                 <div className="relative">
@@ -238,14 +238,14 @@ const MineSection = ({ favorites, onSelectDrink, cardFeedback, initialTab = 'col
                                         value={profileForm.name}
                                         onChange={(e) => setProfileForm(prev => ({ ...prev, name: e.target.value }))}
                                         required
-                                        className="w-full px-6 py-3 glass-input pr-20"
+                                        className="w-full px-5 py-2.5 glass-input pr-16 text-sm"
                                         placeholder="请输入您的昵称"
                                     />
                                     <div
                                         className="absolute right-2 top-1/2 transform -translate-y-1/2 cursor-pointer group p-1"
                                         onClick={() => fileInputRef.current?.click()}
                                     >
-                                        <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-white/80 shadow-sm glass-pill-container">
+                                        <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-white/80 shadow-sm glass-pill-container">
                                             <img
                                                 alt="Avatar"
                                                 className="w-full h-full object-cover"
@@ -294,7 +294,7 @@ const MineSection = ({ favorites, onSelectDrink, cardFeedback, initialTab = 'col
                                                     setProfileForm(prev => ({ ...prev, birthday: newDate }));
                                                 }}
                                                 required
-                                                className="w-full px-2 py-3 glass-input text-center"
+                                                className="w-full px-2 py-2.5 glass-input text-center text-sm"
                                                 min="1900"
                                                 max="2026"
                                             />
@@ -311,7 +311,7 @@ const MineSection = ({ favorites, onSelectDrink, cardFeedback, initialTab = 'col
                                                     setProfileForm(prev => ({ ...prev, birthday: newDate }));
                                                 }}
                                                 required
-                                                className="w-full px-2 py-3 glass-input text-center"
+                                                className="w-full px-2 py-2.5 glass-input text-center text-sm"
                                                 min="1"
                                                 max="12"
                                             />
@@ -328,14 +328,14 @@ const MineSection = ({ favorites, onSelectDrink, cardFeedback, initialTab = 'col
                                                     setProfileForm(prev => ({ ...prev, birthday: newDate }));
                                                 }}
                                                 required
-                                                className="w-full px-2 py-3 glass-input text-center"
+                                                className="w-full px-2 py-2.5 glass-input text-center text-sm"
                                                 min="1"
                                                 max="31"
                                             />
                                         </div>
                                     </div>
                                     {profileForm.birthday && (
-                                        <div className="text-right text-gray-500 text-sm">
+                                        <div className="text-right text-gray-500 text-xs">
                                             {getChineseCalendar(profileForm.birthday)}
                                         </div>
                                     )}
@@ -347,39 +347,39 @@ const MineSection = ({ favorites, onSelectDrink, cardFeedback, initialTab = 'col
                                     type="text"
                                     value={profileForm.birthplace}
                                     onChange={(e) => setProfileForm(prev => ({ ...prev, birthplace: e.target.value }))}
-                                    className="w-full px-6 py-3 glass-input"
+                                    className="w-full px-5 py-2.5 glass-input text-sm"
                                     placeholder="请输入您的出生地"
                                 />
                             </div>
                             <div>
                                 <label className="glass-label">当前城市</label>
-                                <div className="flex items-center gap-2 px-6 py-3 glass-input bg-white/20">
+                                <div className="flex items-center gap-2 px-5 py-2.5 glass-input bg-white/20 text-sm">
                                     {locationLoading ? (
                                         <>
-                                            <Loader2 size={16} className="text-purple-500 animate-spin" />
-                                            <span className="text-gray-500 text-sm">正在定位...</span>
+                                            <Loader2 size={14} className="text-purple-500 animate-spin" />
+                                            <span className="text-gray-500 text-xs">正在定位...</span>
                                         </>
                                     ) : currentCity ? (
                                         <>
-                                            <MapPin size={16} className="text-purple-500" />
-                                            <span className="text-gray-700 font-medium">{currentCity}</span>
+                                            <MapPin size={14} className="text-purple-500" />
+                                            <span className="text-gray-700 font-medium text-sm">{currentCity}</span>
                                         </>
                                     ) : (
-                                        <span className="text-gray-400 text-sm">未能获取位置</span>
+                                        <span className="text-gray-400 text-xs">未能获取位置</span>
                                     )}
                                 </div>
                             </div>
-                            <div className="flex gap-4 pt-4">
+                            <div className="flex gap-3 pt-3">
                                 <button
                                     type="submit"
-                                    className="flex-1 glass-button-primary py-4 font-bold text-lg"
+                                    className="flex-1 glass-button-primary py-2.5 text-sm font-semibold"
                                 >
                                     保存信息
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => setIsFirstVisit(false)}
-                                    className="flex-1 glass-button-secondary py-4 font-medium"
+                                    className="flex-1 glass-button-secondary py-2.5 text-sm font-medium"
                                 >
                                     跳过
                                 </button>

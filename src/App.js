@@ -118,6 +118,36 @@ const ShareCard = forwardRef(({ drinkName, emotion, wuxing, imageSrc, llmCopy, q
   // 整体缩放系数：让卡片与文字更紧凑
   const SCALE = 0.9;
 
+  // 兜底标签：当后端返回「待辩证」「无数据」等占位词时，用更友好的文案
+  const safeEmotion = (!emotion || /待辩证|无数据/.test(emotion))
+    ? '此刻心绪待调'
+    : emotion;
+  const safeWuxing = (!wuxing || /待辩证|无数据/.test(wuxing))
+    ? '五行待定，随心入杯'
+    : wuxing;
+
+  // #region agent log
+  fetch('http://127.0.0.1:7693/ingest/adc81e44-f8f0-44ea-8bd0-d1a31dbda974', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      id: `log_${Date.now()}_share_card_labels`,
+      runId: 'pre-fix',
+      hypothesisId: 'H3',
+      location: 'App.js:ShareCard',
+      message: 'ShareCard received labels',
+      data: {
+        drinkName,
+        emotion,
+        wuxing,
+        safeEmotion,
+        safeWuxing,
+      },
+      timestamp: Date.now()
+    })
+  }).catch(() => {});
+  // #endregion agent log
+
   // 日期格式：2026.03.15
   const today = new Date();
   const formattedDate = `${today.getFullYear()}.${String(today.getMonth() + 1).padStart(2, '0')}.${String(today.getDate()).padStart(2, '0')}`;
@@ -176,9 +206,9 @@ const ShareCard = forwardRef(({ drinkName, emotion, wuxing, imageSrc, llmCopy, q
             fontSize: '12px',
             color: '#5c5b56',
             fontFamily: "'Noto Serif SC', 'STSongti-SC', 'Songti SC', 'STKaiti', 'Source Han Serif SC', serif"
-          }}>{emotion}</span>
+          }}>{safeEmotion}</span>
           <span style={{ color: '#d1cdc2', fontSize: '11px' }}>|</span>
-          <span style={{ fontSize: '12px', color: '#8c8b86', fontFamily: '"STKaiti", serif' }}>{wuxing}</span>
+          <span style={{ fontSize: '12px', color: '#8c8b86', fontFamily: '"STKaiti", serif' }}>{safeWuxing}</span>
         </div>
 
         <div className="card-divider" style={{
@@ -237,7 +267,8 @@ async function exportShareCard(cardElement) {
   try {
     // 为移动设备添加更兼容的配置
     const canvas = await html2canvas(cardElement, {
-      scale: 1.5,                  // 降低分辨率以提高移动设备性能
+      // 提升导出清晰度：适度提高缩放倍率
+      scale: 2.2,
       backgroundColor: '#faf8f5',  // 卡片底色
       useCORS: true,               // 允许跨域图片
       logging: false,
@@ -1388,11 +1419,14 @@ const DrinkDetailSection = ({ drink, checkedIngredients, onToggleIngredient, onB
   const philosophy = generatePhilosophyTags(drink.dimensions, moodResult, drink.name);
   const diagnosisTag = philosophy?.tags?.[0] || drink.dimensions?.mood || '气机待调';
   const strategyTag = philosophy?.tags?.[1] || (drink.dimensions?.wuxing ? `五行属${drink.dimensions.wuxing}` : '调和气机');
-  const shareCopy = (llmCopy && llmCopy.trim()) ? llmCopy : (philosophy?.quote || '「请先描述你此刻的心情，让我为你找到那杯对的酒」');
+
   const [shareCardUrl, setShareCardUrl] = useState(null);
   const [isGeneratingShare, setIsGeneratingShare] = useState(false);
   const [llmCopy, setLlmCopy] = useState('');
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState(null);
+  const [overrideEmotionTag, setOverrideEmotionTag] = useState(null);
+  const [overrideSceneTag, setOverrideSceneTag] = useState(null);
+  const shareCopy = (llmCopy && llmCopy.trim()) ? llmCopy : (philosophy?.quote || '「请先描述你此刻的心情，让我为你找到那杯对的酒」');
   const cardRef = useRef(null);
   const qrCanvasRef = useRef(null);
 
@@ -1407,7 +1441,54 @@ const DrinkDetailSection = ({ drink, checkedIngredients, onToggleIngredient, onB
     return `${baseUrl}?drink_id=${drink.id}`;
   };
 
+  const buildFallbackNoMoodTags = () => {
+    const abv = typeof drink.abv === 'number' ? drink.abv : null;
+    let tagEmotion = '随心一杯';
+    let tagScene = '此刻刚刚好';
+
+    if (abv === null) {
+      return { tagEmotion, tagScene };
+    }
+
+    if (abv === 0) {
+      tagEmotion = '清醒不醉';
+      tagScene = '午后小憩';
+    } else if (abv <= 8) {
+      tagEmotion = '微醺柔软';
+      tagScene = '下班后小酌';
+    } else if (abv <= 20) {
+      tagEmotion = '慢火续暖';
+      tagScene = '周末放空';
+    } else {
+      tagEmotion = '深夜烈星';
+      tagScene = '收尾一杯';
+    }
+
+    return { tagEmotion, tagScene };
+  };
+
   const handleShare = async () => {
+    // #region agent log
+    fetch('http://127.0.0.1:7693/ingest/adc81e44-f8f0-44ea-8bd0-d1a31dbda974', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: `log_${Date.now()}_handle_share_enter`,
+        runId: 'pre-fix',
+        hypothesisId: 'H_branch',
+        location: 'App.js:DrinkDetailSection.handleShare',
+        message: 'handleShare enter',
+        data: {
+          drinkId: drink?.id || null,
+          drinkName: drink?.name || null,
+          hasMoodResult: !!moodResult,
+          moodKeys: moodResult ? Object.keys(moodResult) : [],
+        },
+        timestamp: Date.now()
+      })
+    }).catch(() => {});
+    // #endregion agent log
+
     setIsGeneratingShare(true);
     try {
       // 0. 生成二维码数据 URL
@@ -1419,8 +1500,59 @@ const DrinkDetailSection = ({ drink, checkedIngredients, onToggleIngredient, onB
         }
       }
 
-      // 1. 获取 LLM 文案
-      const prompt = `你是 MoodMix 的文案诗人。请为分享卡片生成一段情绪文案。
+      let poeticalCopy = '岁序更迭，此情可待';
+
+      // 1. 获取 LLM 文案 / 标签
+      if (!moodResult) {
+        // 无情绪输入场景（典型：从 Explore 进入）
+        const agentResult = await executeMixologyTask('SOCIAL_CARD_NO_MOOD', { drink });
+
+        if (agentResult) {
+          const payload = agentResult.data || agentResult;
+          const { copy, tagEmotion, tagScene } = payload || {};
+
+          // #region agent log
+          fetch('http://127.0.0.1:7693/ingest/adc81e44-f8f0-44ea-8bd0-d1a31dbda974', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              id: `log_${Date.now()}_handle_share_no_mood_result`,
+              runId: 'pre-fix',
+              hypothesisId: 'H_no_mood_result',
+              location: 'App.js:DrinkDetailSection.handleShare',
+              message: 'SOCIAL_CARD_NO_MOOD result',
+              data: {
+                hasCopy: typeof copy === 'string' && !!copy.trim(),
+                copySample: typeof copy === 'string' ? copy.slice(0, 40) : null,
+                tagEmotion,
+                tagScene,
+              },
+              timestamp: Date.now()
+            })
+          }).catch(() => {});
+          // #endregion agent log
+
+          if (typeof copy === 'string' && copy.trim()) {
+            poeticalCopy = copy.trim();
+          }
+
+          const hasTags = !!(tagEmotion || tagScene);
+          if (hasTags) {
+            setOverrideEmotionTag(tagEmotion || null);
+            setOverrideSceneTag(tagScene || null);
+          } else {
+            const fallback = buildFallbackNoMoodTags();
+            setOverrideEmotionTag(fallback.tagEmotion);
+            setOverrideSceneTag(fallback.tagScene);
+          }
+        } else {
+          const fallback = buildFallbackNoMoodTags();
+          setOverrideEmotionTag(fallback.tagEmotion);
+          setOverrideSceneTag(fallback.tagScene);
+        }
+      } else {
+        // 正常情绪流程下的分享卡文案（仅文案由 LLM 生成）
+        const prompt = `你是 MoodMix 的文案诗人。请为分享卡片生成一段情绪文案。
 
 要求：
 - 2-3 句话，总字数控制在 30-50 字
@@ -1436,15 +1568,36 @@ const DrinkDetailSection = ({ drink, checkedIngredients, onToggleIngredient, onB
 
 请直接输出文案，不要任何前缀或解释。`;
 
-      // 使用专用的 SOCIAL_CARD 任务类型
-      const agentResult = await executeMixologyTask('SOCIAL_CARD', { drink, prompt });
+        // 使用专用的 SOCIAL_CARD 任务类型
+        const agentResult = await executeMixologyTask('SOCIAL_CARD', { drink, prompt });
 
-      // 安全提取文案
-      let poeticalCopy = '岁序更迭，此情可待';
-      if (agentResult && agentResult.success && agentResult.data && typeof agentResult.data.copy === 'string') {
-        poeticalCopy = agentResult.data.copy;
-      } else if (typeof agentResult === 'string') {
-        poeticalCopy = agentResult;
+        // #region agent log
+        fetch('http://127.0.0.1:7693/ingest/adc81e44-f8f0-44ea-8bd0-d1a31dbda974', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: `log_${Date.now()}_handle_share_with_mood_result`,
+            runId: 'pre-fix',
+            hypothesisId: 'H_with_mood_result',
+            location: 'App.js:DrinkDetailSection.handleShare',
+            message: 'SOCIAL_CARD result',
+            data: {
+              hasCopyProp: !!(agentResult && typeof agentResult.copy === 'string' && agentResult.copy.trim()),
+              hasDataCopy: !!(agentResult && agentResult.data && typeof agentResult.data.copy === 'string'),
+              rawType: agentResult ? typeof agentResult : null,
+            },
+            timestamp: Date.now()
+          })
+        }).catch(() => {});
+        // #endregion agent log
+
+        const payload = agentResult && (agentResult.data || agentResult);
+
+        if (payload && typeof payload.copy === 'string') {
+          poeticalCopy = payload.copy;
+        } else if (typeof agentResult === 'string') {
+          poeticalCopy = agentResult;
+        }
       }
 
       setLlmCopy(poeticalCopy);
@@ -1766,8 +1919,8 @@ const DrinkDetailSection = ({ drink, checkedIngredients, onToggleIngredient, onB
           <ShareCard
             ref={cardRef}
             drinkName={drink.name}
-            emotion={diagnosisTag}
-            wuxing={strategyTag}
+            emotion={overrideEmotionTag || diagnosisTag}
+            wuxing={overrideSceneTag || strategyTag}
             imageSrc={drink.image}
             llmCopy={shareCopy}
             qrCodeSrc={qrCodeDataUrl}
@@ -2621,6 +2774,24 @@ const App = () => {
 
       // 合并 moodData 和 patternAnalysis 传递给组件
       const contextData = { moodData, patternAnalysis };
+      // #region agent log
+      fetch('http://127.0.0.1:7693/ingest/adc81e44-f8f0-44ea-8bd0-d1a31dbda974', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: `log_${Date.now()}_set_mood_result_pipeline`,
+          runId: 'pre-fix',
+          hypothesisId: 'H2',
+          location: 'App.js:handleStartGeneration',
+          message: 'Setting moodResult from pipeline',
+          data: {
+            hasMoodData: !!moodData,
+            hasPatternAnalysis: !!patternAnalysis
+          },
+          timestamp: Date.now()
+        })
+      }).catch(() => {});
+      // #endregion agent log
       setMoodResult(contextData);
       setValidationResult(validation);
       setRecommendationPool(pool.length > 0 ? pool : (apiDrinks.length > 0 ? apiDrinks.slice(0, 9) : []));
@@ -2804,6 +2975,25 @@ const App = () => {
       if (Object.keys(quotesMap).length > 0) {
         setCustomQuotes(quotesMap);
       }
+      // #region agent log
+      fetch('http://127.0.0.1:7693/ingest/adc81e44-f8f0-44ea-8bd0-d1a31dbda974', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: `log_${Date.now()}_set_mood_result_stream`,
+          runId: 'pre-fix',
+          hypothesisId: 'H2',
+          location: 'App.js:handleStreamingComplete',
+          message: 'Setting moodResult from streaming completion',
+          data: {
+            hasMoodData: !!moodData,
+            hasPatternAnalysis: !!patternAnalysis,
+            hasSummary: !!summary
+          },
+          timestamp: Date.now()
+        })
+      }).catch(() => {});
+      // #endregion agent log
       setMoodResult({ moodData, patternAnalysis, summary }); // 关键修复：补全 patternAnalysis
       setRecommendationPool(topMatches.length > 0 ? topMatches : apiDrinks.slice(0, 9));
       setCurrentBatchIndex(0);

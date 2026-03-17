@@ -101,48 +101,21 @@ const StreamingAnalysisCard = ({
                 const resultIndex = fullText.indexOf('[RESULT]');
                 const thoughtIndex = fullText.indexOf('[THOUGHT]');
                 
+                let textToProcess = fullText;
+                
                 if (resultIndex !== -1) {
                     // 已到达结果区，取 [THOUGHT] 之后到 [RESULT] 之前的全部内容
                     const start = thoughtIndex !== -1 ? thoughtIndex + 9 : 0;
-                    let rawText = fullText.slice(start, resultIndex).trim();
-                    
-                    // 同样需要过滤可能混入的JSON片段
-                    const sentenceEndRegex = /[。！？\.\!\?][^。！？\.\!\?]*$/;
-                    const sentenceMatch = rawText.match(sentenceEndRegex);
-                    
-                    if (sentenceMatch && sentenceMatch.index && sentenceMatch.index > 20) {
-                        rawText = rawText.slice(0, sentenceMatch.index + 1);
-                    }
-                    
-                    const trimmed = rawText.trim();
-                    const hasJsonStart = trimmed.startsWith('{') || trimmed.startsWith('[');
-                    const hasJsonKeyPattern = /"\w+"\s*:/.test(trimmed);
-                    
-                    if (!hasJsonStart && !hasJsonKeyPattern && trimmed.length > 0) {
-                        displayText = trimmed;
-                    }
-                } else {
-                    // 还在思绪区，需要过滤掉JSON部分
-                    let textToShow = fullText;
-                    
-                    // 策略：找到最后一个完整的句子结尾（句号、问号、感叹号）作为截止点
-                    const sentenceEndRegex = /[。！？\.\!\?][^。！？\.\!\?]*$/;
-                    const sentenceMatch = textToShow.match(sentenceEndRegex);
-                    
-                    if (sentenceMatch && sentenceMatch.index && sentenceMatch.index > 20) {
-                        textToShow = textToShow.slice(0, sentenceMatch.index + 1);
-                    }
-                    
-                    // 强化过滤：检测JSON特征
-                    // 1. 以 { 或 [ 开头
-                    // 2. 包含 "key": 模式（JSON键值对）
-                    const trimmed = textToShow.trim();
-                    const hasJsonStart = trimmed.startsWith('{') || trimmed.startsWith('[');
-                    const hasJsonKeyPattern = /"\w+"\s*:/.test(trimmed);
-                    
-                    if (!hasJsonStart && !hasJsonKeyPattern && trimmed.length > 0) {
-                        displayText = trimmed;
-                    }
+                    textToProcess = fullText.slice(start, resultIndex);
+                }
+                
+                // 过滤JSON内容
+                const trimmed = textToProcess.trim();
+                const hasJsonStart = trimmed.startsWith('{') || trimmed.startsWith('[');
+                const hasJsonKeyPattern = /"\w+"\s*:/.test(trimmed);
+                
+                if (!hasJsonStart && !hasJsonKeyPattern && trimmed.length > 0) {
+                    displayText = trimmed;
                 }
                 
                 if (displayText) {

@@ -1118,10 +1118,10 @@ app.post('/api/social_card_no_mood', validateApiKey, handleSocialCardNoMood);
 /**
  * POST /api/speech-to-text
  * POST /api/speech_to_text (向后兼容)
- * 语音转文字
+ * 语音转文字 - 使用多模态模型处理音频
  */
 async function handleSpeechToText(req, res) {
-  const { audio, format = 'wav' } = req.body;
+  const { audio, format = 'webm' } = req.body;
 
   if (!audio) {
     return errorResponse(res, 400, '缺少 audio 参数');
@@ -1134,26 +1134,75 @@ async function handleSpeechToText(req, res) {
   }
 
   try {
-    const systemPrompt = `你是一位语音识别专家。请将用户提供的音频内容转录为文字。
-如果音频质量不佳或无法识别，请返回 "[无法识别]"并简要说明原因。
-只返回转录的文字内容，不要添加任何解释。`;
+    const apiKey = process.env.SILICONFLOW_API_KEY;
+    const currentFetch = await getFetch();
+    
+    if (!currentFetch) throw new Error('Fetch implementation not found');
+    if (!apiKey || apiKey === 'your_key_here') {
+      return errorResponse(res, 500, 'API Key 未配置，无法使用语音识别功能');
+    }
 
-    // 注意：这里假设 audio 是 base64 编码的音频数据
-    // 实际实现可能需要调用专门的语音识别 API
-    const userMessage = `请转录以下 ${format.toUpperCase()} 格式的音频内容：\n\n[音频数据长度: ${audio.length} 字符]`;
+    // 构建音频的 data URL
+    const mimeType = format === 'webm' ? 'audio/webm' : `audio/${format}`;
+    const audioDataUrl = `data:${mimeType};base64,${audio}`;
 
-    const text = await callLLM(systemPrompt, userMessage, {
-      model: MODEL_8B,
-      temperature: 0.3,
-      jsonMode: false,
-      maxTokens: 500,
-      timeout: 30000
+    const systemPrompt = `你是一位语音识别专家。请仔细聆听用户提供的音频内容，将其转录为文字。
+要求：
+1. 准确识别中文语音内容
+2. 如果音频质量不佳或无法识别，返回 "[无法识别]"
+3. 只返回转录的文字内容，不要添加任何解释或标点符号建议`;
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+    const response = await currentFetch(SILICONFLOW_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+        'User-Agent': 'MoodMix/1.0 (Node.js)'
+      },
+      body: JSON.stringify({
+        model: MODEL_8B,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { 
+            role: 'user', 
+            content: [
+              { type: 'text', text: '请转录这段语音内容：' },
+              { type: 'audio_url', audio_url: { url: audioDataUrl } }
+            ]
+          }
+        ],
+        temperature: 0.3,
+        max_tokens: 500
+      }),
+      signal: controller.signal
     });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => 'No error text');
+      throw new Error(`API 返回错误 (${response.status}): ${errorText.substring(0, 200)}`);
+    }
+
+    const result = await response.json();
+    const text = (result.choices?.[0]?.message?.content || '').trim();
+
+    // 检查是否为无法识别
+    if (text.includes('[无法识别]') || text.length === 0) {
+      return errorResponse(res, 422, '无法识别语音内容，请重试');
+    }
 
     successResponse(res, { text, format });
   } catch (error) {
     console.error('[Speech-to-Text] Error:', error);
-    errorResponse(res, 500, `语音识别失败: ${error.message}`);
+    if (error.name === 'AbortError') {
+      errorResponse(res, 504, '语音识别请求超时，请重试');
+    } else {
+      errorResponse(res, 500, `语音识别失败: ${error.message}`);
+    }
   }
 }
 

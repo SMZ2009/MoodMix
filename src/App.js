@@ -390,6 +390,8 @@ const MoodInputSection = ({
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const [isListening, setIsListening] = useState(false);
   const [greeting, setGreeting] = useState({ main: '此刻，心境如何？', sub: '万般心绪，皆可入杯' });
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
 
 
 
@@ -403,12 +405,120 @@ const MoodInputSection = ({
     };
   }, []);
 
+  // 使用后端 API 进行语音识别
+  const startRecordingWithAPI = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        
+        // 停止所有轨道
+        stream.getTracks().forEach(track => track.stop());
+        
+        try {
+          // 转换为 base64
+          const reader = new FileReader();
+          reader.readAsDataURL(audioBlob);
+          reader.onloadend = async () => {
+            const base64Audio = reader.result.split(',')[1];
+            
+            // 调用后端 API
+            const response = await fetch('/api/speech-to-text', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-API-Key': 'moodmix-dev-key-2024'
+              },
+              body: JSON.stringify({
+                audio: base64Audio,
+                format: 'webm'
+              })
+            });
+
+            if (!response.ok) {
+              throw new Error('语音识别请求失败');
+            }
+
+            const result = await response.json();
+            if (result.success && result.data.text) {
+              setMoodInput(result.data.text);
+            } else {
+              throw new Error(result.error || '语音识别失败');
+            }
+          };
+        } catch (error) {
+          console.error('语音识别 API 错误:', error);
+          alert('语音识别失败，请重试');
+        } finally {
+          setIsListening(false);
+        }
+      };
+
+      mediaRecorder.start();
+      setIsListening(true);
+      
+      // 3秒后自动停止录音
+      setTimeout(() => {
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+          mediaRecorderRef.current.stop();
+        }
+      }, 3000);
+      
+    } catch (error) {
+      console.error('录音失败:', error);
+      setIsListening(false);
+      if (error.name === 'NotAllowedError') {
+        alert('请在浏览器设置中允许麦克风权限');
+      } else {
+        alert('无法启动录音，请检查设备麦克风');
+      }
+    }
+  };
+
   const handleVoiceInput = () => {
-    if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
-      alert('您的浏览器不支持语音识别功能');
+    // 如果正在录音，则停止
+    if (isListening && mediaRecorderRef.current) {
+      mediaRecorderRef.current.stop();
       return;
     }
 
+    // 检查是否支持浏览器原生语音识别 (Chrome on Android/Desktop)
+    const hasNativeSupport = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window;
+    
+    // 检查是否支持 MediaRecorder (用于后端 API 识别)
+    const hasMediaRecorderSupport = typeof MediaRecorder !== 'undefined' && 
+      typeof navigator.mediaDevices !== 'undefined' &&
+      typeof navigator.mediaDevices.getUserMedia !== 'undefined';
+
+    // iOS Safari 不支持原生语音识别，但支持 MediaRecorder
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+
+    if (!hasNativeSupport && !hasMediaRecorderSupport) {
+      const browserTips = isIOS 
+        ? 'iOS 用户建议使用 Chrome 浏览器或升级到最新系统版本'
+        : '建议使用 Chrome、Edge 或 Safari 最新版本';
+      alert(`您的浏览器不支持语音识别功能\n\n${browserTips}`);
+      return;
+    }
+
+    // iOS/Safari 或不支持原生识别的浏览器，使用后端 API
+    if (isIOS || isSafari || !hasNativeSupport) {
+      startRecordingWithAPI();
+      return;
+    }
+
+    // 使用浏览器原生语音识别 (Android Chrome / Desktop Chrome)
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     const recognition = new SpeechRecognition();
     recognition.lang = 'zh-CN';
@@ -431,13 +541,17 @@ const MoodInputSection = ({
       console.error('语音识别错误:', event.error);
       setIsListening(false);
       
-      // 处理常见错误
-      if (event.error === 'not-allowed') {
+      // 如果原生识别失败，尝试使用后端 API
+      if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
         alert('请在浏览器设置中允许麦克风权限');
       } else if (event.error === 'no-speech') {
         alert('未检测到语音，请重试');
+      } else if (event.error === 'network') {
+        alert('网络错误，请检查网络连接后重试');
       } else {
-        alert('语音识别失败，请重试');
+        // 其他错误，尝试使用后端 API
+        console.log('原生识别失败，尝试使用后端 API');
+        startRecordingWithAPI();
       }
     };
 
@@ -452,7 +566,8 @@ const MoodInputSection = ({
     } catch (error) {
       console.error('启动语音识别失败:', error);
       setIsListening(false);
-      alert('启动语音识别失败，请检查麦克风权限');
+      // 原生启动失败，尝试后端 API
+      startRecordingWithAPI();
     }
   };
 

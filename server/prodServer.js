@@ -222,7 +222,7 @@ app.post('/api/analyze_mood', async (req, res) => {
     });
   }
 
-  const { user_input, current_time } = req.body;
+  const { user_input, current_time, user_profile } = req.body;
 
   console.log('[API] /api/analyze_mood called, user_input:', user_input);
 
@@ -433,7 +433,7 @@ app.post('/api/analyze_mood_stream', async (req, res) => {
   });
 
   try {
-    const { user_input, current_time } = req.body;
+    const { user_input, current_time, user_profile } = req.body;
     if (!user_input || typeof user_input !== 'string' || !user_input.trim()) {
       res.write(`data: ${JSON.stringify({ error: '缺少 user_input', done: true })}\n\n`);
       res.end();
@@ -449,7 +449,7 @@ app.post('/api/analyze_mood_stream', async (req, res) => {
 
     const timeInfo = current_time || new Date().toISOString();
     const systemPrompt = buildSystemPrompt();
-    const userMessage = buildUserMessage(user_input.trim(), timeInfo);
+    const userMessage = buildUserMessage(user_input.trim(), timeInfo) + buildProfileContextBlock(user_profile);
 
     console.log(`[Stream] 开始请求 SiliconFlow (${SILICONFLOW_MODEL})...`);
 
@@ -563,6 +563,26 @@ app.post('/api/analyze_mood_stream', async (req, res) => {
       parsed = parseAIResponse(accumulated);
     }
 
+    // Deterministic debug marker (server-side, not controlled by LLM).
+    try {
+      const profileApplied = !!user_profile?.profileApplied && !!user_profile?.birthdayWuxing;
+      const summary = {
+        profileApplied,
+        longTermCity: user_profile?.longTermCity || '',
+        birthplace: user_profile?.birthplace || '',
+        birthdayWuxingDominantCn: user_profile?.birthdayWuxing?.dominantCn || null
+      };
+      if (parsed?.moodData && typeof parsed.moodData === 'object') {
+        parsed.moodData.profileApplied = profileApplied;
+        parsed.moodData.profileContextSummary = summary;
+      } else if (parsed?.emotion && typeof parsed === 'object') {
+        parsed.profileApplied = profileApplied;
+        parsed.profileContextSummary = summary;
+      }
+    } catch (e) {
+      // ignore marker failures
+    }
+
     console.log(`[Stream] 分析完成: "${user_input.slice(0, 30)}..."`);
 
     // 发送最终结果
@@ -628,7 +648,7 @@ ${user_input.trim()}
 请返回包含以下内容的 JSON：
 1. moodData: 六维心境数据（情绪、体感、时间、认知、诉求、社交）
 2. patternAnalysis: 中医辨证结论
-3. vectorResult: 八维特征向量`;
+3. vectorResult: 八维特征向量` + buildProfileContextBlock(user_profile);
 
     // 调用 SiliconFlow API
     const fetch = await getFetch();
@@ -680,6 +700,22 @@ ${user_input.trim()}
       moodData = parseAIResponse(aiMessage);
       patternAnalysis = generateDefaultPatternAnalysis(moodData);
       vectorResult = generateDefaultVectorResult(moodData);
+    }
+
+    // Deterministic debug marker (server-side, not controlled by LLM).
+    try {
+      const profileApplied = !!user_profile?.profileApplied && !!user_profile?.birthdayWuxing;
+      if (moodData && typeof moodData === 'object') {
+        moodData.profileApplied = profileApplied;
+        moodData.profileContextSummary = {
+          profileApplied,
+          longTermCity: user_profile?.longTermCity || '',
+          birthplace: user_profile?.birthplace || '',
+          birthdayWuxingDominantCn: user_profile?.birthdayWuxing?.dominantCn || null
+        };
+      }
+    } catch (e) {
+      // ignore marker failures
     }
 
     console.log('[API] 全链路聚合分析完成');
@@ -1155,6 +1191,70 @@ function buildSystemPrompt() {
 function buildUserMessage(input, currentTime) {
   const timeStr = currentTime || new Date().toLocaleString('zh-CN');
   return `请分析我当前的状态（${timeStr}）并推荐合适的饮品维度：\n\n${input}`;
+}
+
+function buildProfileContextBlock(user_profile) {
+  const profileApplied = !!user_profile?.profileApplied && !!user_profile?.birthdayWuxing;
+  if (!profileApplied) {
+    return `
+
+[ProfileContext]
+profileApplied: false
+Rules:
+- Do not apply any profile-derived constraints.
+`;
+  }
+
+  const birthdayWuxing = user_profile?.birthdayWuxing || {};
+  const derived = birthdayWuxing?.derivedMoodMapping || {};
+  const fullScores = birthdayWuxing?.full_scores || {};
+
+  const dominantCn = birthdayWuxing?.dominantCn || '土';
+  const tasteScore = derived?.tasteScore ?? 6;
+  const colorCode = derived?.colorCode ?? 3;
+  const textureScore = derived?.textureScore ?? 0;
+  const temperature = derived?.temperature ?? 0;
+  const temporality = derived?.temporality ?? 12;
+
+  const longTermCity = user_profile?.longTermCity || '';
+  const birthplace = user_profile?.birthplace || '';
+
+  const southKeywords = [
+    '广东', '广西', '海南', '福建', '浙江', '江西', '湖南', '湖北', '重庆', '四川',
+    '云南', '贵州', '上海', '江苏', '台', '香港', '澳门'
+  ];
+  const southKeywordList = southKeywords.join('、');
+
+  return `
+
+[ProfileContext]
+profileApplied: true
+longTermCity: ${longTermCity}
+birthplace: ${birthplace}
+birthdayWuxing.dominantCn: ${dominantCn}
+birthdayWuxing.full_scores: ${JSON.stringify(fullScores)}
+
+[ProfileRules - MUST FOLLOW]
+1) Birthday fixed constraints (authoritative; override any inference):
+- moodData.emotion.philosophy.wuxing = "${dominantCn}"
+- moodData.emotion.drinkMapping.tasteScore = ${tasteScore}
+- moodData.emotion.drinkMapping.colorCode = ${colorCode}
+- moodData.somatic.drinkMapping.textureScore = ${textureScore}
+- moodData.somatic.drinkMapping.temperature = ${temperature}
+- moodData.time.drinkMapping.temporality = ${temporality}
+
+2) ConstitutionBias from longTermCity/birthplace (substring match):
+- If (longTermCity OR birthplace) contains any keyword in [${southKeywordList}] then constitutionBias = "偏阳"
+- Else constitutionBias = "偏阴"
+
+3) ConstitutionBias fixed assignments:
+- moodData.somatic.philosophy.yinyang = constitutionBias
+- moodData.socialContext.drinkMapping.ratioScore = 75 if constitutionBias="偏阳" else 35
+- moodData.demand.drinkMapping.actionScore = 4 if constitutionBias="偏阳" else 2
+
+4) Conflict resolution:
+- If inferred values conflict with the fixed constraints above, always use the fixed constraints above.
+`;
 }
 
 function parseAIResponse(aiMessage) {

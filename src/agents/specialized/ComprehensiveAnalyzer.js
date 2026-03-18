@@ -8,6 +8,7 @@
  */
 
 import { BaseAgent } from '../core/BaseAgent';
+import { calculateWuxingFromBirthday } from '../../engine/profileWuxing';
 
 export class ComprehensiveAnalyzer extends BaseAgent {
     constructor(config = {}) {
@@ -37,12 +38,33 @@ export class ComprehensiveAnalyzer extends BaseAgent {
         try {
             this.log('INFO', '正在执行全链路聚合推理 (语义/辨证/向量)...');
 
+            // Profile injection (deterministic birthday -> birthdayWuxing).
+            const STORAGE_KEY_PROFILE = 'moodmix_profile';
+            let user_profile = { profileApplied: false, birthdayWuxing: null, birthplace: '', longTermCity: '' };
+            try {
+                const stored = localStorage.getItem(STORAGE_KEY_PROFILE);
+                if (stored) {
+                    const profile = JSON.parse(stored);
+                    const birthday = profile?.birthday;
+                    const birthdayWuxing = calculateWuxingFromBirthday(birthday);
+                    user_profile = {
+                        profileApplied: !!birthdayWuxing,
+                        birthdayWuxing,
+                        birthplace: profile?.birthplace || '',
+                        longTermCity: profile?.longTermCity || profile?.city || ''
+                    };
+                }
+            } catch (e) {
+                // Keep fallback (no profile) if localStorage is unavailable.
+            }
+
             const response = await fetch('/api/comprehensive_analyze', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     user_input: userInput,
-                    current_time: currentTime
+                    current_time: currentTime,
+                    user_profile
                 })
             });
 

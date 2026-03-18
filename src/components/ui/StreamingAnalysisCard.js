@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { calculateWuxingFromBirthday } from '../../engine/profileWuxing';
 
 const StreamingAnalysisCard = ({ 
   isActive, 
@@ -95,12 +96,32 @@ const StreamingAnalysisCard = ({
       abortControllerRef.current = new AbortController();
 
       try {
+        // Profile injection (deterministic birthday -> birthdayWuxing).
+        const STORAGE_KEY_PROFILE = 'moodmix_profile';
+        let user_profile = { profileApplied: false, birthdayWuxing: null, birthplace: '', longTermCity: '' };
+        try {
+          const stored = localStorage.getItem(STORAGE_KEY_PROFILE);
+          if (stored) {
+            const profile = JSON.parse(stored);
+            const birthdayWuxing = calculateWuxingFromBirthday(profile?.birthday);
+            user_profile = {
+              profileApplied: !!birthdayWuxing,
+              birthdayWuxing,
+              birthplace: profile?.birthplace || '',
+              longTermCity: profile?.longTermCity || profile?.city || ''
+            };
+          }
+        } catch (e) {
+          // Keep fallback (no profile) if localStorage is unavailable.
+        }
+
         const response = await fetch('/api/analyze_mood_stream', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             user_input: userInput,
-            current_time: new Date().toISOString()
+            current_time: new Date().toISOString(),
+            user_profile
           }),
           signal: abortControllerRef.current.signal
         });

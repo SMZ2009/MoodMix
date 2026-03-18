@@ -513,7 +513,7 @@ async function handleStreamMoodAnalysis(req, res) {
   };
 
   try {
-    const { user_input, current_time } = req.body;
+    const { user_input, current_time, user_profile } = req.body;
     
     if (!user_input || typeof user_input !== 'string' || !user_input.trim()) {
       sendEvent({ error: '缺少 user_input 参数或参数无效', done: true });
@@ -565,7 +565,8 @@ async function handleStreamMoodAnalysis(req, res) {
   },
   "summary": "思虑深重致气机郁结，宜以辛散之味破局。"
 }`;
-    const userMessage = buildUserMessage(user_input.trim(), timeInfo);
+    const profileContextBlock = buildProfileContextBlock(user_profile);
+    const userMessage = buildUserMessage(user_input.trim(), timeInfo) + profileContextBlock;
 
     console.log(`[Stream] 开始请求 SiliconFlow (${MODEL_CREATIVE})...`);
 
@@ -653,6 +654,21 @@ async function handleStreamMoodAnalysis(req, res) {
       try {
         const jsonMatch = accumulated.match(/\{[\s\S]*\}/);
         const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : accumulated);
+        // Deterministic debug marker (server-side, not controlled by LLM).
+        try {
+          const profileApplied = !!user_profile?.profileApplied && !!user_profile?.birthdayWuxing;
+          if (parsed?.moodData && typeof parsed.moodData === 'object') {
+            parsed.moodData.profileApplied = profileApplied;
+            parsed.moodData.profileContextSummary = {
+              profileApplied,
+              longTermCity: user_profile?.longTermCity || '',
+              birthplace: user_profile?.birthplace || '',
+              birthdayWuxingDominantCn: user_profile?.birthdayWuxing?.dominantCn || null
+            };
+          }
+        } catch (e) {
+          // ignore marker failures
+        }
         sendEvent({ done: true, data: parsed });
       } catch (e) {
         console.error('[Stream] Final parse error:', e.message);
@@ -717,7 +733,7 @@ app.post('/api/analyze_mood_stream', validateApiKey, handleStreamMoodAnalysis);
  * 综合分析（一次性完成语义+辨证+向量）
  */
 async function handleComprehensiveAnalyze(req, res) {
-  const { user_input, current_time } = req.body;
+  const { user_input, current_time, user_profile } = req.body;
 
   if (!user_input || typeof user_input !== 'string' || !user_input.trim()) {
     return errorResponse(res, 400, '缺少 user_input 参数或参数无效');
@@ -726,7 +742,8 @@ async function handleComprehensiveAnalyze(req, res) {
   try {
     const timeInfo = current_time || new Date().toISOString();
     const systemPrompt = buildComprehensiveSystemPrompt();
-    const userMessage = buildUserMessage(user_input.trim(), timeInfo);
+    const profileContextBlock = buildProfileContextBlock(user_profile);
+    const userMessage = buildUserMessage(user_input.trim(), timeInfo) + profileContextBlock;
 
     const parsed = await callLLM(systemPrompt, userMessage, {
       model: MODEL_CORE,
@@ -734,6 +751,22 @@ async function handleComprehensiveAnalyze(req, res) {
       maxTokens: 1200,
       timeout: 60000
     });
+
+    // Deterministic debug marker (server-side, not controlled by LLM).
+    try {
+      const profileApplied = !!user_profile?.profileApplied && !!user_profile?.birthdayWuxing;
+      if (parsed?.moodData && typeof parsed.moodData === 'object') {
+        parsed.moodData.profileApplied = profileApplied;
+        parsed.moodData.profileContextSummary = {
+          profileApplied,
+          longTermCity: user_profile?.longTermCity || '',
+          birthplace: user_profile?.birthplace || '',
+          birthdayWuxingDominantCn: user_profile?.birthdayWuxing?.dominantCn || null
+        };
+      }
+    } catch (e) {
+      // ignore marker failures
+    }
 
     successResponse(res, parsed);
   } catch (error) {
@@ -1311,6 +1344,70 @@ function buildUserMessage(userInput, timeInfo) {
 
 请根据以上信息，按照系统提示中定义的六维框架进行分析，严格返回 JSON。
 如果用户没有明确提及某个维度的信息，请根据上下文合理推断。`;
+}
+
+function buildProfileContextBlock(user_profile) {
+  const profileApplied = !!user_profile?.profileApplied && !!user_profile?.birthdayWuxing;
+  if (!profileApplied) {
+    return `
+
+[ProfileContext]
+profileApplied: false
+Rules:
+- Do not apply any profile-derived constraints.
+`;
+  }
+
+  const birthdayWuxing = user_profile?.birthdayWuxing || {};
+  const derived = birthdayWuxing?.derivedMoodMapping || {};
+  const fullScores = birthdayWuxing?.full_scores || {};
+
+  const dominantCn = birthdayWuxing?.dominantCn || '土';
+  const tasteScore = derived?.tasteScore ?? 6;
+  const colorCode = derived?.colorCode ?? 3;
+  const textureScore = derived?.textureScore ?? 0;
+  const temperature = derived?.temperature ?? 0;
+  const temporality = derived?.temporality ?? 12;
+
+  const longTermCity = user_profile?.longTermCity || '';
+  const birthplace = user_profile?.birthplace || '';
+
+  const southKeywords = [
+    '广东', '广西', '海南', '福建', '浙江', '江西', '湖南', '湖北', '重庆', '四川',
+    '云南', '贵州', '上海', '江苏', '台', '香港', '澳门'
+  ];
+  const southKeywordList = southKeywords.join('、');
+
+  return `
+
+[ProfileContext]
+profileApplied: true
+longTermCity: ${longTermCity}
+birthplace: ${birthplace}
+birthdayWuxing.dominantCn: ${dominantCn}
+birthdayWuxing.full_scores: ${JSON.stringify(fullScores)}
+
+[ProfileRules - MUST FOLLOW]
+1) Birthday fixed constraints (authoritative; override any inference):
+- moodData.emotion.philosophy.wuxing = "${dominantCn}"
+- moodData.emotion.drinkMapping.tasteScore = ${tasteScore}
+- moodData.emotion.drinkMapping.colorCode = ${colorCode}
+- moodData.somatic.drinkMapping.textureScore = ${textureScore}
+- moodData.somatic.drinkMapping.temperature = ${temperature}
+- moodData.time.drinkMapping.temporality = ${temporality}
+
+2) ConstitutionBias from longTermCity/birthplace (substring match):
+- If (longTermCity OR birthplace) contains any keyword in [${southKeywordList}] then constitutionBias = "偏阳"
+- Else constitutionBias = "偏阴"
+
+3) ConstitutionBias fixed assignments:
+- moodData.somatic.philosophy.yinyang = constitutionBias
+- moodData.socialContext.drinkMapping.ratioScore = 75 if constitutionBias="偏阳" else 35
+- moodData.demand.drinkMapping.actionScore = 4 if constitutionBias="偏阳" else 2
+
+4) Conflict resolution:
+- If inferred values conflict with the fixed constraints above, always use the fixed constraints above.
+`;
 }
 
 // ═══════════════════════════════════════════

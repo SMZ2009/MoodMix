@@ -123,7 +123,9 @@ const MineSection = ({ favorites, onSelectDrink, cardFeedback, initialTab = 'col
                 avatarUrl: newAvatarUrl || avatarUrl,
                 name: profileData?.name || profileForm.name,
                 birthday: profileData?.birthday || profileForm.birthday,
-                birthplace: profileData?.birthplace || profileForm.birthplace
+                birthplace: profileData?.birthplace || profileForm.birthplace,
+                // 用于体质推断的长期居住地（页面展示的 currentCity）
+                longTermCity: currentCity || profileData?.longTermCity || profileData?.city || ''
             };
             localStorage.setItem(STORAGE_KEY_PROFILE, JSON.stringify(profile));
         } catch (error) {

@@ -79,6 +79,25 @@ function getImageDisplayStyle(imgWidth, imgHeight) {
   }
 }
 
+function toShareCardImageSrc(rawSrc) {
+  if (!rawSrc || typeof rawSrc !== 'string') return rawSrc;
+  const trimmed = rawSrc.trim();
+  if (!trimmed) return trimmed;
+  if (trimmed.startsWith('data:') || trimmed.startsWith('blob:')) return trimmed;
+
+  try {
+    const url = new URL(trimmed, window.location.origin);
+    if (url.origin === window.location.origin) return url.toString();
+    if (url.protocol === 'http:' || url.protocol === 'https:') {
+      return `/api/image-proxy?url=${encodeURIComponent(url.toString())}`;
+    }
+  } catch (e) {
+    // Ignore parsing errors; fall through to original src
+  }
+
+  return trimmed;
+}
+
 /**
  * 分享卡片图片组件 - 自适应比例
  * 图片 onLoad 时读取 naturalWidth/naturalHeight：
@@ -100,6 +119,9 @@ const ShareCardImage = ({ src }) => {
       <img
         src={src}
         crossOrigin="anonymous"
+        loading="eager"
+        decoding="sync"
+        fetchPriority="high"
         alt="Drink"
         style={{
           width: '100%',
@@ -244,10 +266,60 @@ async function exportShareCard(cardElement) {
   if (!cardElement) return null;
 
   try {
+    const waitForImages = (root, timeoutMs = 6000) => {
+      const images = Array.from(root.querySelectorAll('img'));
+      if (images.length === 0) return Promise.resolve();
+
+      const pending = images.filter((img) => !(img.complete && img.naturalWidth > 0));
+      if (pending.length === 0) return Promise.resolve();
+
+      return new Promise((resolve) => {
+        let done = false;
+        const finish = () => {
+          if (done) return;
+          done = true;
+          resolve();
+        };
+
+        const timer = setTimeout(() => {
+          // timeout: proceed anyway to avoid blocking share forever
+          pending.forEach((img) => {
+            img.removeEventListener('load', onEvent);
+            img.removeEventListener('error', onEvent);
+          });
+          finish();
+        }, timeoutMs);
+
+        const onEvent = () => {
+          const remaining = pending.filter((img) => !(img.complete && img.naturalWidth > 0));
+          if (remaining.length === 0) {
+            clearTimeout(timer);
+            pending.forEach((img) => {
+              img.removeEventListener('load', onEvent);
+              img.removeEventListener('error', onEvent);
+            });
+            finish();
+          }
+        };
+
+        pending.forEach((img) => {
+          img.addEventListener('load', onEvent, { once: true });
+          img.addEventListener('error', onEvent, { once: true });
+        });
+      });
+    };
+
+    const nextPaint = () => new Promise((resolve) => requestAnimationFrame(() => resolve()));
+
+    // Ensure images/fonts have a chance to render before capture.
+    await waitForImages(cardElement, 6000);
+    await nextPaint();
+    await nextPaint();
+
     // 为移动设备添加更兼容的配置
     const canvas = await html2canvas(cardElement, {
       // 提升导出清晰度：适度提高缩放倍率
-      scale: 2.2,
+      scale: 2,
       backgroundColor: '#faf8f5',  // 卡片底色
       useCORS: true,               // 允许跨域图片
       logging: false,
@@ -1749,16 +1821,16 @@ const DrinkDetailSection = ({ drink, checkedIngredients, onToggleIngredient, onB
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-8 py-4">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
         {/* 上部：左右布局容器 */}
-        <div className="flex flex-col lg:flex-row gap-8 lg:items-start mb-12">
+        <div className="flex flex-col lg:flex-row gap-5 sm:gap-6 lg:items-start mb-5 sm:mb-7">
 
           {/* 左侧：名称与原料 (Flex-1) */}
           <div className="flex-1 order-2 lg:order-1">
             {/* 标题区域 */}
-            <div className="mb-8">
-              <div className="flex flex-wrap items-baseline gap-3 mb-4">
-                <h1 className="text-[2rem] sm:text-[2.5rem] oriental-title-large">
+            <div className="mb-5 sm:mb-6">
+              <div className="flex flex-wrap items-baseline gap-2 sm:gap-3 mb-3">
+                <h1 className="text-[1.75rem] sm:text-[2.25rem] oriental-title-large">
                   {drink.name_cn || translateDrinkName(drink.name) || drink.name}
                 </h1>
                 {drink.nameEn && drink.nameEn !== drink.name && (
@@ -1768,7 +1840,7 @@ const DrinkDetailSection = ({ drink, checkedIngredients, onToggleIngredient, onB
                 )}
               </div>
 
-              <div className="flex flex-wrap gap-2.5 mb-6">
+              <div className="flex flex-wrap gap-2 mb-4 sm:mb-5">
                 {drink.abv > 0 && (
                   <div
                     className="px-3.5 py-1.5 rounded-full flex items-center gap-1.5"
@@ -1790,9 +1862,9 @@ const DrinkDetailSection = ({ drink, checkedIngredients, onToggleIngredient, onB
 
               {/* 推荐理由 */}
               {drink.reason && (
-                <div className="relative mb-8 pl-4 border-l-2 border-gray-200">
+                <div className="relative mb-5 sm:mb-6 pl-3 sm:pl-4 border-l-2 border-gray-200">
                   <p
-                    className="text-[15px] text-gray-600 leading-[1.8] font-serif italic opacity-90"
+                    className="text-[14px] sm:text-[15px] text-gray-600 leading-[1.7] sm:leading-[1.8] font-serif italic opacity-90"
                     style={{ fontFamily: "'Noto Serif SC', 'STSongti-SC', 'Songti SC', 'Source Han Serif SC', serif" }}
                   >
                     {drink.reason}
@@ -1802,14 +1874,14 @@ const DrinkDetailSection = ({ drink, checkedIngredients, onToggleIngredient, onB
             </div>
 
             {/* 原料清单 */}
-            <div className="bg-white/40 backdrop-blur-sm rounded-[2rem] p-6 border border-white/60">
-              <div className="flex justify-between items-end mb-6">
+            <div className="bg-white/40 backdrop-blur-sm rounded-[1.75rem] sm:rounded-[2rem] p-4 sm:p-5 border border-white/60">
+              <div className="flex justify-between items-end mb-4 sm:mb-5">
                 <h3 className="text-[18px] font-bold text-gray-900 tracking-[0.1em]" style={{ fontFamily: "'Noto Serif SC', 'STSongti-SC', 'Songti SC', 'Source Han Serif SC', serif" }}>原料清单</h3>
                 <span className="text-[11px] text-gray-400 bg-gray-50/80 px-3 py-1 rounded-full font-medium flex items-center gap-1">
                   <Users size={12} /> 一人份量
                 </span>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-2.5 sm:gap-3">
                 {drinkIngredients.map(ing => {
                   const IngredientIcon = iconMap[ing.icon] || Wine;
                   const isChecked = checkedIngredients[ing.id];
@@ -1817,23 +1889,23 @@ const DrinkDetailSection = ({ drink, checkedIngredients, onToggleIngredient, onB
                   return (
                     <div
                       key={ing.id}
-                      className={`flex items-center justify-between p-4 rounded-[1.25rem] transition-all duration-500 soft-ingredient-pill ${isChecked ? 'is-checked scale-[0.98]' : ''}`}
+                      className={`flex items-center justify-between p-3.5 sm:p-4 rounded-[1.1rem] sm:rounded-[1.25rem] transition-all duration-500 soft-ingredient-pill ${isChecked ? 'is-checked scale-[0.98]' : ''}`}
                       onClick={() => onToggleIngredient(ing.id)}
                       style={cardFeedback}
                     >
-                      <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-blue-500/80 shadow-[0_4px_12px_rgba(0,0,0,0.04)]">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 sm:w-10 sm:h-10 bg-white rounded-xl flex items-center justify-center text-blue-500/80 shadow-[0_4px_12px_rgba(0,0,0,0.04)]">
                           <IngredientIcon size={18} strokeWidth={1.5} />
                         </div>
                         <span
-                          className="text-[15px] font-bold text-gray-800"
+                          className="text-[14px] sm:text-[15px] font-bold text-gray-800"
                           style={{ fontFamily: "'Noto Serif SC', 'STSongti-SC', 'Songti SC', 'STKaiti', 'Source Han Serif SC', serif" }}
                         >
                           {translateIngredient(ing.name)}
                         </span>
                       </div>
                       <div className="flex flex-col items-end">
-                        <span className="text-[16px] font-extrabold text-gray-900 font-serif">{ing.amount}</span>
+                        <span className="text-[15px] sm:text-[16px] font-extrabold text-gray-900 font-serif">{ing.amount}</span>
                         <span className="text-[10px] text-gray-400 font-medium uppercase tracking-tighter -mt-1">{ing.unit}</span>
                       </div>
                     </div>
@@ -1844,9 +1916,9 @@ const DrinkDetailSection = ({ drink, checkedIngredients, onToggleIngredient, onB
           </div>
 
           {/* 右侧：饮品图片 (Fixed/Custom Width) */}
-          <div className="w-full lg:w-[400px] xl:w-[480px] order-1 lg:order-2">
-            <div className="sticky top-24">
-              <div className="relative aspect-square lg:aspect-[4/5] rounded-[2.5rem] overflow-hidden shadow-2xl group">
+          <div className="w-full lg:w-[380px] xl:w-[440px] order-1 lg:order-2">
+            <div className="sticky top-20">
+              <div className="relative aspect-[1.08/1] sm:aspect-square lg:aspect-[4/5] rounded-[2rem] sm:rounded-[2.5rem] overflow-hidden shadow-2xl group">
                 <img
                   src={drink.image}
                   className="w-full h-full object-cover transition-transform duration-[2s] group-hover:scale-110"
@@ -1859,11 +1931,11 @@ const DrinkDetailSection = ({ drink, checkedIngredients, onToggleIngredient, onB
         </div>
 
         {/* 下部：制作步骤 (Full Width) */}
-        <div className="mt-8 border-t border-gray-100 pt-12">
-          <h3 className="text-[18px] font-bold text-gray-900 mb-10 tracking-[0.1em]" style={{ fontFamily: "'Noto Serif SC', 'STSongti-SC', 'Songti SC', 'Source Han Serif SC', serif" }}>制作步骤</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-12 gap-y-10">
+        <div className="mt-3 sm:mt-4 border-t border-gray-100 pt-5 sm:pt-6">
+          <h3 className="text-[18px] font-bold text-gray-900 mb-4 sm:mb-5 tracking-[0.1em]" style={{ fontFamily: "'Noto Serif SC', 'STSongti-SC', 'Songti SC', 'Source Han Serif SC', serif" }}>制作步骤</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 sm:gap-x-10 gap-y-6 sm:gap-y-8">
             {drinkSteps.map((step, idx) => (
-              <div key={idx} className="flex gap-5 group">
+              <div key={idx} className="flex gap-4 group">
                 <div className="flex flex-col items-center flex-none">
                   <div className="w-8 h-8 rounded-full bg-[#3c3b36] text-[#ebdfc8] flex items-center justify-center font-bold text-sm shadow-lg">
                     {idx + 1}
@@ -1874,12 +1946,12 @@ const DrinkDetailSection = ({ drink, checkedIngredients, onToggleIngredient, onB
                 </div>
                 <div className="flex-1">
                   <h4
-                    className="text-[15px] font-black text-gray-900 mb-2 tracking-wider"
+                    className="text-[15px] font-black text-gray-900 mb-1.5 tracking-wider"
                     style={{ fontFamily: "'Noto Serif SC', 'STSongti-SC', 'Songti SC', 'STKaiti', 'Source Han Serif SC', serif" }}
                   >
                     {getChineseStep(idx)}
                   </h4>
-                  <p className="text-[14px] text-gray-500 leading-[1.75] font-medium opacity-85">
+                  <p className="text-[13px] sm:text-[14px] text-gray-500 leading-[1.65] sm:leading-[1.75] font-medium opacity-85">
                     {step.desc}
                   </p>
                 </div>
@@ -1953,7 +2025,7 @@ const DrinkDetailSection = ({ drink, checkedIngredients, onToggleIngredient, onB
             drinkName={drink.name}
             emotion={overrideEmotionTag || diagnosisTag}
             wuxing={overrideSceneTag || strategyTag}
-            imageSrc={drink.image}
+            imageSrc={toShareCardImageSrc(drink.image)}
             llmCopy={shareCopy}
             qrCodeSrc={qrCodeDataUrl}
           />
@@ -2003,6 +2075,9 @@ const App = () => {
   const qrCanvasRef = useRef(null);
   const [llmCopy, setLlmCopy] = useState('');
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState(null);
+  const [shareCardDrink, setShareCardDrink] = useState(null);
+  const [shareCardImageSrc, setShareCardImageSrc] = useState(null);
+  const [lastDakaSharePayload, setLastDakaSharePayload] = useState(null);
   const [isSideNavOpen, setIsSideNavOpen] = useState(false);
   const [showIngredientLibrary, setShowIngredientLibrary] = useState(false);
   const [showIngredientCustomForm, setShowIngredientCustomForm] = useState(false);
@@ -2213,9 +2288,17 @@ const App = () => {
     });
   }, []);
 
+  const getAppShareLink = useCallback((drink) => {
+    const baseUrl = window.location.origin;
+    const id = drink?.id;
+    return id ? `${baseUrl}?drink_id=${id}` : baseUrl;
+  }, []);
+
   const handleShare = async () => {
     if (!currentDrink) return;
     
+    setShareCardDrink(currentDrink);
+    setShareCardImageSrc(toShareCardImageSrc(currentDrink.image || null));
     setIsGeneratingShare(true);
     setIsShareLoading(true);
     try {
@@ -2258,10 +2341,41 @@ const App = () => {
 
       setLlmCopy(poeticalCopy);
 
-      // Wait for state to update
-      await new Promise(resolve => setTimeout(resolve, 800));
+      // Let React paint updates before capture
+      await new Promise(resolve => requestAnimationFrame(() => resolve()));
 
-      // 再次获取二维码（确保状态已更新）
+      // 2. 将 DOM 生成图片
+      if (cardRef.current) {
+        const blob = await exportShareCard(cardRef.current);
+        const imageUrl = URL.createObjectURL(blob);
+        setShareCardUrl(imageUrl);
+        // 图片生成完成后关闭友好通知
+        closeFriendlyNotice();
+      }
+    } catch (error) {
+      console.error('Failed to generate share card:', error);
+      alert('生成分享卡片失败，请稍后重试');
+    } finally {
+      setIsGeneratingShare(false);
+      setIsShareLoading(false);
+    }
+  };
+
+  const handleShareDakaMoment = async () => {
+    const payload = lastDakaSharePayload;
+    const drink = payload?.drink || dakaDrink || currentDrink;
+    if (!drink) return;
+
+    const trimmedNote = (payload?.note || '').trim();
+    const imageSrc = payload?.customImage || drink.image || null;
+    const shareCardSrc = toShareCardImageSrc(imageSrc);
+
+    setShareCardDrink(drink);
+    setShareCardImageSrc(shareCardSrc);
+    setIsGeneratingShare(true);
+    setIsShareLoading(true);
+    try {
+      // 0. 生成二维码数据 URL
       if (qrCanvasRef.current) {
         const qrCanvas = qrCanvasRef.current.querySelector('canvas');
         if (qrCanvas) {
@@ -2270,14 +2384,45 @@ const App = () => {
         }
       }
 
-      await new Promise(resolve => setTimeout(resolve, 200));
+      // 1. 文案：优先用用户打卡文案；为空则回退 LLM
+      if (trimmedNote) {
+        setLlmCopy(trimmedNote);
+      } else {
+        const prompt = `你是 MoodMix 的文案诗人。请为分享卡片生成一段情绪文案。
+
+要求：
+- 2-3 句话，总字数控制在 30-50 字
+- 东方诗意的克制感，像朋友间的低语
+- 结合饮品的具体感官细节（颜色、温度、口感、气味）
+- 温柔地回应用户当下的情绪，给予认可或鼓励
+- 不要说教，不要鸡汤，不要感叹号
+
+输入信息：
+- 饮品名：${drink.name}
+- 推荐理由：${drink.reason || '无'}
+- 五行属性：${drink.dimensions?.wuxing || '未知'}
+
+请直接输出文案，不要任何前缀或解释。`;
+
+        const agentResult = await executeMixologyTask('SOCIAL_CARD', { drink, prompt });
+
+        let poeticalCopy = '岁序更迭，此情可待';
+        if (agentResult && agentResult.success && agentResult.data && typeof agentResult.data.copy === 'string') {
+          poeticalCopy = agentResult.data.copy;
+        } else if (typeof agentResult === 'string') {
+          poeticalCopy = agentResult;
+        }
+        setLlmCopy(poeticalCopy);
+      }
+
+      // Let React paint updates before capture
+      await new Promise(resolve => requestAnimationFrame(() => resolve()));
 
       // 2. 将 DOM 生成图片
       if (cardRef.current) {
         const blob = await exportShareCard(cardRef.current);
         const imageUrl = URL.createObjectURL(blob);
         setShareCardUrl(imageUrl);
-        // 图片生成完成后关闭友好通知
         closeFriendlyNotice();
       }
     } catch (error) {
@@ -2321,6 +2466,7 @@ const App = () => {
     const drinkToSave = dakaDrink;
     if (drinkToSave) {
       collectionStorage.saveDakaNote(drinkToSave, note, customImage);
+      setLastDakaSharePayload({ drink: drinkToSave, note, customImage });
       // Refresh daka drinks from storage
       const updatedDakaDrinks = collectionStorage.getDakaNotes();
       setDakaDrinks(updatedDakaDrinks);
@@ -2329,7 +2475,7 @@ const App = () => {
         '这一刻的味道，\n已留在你的赏味集里。',
         'success',
         { label: '回到这杯', onClick: () => { handleCloseDakaModal(); closeFriendlyNotice(); } },
-        { label: '分享此刻', onClick: handleShare }
+        { label: '分享此刻', onClick: handleShareDakaMoment }
       );
     }
     // handleCloseDakaModal(); // Removed to allow DakaModal to show share card preview
@@ -3469,6 +3615,51 @@ const App = () => {
         secondaryAction={friendlyNotice.secondaryAction}
         isLoading={isShareLoading}
       />
+
+      {/* App-level share card preview overlay (used by "分享此刻") */}
+      {shareCardUrl && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center px-4 overflow-y-auto py-8"
+          style={{
+            background: 'rgba(0,0,0,0.5)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)'
+          }}
+          onClick={() => setShareCardUrl(null)}
+        >
+          <img
+            src={shareCardUrl}
+            alt="Share Card"
+            className="w-full max-w-[400px] h-auto object-contain rounded-2xl shadow-2xl my-auto"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
+
+      {/* Hidden Share Card DOM for App-level generation */}
+      {!shareCardUrl && shareCardDrink && (
+        <div style={{ position: 'fixed', left: '-2000px', top: '0', pointerEvents: 'none', zIndex: -1 }}>
+          <div ref={qrCanvasRef} style={{ width: '88px', height: '88px' }}>
+            <QRCodeCanvas
+              value={getAppShareLink(shareCardDrink)}
+              size={88}
+              level="M"
+              includeMargin={false}
+              bgColor="#ffffff"
+              fgColor="#3a3226"
+            />
+          </div>
+          <ShareCard
+            ref={cardRef}
+            drinkName={shareCardDrink.name}
+            emotion={shareCardDrink.dimensions?.mood || '悠然'}
+            wuxing={shareCardDrink.dimensions?.wuxing ? `五行属${shareCardDrink.dimensions.wuxing}` : '五行调和'}
+            imageSrc={shareCardImageSrc || toShareCardImageSrc(shareCardDrink.image)}
+            llmCopy={llmCopy}
+            qrCodeSrc={qrCodeDataUrl}
+          />
+        </div>
+      )}
 
       {/* Ingredient Library Fullscreen */}
       {showIngredientLibrary && (

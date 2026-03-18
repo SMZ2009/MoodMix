@@ -63,6 +63,111 @@ app.use((req, res, next) => {
 // ═══════════════════════════════════════════
 const COCKTAILDB_BASE = 'https://www.thecocktaildb.com/api/json/v1/1';
 
+// ═══════════════════════════════════════════
+// 通用图片代理（用于分享卡导出，解决 html2canvas CORS）
+// GET /api/image-proxy?url=<encoded>
+// ═══════════════════════════════════════════
+const isPrivateIp = (hostname) => {
+  // IPv4 only (enough for our immediate needs)
+  if (!/^\d{1,3}(\.\d{1,3}){3}$/.test(hostname)) return false;
+  const parts = hostname.split('.').map(n => Number(n));
+  if (parts.some(n => Number.isNaN(n) || n < 0 || n > 255)) return true;
+
+  const [a, b] = parts;
+  if (a === 10) return true;
+  if (a === 127) return true;
+  if (a === 0) return true;
+  if (a === 169 && b === 254) return true; // link-local
+  if (a === 172 && b >= 16 && b <= 31) return true;
+  if (a === 192 && b === 168) return true;
+  return false;
+};
+
+app.get('/api/image-proxy', async (req, res) => {
+  const rawUrl = typeof req.query.url === 'string' ? req.query.url : '';
+  if (!rawUrl || rawUrl.length > 2048) {
+    return res.status(400).json({ error: 'Missing or invalid url param' });
+  }
+
+  let parsed;
+  try {
+    parsed = new URL(rawUrl);
+  } catch (e) {
+    return res.status(400).json({ error: 'Invalid url' });
+  }
+
+  const protocol = parsed.protocol;
+  if (protocol !== 'http:' && protocol !== 'https:') {
+    return res.status(400).json({ error: 'Only http/https supported' });
+  }
+
+  const hostname = parsed.hostname;
+  if (!hostname) return res.status(400).json({ error: 'Invalid host' });
+  if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1') {
+    return res.status(403).json({ error: 'Forbidden host' });
+  }
+  if (isPrivateIp(hostname)) {
+    return res.status(403).json({ error: 'Forbidden host' });
+  }
+
+  try {
+    const fetch = await getFetch();
+    if (!fetch) return res.status(500).json({ error: 'Fetch not available' });
+
+    const response = await fetch(parsed.toString(), {
+      redirect: 'follow',
+      headers: {
+        // Some CDNs behave better with an explicit UA
+        'User-Agent': 'MoodMix/1.0 (ImageProxy)'
+      }
+    });
+
+    if (!response.ok) {
+      return res.status(response.status).json({ error: 'Image fetch failed', status: response.status });
+    }
+
+    const contentType = response.headers.get('content-type') || '';
+    // Be permissive: allow images + common octet-stream image deliveries
+    if (contentType && !contentType.startsWith('image/') && !contentType.includes('octet-stream')) {
+      return res.status(415).json({ error: 'Unsupported content-type', contentType });
+    }
+
+    if (contentType) res.setHeader('Content-Type', contentType);
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+
+    // Stream to client
+    if (response.body && typeof response.body.pipe === 'function') {
+      response.body.pipe(res);
+      return;
+    }
+
+    // Web ReadableStream fallback
+    if (response.body && typeof response.body.getReader === 'function') {
+      const reader = response.body.getReader();
+      const pump = async () => {
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            res.write(Buffer.from(value));
+          }
+        } catch (err) {
+          console.error('[ImageProxy] stream error:', err);
+        } finally {
+          res.end();
+        }
+      };
+      pump();
+      return;
+    }
+
+    return res.status(502).json({ error: 'Upstream has no body stream' });
+  } catch (error) {
+    console.error('[ImageProxy Error]', error);
+    return res.status(502).json({ error: 'Image proxy error', message: error.message });
+  }
+});
+
 app.use('/api/cocktaildb', async (req, res) => {
   const path = req.originalUrl.replace('/api/cocktaildb', '') || '/';
   const targetUrl = `${COCKTAILDB_BASE}${path}`;

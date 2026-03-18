@@ -17,7 +17,7 @@ const HelperModal = ({ onClose }) => {
         <button
           type="button"
           onClick={onClose}
-          className="w-10 h-10 rounded-full flex items-center justify-center bg-white/5 text-white/40 hover:text-white/80 hover:bg-white/10 transition-all border border-white/10"
+          className="w-10 h-10 rounded-full flex items-center justify-center bg-white/20 text-white/80 hover:text-white bg-white/30 hover:bg-white/40 transition-all border border-white/40 shadow-md"
         >
           <X size={20} />
         </button>

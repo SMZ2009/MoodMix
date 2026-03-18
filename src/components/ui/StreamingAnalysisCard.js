@@ -339,7 +339,7 @@ const StreamingAnalysisCard = ({
             className="text-white/20 text-[10px] tracking-[0.3em] uppercase"
             style={{ fontFamily: '"Songti SC", serif' }}
           >
-            心绪解读
+            心境解读
           </span>
           <div className="flex gap-1.5">
             {[0, 1, 2].map(i => (
@@ -443,9 +443,7 @@ const StreamingAnalysisCard = ({
             }`}
             style={{ fontFamily: '"Songti SC", serif' }}
           >
-            {phase === 'init' && '正在感知…'}
-            {phase === 'analyzing' && '缓缓酿成…'}
-            {phase === 'complete' && '流态输出'}
+            {(phase === 'init' || phase === 'analyzing' || phase === 'complete') && '缓缓酿成...'}
             {phase === 'error' && '请稍后再试'}
           </span>
         </div>

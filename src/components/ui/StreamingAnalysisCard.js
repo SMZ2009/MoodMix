@@ -150,13 +150,28 @@ const StreamingAnalysisCard = ({
                     textToProcess = fullText.slice(start, resultIndex);
                 }
                 
-                // 过滤JSON内容
+                // 过滤 JSON / 代码块 / 技术性内容，只保留自然语言提示
                 const trimmed = textToProcess.trim();
+
+                // 明显是 JSON 或接近 JSON 的结构
                 const hasJsonStart = trimmed.startsWith('{') || trimmed.startsWith('[');
                 const hasJsonKeyPattern = /"\w+"\s*:/.test(trimmed);
+
+                // 代码块 / markdown 片段（如 ```json { "emotion"...）
+                const hasCodeFence = trimmed.startsWith('```') || trimmed.includes('```');
+                const hasJsonTag = /```?\s*json/i.test(trimmed);
+
+                // 其它我们明确不希望展示给用户的技术性标记
+                const hasTechnicalMarker =
+                  hasJsonStart ||
+                  hasJsonKeyPattern ||
+                  hasCodeFence ||
+                  hasJsonTag ||
+                  /"emotion"\s*:/.test(trimmed) ||
+                  /"somatic"\s*:/.test(trimmed);
                 
-                if (!hasJsonStart && !hasJsonKeyPattern && trimmed.length > 0) {
-                    displayText = trimmed;
+                if (!hasTechnicalMarker && trimmed.length > 0) {
+                  displayText = trimmed;
                 }
                 
                 if (displayText) {

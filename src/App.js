@@ -89,7 +89,16 @@ function toShareCardImageSrc(rawSrc) {
     const url = new URL(trimmed, window.location.origin);
     if (url.origin === window.location.origin) return url.toString();
     if (url.protocol === 'http:' || url.protocol === 'https:') {
-      return `/api/image-proxy?url=${encodeURIComponent(url.toString())}`;
+      // 对于已知支持 CORS 且稳定的公共图片源，直接使用原地址，避免代理失败导致主图加载不出
+      const host = url.hostname.toLowerCase();
+      const isSafePublicImageHost =
+        host.endsWith('thecocktaildb.com');
+
+      if (!isSafePublicImageHost) {
+        return `/api/image-proxy?url=${encodeURIComponent(url.toString())}`;
+      }
+
+      return url.toString();
     }
   } catch (e) {
     // Ignore parsing errors; fall through to original src
@@ -2298,7 +2307,9 @@ const App = () => {
     if (!currentDrink) return;
     
     setShareCardDrink(currentDrink);
-    setShareCardImageSrc(toShareCardImageSrc(currentDrink.image || null));
+    const _rawImageSrc = currentDrink.image || null;
+    const _shareCardSrc = toShareCardImageSrc(_rawImageSrc);
+    setShareCardImageSrc(_shareCardSrc);
     setIsGeneratingShare(true);
     setIsShareLoading(true);
     try {
@@ -2369,7 +2380,6 @@ const App = () => {
     const trimmedNote = (payload?.note || '').trim();
     const imageSrc = payload?.customImage || drink.image || null;
     const shareCardSrc = toShareCardImageSrc(imageSrc);
-
     setShareCardDrink(drink);
     setShareCardImageSrc(shareCardSrc);
     setIsGeneratingShare(true);
@@ -3050,24 +3060,6 @@ const App = () => {
 
       // 合并 moodData 和 patternAnalysis 传递给组件
       const contextData = { moodData, patternAnalysis };
-      // #region agent log
-      fetch('http://127.0.0.1:7693/ingest/adc81e44-f8f0-44ea-8bd0-d1a31dbda974', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: `log_${Date.now()}_set_mood_result_pipeline`,
-          runId: 'pre-fix',
-          hypothesisId: 'H2',
-          location: 'App.js:handleStartGeneration',
-          message: 'Setting moodResult from pipeline',
-          data: {
-            hasMoodData: !!moodData,
-            hasPatternAnalysis: !!patternAnalysis
-          },
-          timestamp: Date.now()
-        })
-      }).catch(() => {});
-      // #endregion agent log
       setMoodResult(contextData);
       setValidationResult(validation);
       setRecommendationPool(pool.length > 0 ? pool : (apiDrinks.length > 0 ? apiDrinks.slice(0, 9) : []));
@@ -3161,22 +3153,6 @@ const App = () => {
     const startTime = performance.now();
     console.log('[StreamingComplete] 收到原始流式结果:', resultData);
     
-    // #region agent log
-    fetch('http://127.0.0.1:7693/ingest/adc81e44-f8f0-44ea-8bd0-d1a31dbda974', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        id: `log_${Date.now()}_stream_handler_entry`,
-        runId: 'pre-fix',
-        hypothesisId: 'H3',
-        location: 'App.js:handleStreamingComplete',
-        message: 'Entered handleStreamingComplete',
-        data: { hasResultData: !!resultData },
-        timestamp: Date.now()
-      })
-    }).catch(() => {});
-    // #endregion agent log
-    
     if (!resultData) {
         console.error('[StreamingComplete] 错误：收到空的 resultData');
         return;
@@ -3267,25 +3243,6 @@ const App = () => {
       if (Object.keys(quotesMap).length > 0) {
         setCustomQuotes(quotesMap);
       }
-      // #region agent log
-      fetch('http://127.0.0.1:7693/ingest/adc81e44-f8f0-44ea-8bd0-d1a31dbda974', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: `log_${Date.now()}_set_mood_result_stream`,
-          runId: 'pre-fix',
-          hypothesisId: 'H2',
-          location: 'App.js:handleStreamingComplete',
-          message: 'Setting moodResult from streaming completion',
-          data: {
-            hasMoodData: !!moodData,
-            hasPatternAnalysis: !!patternAnalysis,
-            hasSummary: !!summary
-          },
-          timestamp: Date.now()
-        })
-      }).catch(() => {});
-      // #endregion agent log
       setMoodResult({ moodData, patternAnalysis, summary }); // 关键修复：补全 patternAnalysis
       setRecommendationPool(topMatches.length > 0 ? topMatches : apiDrinks.slice(0, 9));
       setCurrentBatchIndex(0);
@@ -3326,27 +3283,9 @@ const App = () => {
   }, []);
 
 
-  // #region agent log
   useEffect(() => {
-    fetch('http://127.0.0.1:7693/ingest/adc81e44-f8f0-44ea-8bd0-d1a31dbda974', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        id: `log_${Date.now()}_app_state_change`,
-        runId: 'pre-fix',
-        hypothesisId: 'H5',
-        location: 'App.js:stateWatcher',
-        message: 'Core UI state changed',
-        data: {
-          mixMode,
-          activeTab,
-          showRecommendationGallery
-        },
-        timestamp: Date.now()
-      })
-    }).catch(() => {});
+    // 核心 UI 状态变更时，可以在这里扩展埋点或副作用
   }, [mixMode, activeTab, showRecommendationGallery]);
-  // #endregion agent log
 
   return (
     <div

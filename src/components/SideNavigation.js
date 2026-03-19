@@ -4,7 +4,6 @@ import navIconExplore from '../assets/nav_icon_explore.png';
 import navIconMine from '../assets/nav_icon_mine.png';
 import navIconIngredient from '../assets/nav_icon_ingredient.png';
 import navIconCommunity from '../assets/nav_icon_community.png';
-import { Users } from 'lucide-react';
 
 const SideNavigation = ({ isOpen, onClose, activeTab, onTabChange, onOpenIngredientLibrary }) => {
   return (
@@ -23,7 +22,16 @@ const SideNavigation = ({ isOpen, onClose, activeTab, onTabChange, onOpenIngredi
             className={`flex items-center gap-3 w-full p-2 rounded-lg transition-colors ${activeTab === 'mix' ? 'bg-purple-50 text-purple-700' : 'text-gray-600 hover:bg-gray-50'}`}
           >
             <div className={`w-8 h-8 rounded-full flex items-center justify-center ${activeTab === 'mix' ? 'scale-110 drop-shadow-md' : ''}`}>
-              <img src={navIconMix} alt="特调" className="w-6 h-6 object-contain" />
+              {isOpen ? (
+                <img
+                  src={navIconMix}
+                  alt="特调"
+                  className="w-6 h-6 object-contain"
+                  draggable={false}
+                  decoding="async"
+                  loading="eager"
+                />
+              ) : null}
             </div>
             <span className="text-sm font-medium" style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif' }}>特调</span>
           </button>
@@ -36,7 +44,16 @@ const SideNavigation = ({ isOpen, onClose, activeTab, onTabChange, onOpenIngredi
             className={`flex items-center gap-3 w-full p-2 rounded-lg transition-colors ${activeTab === 'explore' ? 'bg-purple-50 text-purple-700' : 'text-gray-600 hover:bg-gray-50'}`}
           >
             <div className={`w-8 h-8 rounded-full flex items-center justify-center ${activeTab === 'explore' ? 'scale-110 drop-shadow-md' : ''}`}>
-              <img src={navIconExplore} alt="灵感" className="w-7 h-7 object-contain" />
+              {isOpen ? (
+                <img
+                  src={navIconExplore}
+                  alt="灵感"
+                  className="w-7 h-7 object-contain"
+                  draggable={false}
+                  decoding="async"
+                  loading="eager"
+                />
+              ) : null}
             </div>
             <span className="text-sm font-medium" style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif' }}>灵感</span>
           </button>
@@ -49,7 +66,16 @@ const SideNavigation = ({ isOpen, onClose, activeTab, onTabChange, onOpenIngredi
             className="flex items-center gap-3 w-full p-2 rounded-lg transition-colors text-gray-600 hover:bg-gray-50"
           >
             <div className="w-8 h-8 rounded-full flex items-center justify-center">
-              <img src={navIconIngredient} alt="原料" className="w-5 h-5 object-contain" />
+              {isOpen ? (
+                <img
+                  src={navIconIngredient}
+                  alt="原料"
+                  className="w-5 h-5 object-contain"
+                  draggable={false}
+                  decoding="async"
+                  loading="eager"
+                />
+              ) : null}
             </div>
             <span className="text-sm font-medium" style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif' }}>原料</span>
           </button>
@@ -59,12 +85,17 @@ const SideNavigation = ({ isOpen, onClose, activeTab, onTabChange, onOpenIngredi
             className="flex items-center gap-3 w-full p-2 rounded-lg text-gray-400 cursor-not-allowed"
           >
             <div className="w-8 h-8 rounded-full flex items-center justify-center">
-              <img 
-                src={navIconCommunity} 
-                alt="社区" 
-                className="w-7 h-7 object-contain" 
-                style={{ mixBlendMode: 'multiply' }}
-              />
+              {isOpen ? (
+                <img
+                  src={navIconCommunity}
+                  alt="社区"
+                  className="w-7 h-7 object-contain"
+                  style={{ mixBlendMode: 'multiply' }}
+                  draggable={false}
+                  decoding="async"
+                  loading="eager"
+                />
+              ) : null}
             </div>
             <span className="text-sm font-medium" style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif' }}>社区（即将上线）</span>
           </button>
@@ -77,7 +108,16 @@ const SideNavigation = ({ isOpen, onClose, activeTab, onTabChange, onOpenIngredi
             className={`flex items-center gap-3 w-full p-2 rounded-lg transition-colors ${activeTab === 'mine' ? 'bg-purple-50 text-purple-700' : 'text-gray-600 hover:bg-gray-50'}`}
           >
             <div className={`w-8 h-8 rounded-full flex items-center justify-center ${activeTab === 'mine' ? 'scale-110 drop-shadow-md' : ''}`}>
-              <img src={navIconMine} alt="我的" className="w-6 h-6 object-contain" />
+              {isOpen ? (
+                <img
+                  src={navIconMine}
+                  alt="我的"
+                  className="w-6 h-6 object-contain"
+                  draggable={false}
+                  decoding="async"
+                  loading="eager"
+                />
+              ) : null}
             </div>
             <span className="text-sm font-medium" style={{ fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif' }}>我的</span>
           </button>

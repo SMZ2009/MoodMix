@@ -2,13 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { ChevronLeft, Shuffle, Heart, Wine, Droplets, GlassWater, Snowflake, Check, AlertCircle } from 'lucide-react';
 import { generatePhilosophyTags } from '../engine/philosophyTags';
 import { translateDrinkName, translateIngredient } from '../data/translations';
+import NearbyButton from './NearbyButton';
+import NearbyPanel from './NearbyPanel';
 
-const RecommendationGallery = ({ drinks, onBack, onStartMaking, onShuffle, onNavigate, onLikeDrink, onUnlikeDrink, favoriteDrinks = [], moodResult = null, customQuotes = {}, validation = null }) => {
+const RecommendationGallery = ({ drinks, onBack, onStartMaking, onShuffle, onNavigate, onLikeDrink, onUnlikeDrink, favoriteDrinks = [], moodResult = null, customQuotes = {}, validation = null, qualityResults = {} }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [touchStart, setTouchStart] = useState(null);
   const [touchEnd, setTouchEnd] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState(0);
+  const [nearbyOpen, setNearbyOpen] = useState(false);
   const containerRef = React.useRef(null);
 
   // Debug: 跟踪 customQuotes 变化
@@ -178,51 +181,70 @@ const RecommendationGallery = ({ drinks, onBack, onStartMaking, onShuffle, onNav
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
           >
-            {drinks.map((drink, index) => {
-              // 移除渲染限制，强制同时渲染 3 张卡片
+            {(() => {
+              // 只渲染当前卡片附近（降低移动端首屏/交互压力）
+              const startIndex = Math.max(0, currentIndex - 1);
+              const endIndex = Math.min(drinks.length, currentIndex + 2); // endIndex is exclusive
+              const indices = [];
+              for (let i = startIndex; i < endIndex; i++) indices.push(i);
 
-              return (
-                <div
-                  key={drink.id}
-                  className={`absolute inset-0 cursor-pointer rounded-2xl overflow-hidden animate-in fade-in zoom-in duration-500 ${isDragging ? '' : ''}`}
-                  style={getCardStyle(index)}
-                  onClick={() => {
-                    if (index === currentIndex && onStartMaking) {
-                      onStartMaking(drink);
-                    } else {
-                      setCurrentIndex(index);
-                    }
-                  }}
-                >
-                  <CardContent
-                    drink={drink}
-                    isActive={index === currentIndex}
-                    isLiked={favoriteDrinks.some(d => d.id === drink.id)}
-                    moodResult={moodResult}
-                    customQuote={customQuotes?.[drink.id]}
-                    validation={validation}
-                    onLike={() => {
-                      if (onLikeDrink) onLikeDrink(drink);
+              return indices.map((index) => {
+                const drink = drinks[index];
+                if (!drink) return null;
+
+                return (
+                  <div
+                    key={drink.id}
+                    className="absolute inset-0 cursor-pointer rounded-2xl overflow-hidden animate-in fade-in zoom-in duration-500"
+                    style={getCardStyle(index)}
+                    onClick={() => {
+                      if (index === currentIndex && onStartMaking) {
+                        onStartMaking(drink);
+                      } else {
+                        setCurrentIndex(index);
+                      }
                     }}
-                    onUnlike={() => {
-                      if (onUnlikeDrink) onUnlikeDrink(drink.id);
-                    }}
-                  />
-                </div>
-              );
-            })}
+                  >
+                    <CardContent
+                      drink={drink}
+                      isActive={index === currentIndex}
+                      isLiked={favoriteDrinks.some(d => d.id === drink.id)}
+                      moodResult={moodResult}
+                      customQuote={customQuotes?.[drink.id]}
+                      validation={validation}
+                      qualityResult={qualityResults?.[drink.id] || null}
+                      onLike={() => {
+                        if (onLikeDrink) onLikeDrink(drink);
+                      }}
+                      onUnlike={() => {
+                        if (onUnlikeDrink) onUnlikeDrink(drink.id);
+                      }}
+                    />
+                  </div>
+                );
+              });
+            })()}
           </div>
         </div>
 
       </main>
 
+      {/* 附近可以喝 — 浮动按钮 */}
+      <NearbyButton onOpen={() => setNearbyOpen(true)} />
 
+      {/* 附近可以喝 — 底部弹出面板 */}
+      <NearbyPanel
+        isOpen={nearbyOpen}
+        onClose={() => setNearbyOpen(false)}
+        moodData={moodResult?.moodData || moodResult}
+        currentDrink={drinks[currentIndex]}
+      />
     </div>
   );
 };
 
 // Enhanced Card Content Component
-const CardContent = ({ drink, isActive, isLiked, moodResult, customQuote, validation, onLike, onUnlike }) => {
+const CardContent = ({ drink, isActive, isLiked, moodResult, customQuote, validation, qualityResult, onLike, onUnlike }) => {
   const philosophy = generatePhilosophyTags(drink.dimensions, moodResult, drink.name);
   const [displayedQuote, setDisplayedQuote] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -371,6 +393,46 @@ const CardContent = ({ drink, isActive, isLiked, moodResult, customQuote, valida
             ) : (
               /* 文案加载中不显示任何内容，等待流态输出 */
               <div className="h-full" />
+            )}
+          </div>
+
+          {/* 心境契合度 */}
+          <div
+            style={{
+              minHeight: '20px',
+              marginBottom: '8px',
+              display: 'flex',
+              alignItems: 'center',
+            }}
+          >
+            {qualityResult ? (
+              <div className="quality-score-fade-in" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{
+                  fontSize: '12px',
+                  fontWeight: 500,
+                  color: qualityResult.score >= 70
+                    ? 'rgba(255, 200, 120, 0.95)'
+                    : 'rgba(255, 255, 255, 0.6)',
+                  fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif',
+                }}>
+                  心境契合度 {qualityResult.score}%
+                </span>
+                <span style={{
+                  fontSize: '10px',
+                  color: 'rgba(255, 255, 255, 0.45)',
+                  fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif',
+                }}>
+                  {qualityResult.comment}
+                </span>
+              </div>
+            ) : (
+              <span style={{
+                fontSize: '10px',
+                color: 'rgba(255, 255, 255, 0.35)',
+                fontFamily: '"Songti SC", "STKaiti", "KaiTi", serif',
+              }}>
+                心境匹配中...
+              </span>
             )}
           </div>
 

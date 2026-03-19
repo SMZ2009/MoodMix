@@ -2243,14 +2243,16 @@ body {
 
 /* Share Card Styles - Revised to support new design */
 .share-card {
-  width: 350px;
-  max-width: 100%;
+  width: 360px;
+  height: 640px; /* 16:9 aspect ratio (360x640) */
   border-radius: 32px;
   overflow: hidden;
   background: #faf8f5;
   font-family: 'Noto Serif SC', 'STSongti-SC', 'Songti SC', 'SimSun', 'Source Han Serif SC', serif;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.05);
   margin: 0 auto;
+  display: flex;
+  flex-direction: column;
 }
 
 .card-header {

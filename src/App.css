@@ -117,6 +117,10 @@ body {
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+
+  .bar-scroll-container::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 .animate-in {
@@ -272,4 +276,35 @@ body {
   animation-timing-function: ease-in-out;
   animation-iteration-count: infinite;
   animation-direction: normal;
+}
+
+@keyframes nearbyPanelSlideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0.8;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.nearby-panel-enter {
+  animation: nearbyPanelSlideUp 0.35s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+
+@keyframes qualityScoreFadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.quality-score-fade-in {
+  animation: qualityScoreFadeIn 0.5s ease-in forwards;
+}
+
+/* Phase 4: 降低移动端 backdrop-blur 负担 */
+@media (max-width: 768px) {
+  .backdrop-blur-sm { backdrop-filter: blur(3px) !important; }
+  .backdrop-blur-md { backdrop-filter: blur(6px) !important; }
+  .backdrop-blur-xl { backdrop-filter: blur(10px) !important; }
 }

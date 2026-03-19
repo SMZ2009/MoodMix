@@ -511,26 +511,6 @@ export function generatePhilosophyTags(dimensions, contextData = null, drinkName
         });
     }
 
-    // #region agent log
-    fetch('http://127.0.0.1:7693/ingest/adc81e44-f8f0-44ea-8bd0-d1a31dbda974', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            id: `log_${Date.now()}_philo_enter`,
-            runId: 'pre-fix',
-            hypothesisId: 'H1',
-            location: 'philosophyTags.js:generatePhilosophyTags',
-            message: 'generatePhilosophyTags called',
-            data: {
-                drinkName,
-                hasDimensions: !!dimensions,
-                hasContext: !!contextData,
-                contextKeys: contextData ? Object.keys(contextData) : []
-            },
-            timestamp: Date.now()
-        })
-    }).catch(() => {});
-    // #endregion agent log
 
     // 降级：无上下文或无维度
     if (!contextData || !dimensions) {
@@ -538,25 +518,6 @@ export function generatePhilosophyTags(dimensions, contextData = null, drinkName
             console.warn(`[PhilosophyTags] ${drinkName || '未知饮品'} 缺少 contextData (moodResult)，触发完全降级`);
             // console.trace(); // 开启追溯堆栈以查找调用源
         }
-        // #region agent log
-        fetch('http://127.0.0.1:7693/ingest/adc81e44-f8f0-44ea-8bd0-d1a31dbda974', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                id: `log_${Date.now()}_philo_fallback_no_context`,
-                runId: 'pre-fix',
-                hypothesisId: 'H1',
-                location: 'philosophyTags.js:generatePhilosophyTags',
-                message: 'Fallback: missing context or dimensions',
-                data: {
-                    drinkName,
-                    hasDimensions: !!dimensions,
-                    hasContext: !!contextData
-                },
-                timestamp: Date.now()
-            })
-        }).catch(() => {});
-        // #endregion agent log
         return {
             tags: [!contextData ? '待辨证(无数据)' : '待辨证(无维度)', '调理中', '口感待品'],
             quote: '「请先描述你此刻的心情，让我为你找到那杯对的酒」',
@@ -593,26 +554,6 @@ export function generatePhilosophyTags(dimensions, contextData = null, drinkName
     // 生成本地推荐语
     const quote = generateLocalQuote(moodData, patternAnalysis, dimensions, drinkName);
 
-    // #region agent log
-    fetch('http://127.0.0.1:7693/ingest/adc81e44-f8f0-44ea-8bd0-d1a31dbda974', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            id: `log_${Date.now()}_philo_success`,
-            runId: 'pre-fix',
-            hypothesisId: 'H2',
-            location: 'philosophyTags.js:generatePhilosophyTags',
-            message: 'Generated philosophy tags successfully',
-            data: {
-                drinkName,
-                tag1,
-                tag2,
-                tag3
-            },
-            timestamp: Date.now()
-        })
-    }).catch(() => {});
-    // #endregion agent log
 
     return {
         tags: [tag1, tag2, tag3],

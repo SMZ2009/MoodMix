@@ -1,4 +1,11 @@
-import { drinkVectors } from '../data/drinkVectors';
+let drinkVectorsCache = null;
+
+async function loadDrinkVectors() {
+    if (drinkVectorsCache) return drinkVectorsCache;
+    const mod = await import('../data/drinkVectors');
+    drinkVectorsCache = mod.drinkVectors || mod.default || {};
+    return drinkVectorsCache;
+}
 
 // 维度敏感度系数 (kappa)
 const KAPPA = {
@@ -148,7 +155,8 @@ function weightedCosineSimilarity(u, v, weights) {
 /**
  * 第1&2&3步：进行双轨过滤 + 加权计算矩阵推荐
  */
-export function evaluateAndSortDrinks(moodData, allDrinks, sessionIngredients) {
+export async function evaluateAndSortDrinks(moodData, allDrinks, sessionIngredients) {
+    const drinkVectors = await loadDrinkVectors();
     const dynamicWeights = computeDynamicWeights(moodData);
     const userVector = buildUserVector(moodData);
 
@@ -197,39 +205,36 @@ export function evaluateAndSortDrinks(moodData, allDrinks, sessionIngredients) {
         // 取配料列表：兼容 data/drinks.js 中的结构 (ingredients 包含 name 或者 briefIngredients)
         const ingredientsArray = drink.ingredients || drink.briefIngredients || [];
 
-        // 分析缺失
-        let missingCount = 0;
-        const missingItems = [];
-        for (const req of ingredientsArray) {
-            // 提供多字段兼容查找（中文、英文、label）
-            const searchNames = [req.name, req.nameEn, req.label, req.name_cn, req.name_en].filter(Boolean).map(n => n.toLowerCase());
-
-            // 只要有一个命中库存，就算有货
-            const isOwned = searchNames.some(name => inventorySet.has(name));
-
-            if (!isOwned) {
-                missingCount++;
-                missingItems.push(req.name || req.nameEn || req.label);
-            }
-        }
-
-        const isReadyToMake = missingCount === 0;
-
         let similarity = weightedCosineSimilarity(userVector, v, dynamicWeights);
 
-        // 为库存齐备度设置渐进式加分激励 (0: +0.15, 1: +0.08, 2: +0.03, >=3: +0)
-        let bonus = 0;
-        if (missingCount === 0) bonus = 0.15;
-        else if (missingCount === 1) bonus = 0.08;
-        else if (missingCount === 2) bonus = 0.03;
+        // 只有在 DIY 模式（传入了有效库存）时才分析原料缺失情况
+        const hasInventory = sessionIngredients && sessionIngredients.length > 0;
+        let missingCount;
+        let missingItems;
+        let isReadyToMake;
 
-        similarity += bonus;
+        if (hasInventory) {
+            missingCount = 0;
+            missingItems = [];
+            for (const req of ingredientsArray) {
+                const searchNames = [req.name, req.nameEn, req.label, req.name_cn, req.name_en].filter(Boolean).map(n => n.toLowerCase());
+                const isOwned = searchNames.some(name => inventorySet.has(name));
+                if (!isOwned) {
+                    missingCount++;
+                    missingItems.push(req.name || req.nameEn || req.label);
+                }
+            }
+            isReadyToMake = missingCount === 0;
+
+            // 为库存齐备度设置渐进式加分激励 (0: +0.15, 1: +0.08, 2: +0.03, >=3: +0)
+            if (missingCount === 0) similarity += 0.15;
+            else if (missingCount === 1) similarity += 0.08;
+            else if (missingCount === 2) similarity += 0.03;
+        }
 
         const evaluatedItem = {
             ...drink,
-            missingCount,
-            missingItems,
-            isReadyToMake,
+            ...(hasInventory ? { missingCount, missingItems, isReadyToMake } : {}),
             similarityScore: similarity
         };
 
@@ -251,12 +256,11 @@ export function evaluateAndSortDrinks(moodData, allDrinks, sessionIngredients) {
         console.log(
             `%c[#${i + 1}] %c${d.name || d.name_cn || d.name_en} ` +
             `%c(得分: ${(d.similarityScore * 100).toFixed(2)}%) ` +
-            `%c| 缺失数量: ${d.missingCount} ` +
-            (d.missingCount > 0 ? `| 缺: [${d.missingItems.join(', ')}]` : '| 🎉 100% 齐备'),
+            `%c${d.isReadyToMake !== undefined ? `| 缺失数量: ${d.missingCount} ` + (d.missingCount > 0 ? `| 缺: [${d.missingItems.join(', ')}]` : '| 🎉 100% 齐备') : '| 寻一杯模式（不检查库存）'}`,
             'font-weight:bold; color: #8B5CF6;',
             'font-weight:bold; color: #333;',
             'color: #10B981;',
-            d.missingCount === 0 ? 'color: #3B82F6;' : (d.missingCount <= 2 ? 'color: #F59E0B;' : 'color: #EF4444;')
+            d.isReadyToMake === undefined ? 'color: #9CA3AF;' : (d.missingCount === 0 ? 'color: #3B82F6;' : (d.missingCount <= 2 ? 'color: #F59E0B;' : 'color: #EF4444;'))
         );
     });
     console.groupEnd();

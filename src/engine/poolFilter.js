@@ -21,8 +21,40 @@ export function filterDrinkPool(allDrinks, entities, options = {}) {
     fuzzyThreshold = 0.6,       // 模糊匹配阈值
     enableFallback = true,      // 无匹配时是否回退全量
     inventory = [],             // 可用库存，用于优先筛掉几乎做不出的酒
-    currentTime = null          // 当前时间（Date/string/number），用于简单时间场景过滤
+    currentTime = null,         // 当前时间（Date/string/number），用于简单时间场景过滤
+    mode = 'pick'               // 'pick' = 帮你选一杯（不做原料过滤） | 'diy' = 自己DIY（强制原料过滤）
   } = options;
+
+  // DIY 模式：强制过滤，只保留用户拥有全部原料的配方
+  if (mode === 'diy' && inventory && inventory.length > 0) {
+    const invSet = buildInventorySet(inventory);
+    const diyFiltered = allDrinks.filter(drink => {
+      const ingredientsArray = (drink.ingredients || drink.briefIngredients || []);
+      if (ingredientsArray.length === 0) return true;
+      return ingredientsArray.every(ing => {
+        const names = [ing.name, ing.nameEn, ing.name_cn, ing.name_en, ing.label]
+          .filter(Boolean)
+          .map(n => n.toLowerCase());
+        return names.length === 0 || names.some(n => invSet.has(n));
+      });
+    });
+
+    if (diyFiltered.length > 0) {
+      return {
+        filtered: diyFiltered,
+        filterApplied: true,
+        reason: 'diy_inventory_filter',
+        stats: { total: allDrinks.length, filtered: diyFiltered.length }
+      };
+    }
+    // DIY 模式但无匹配：回退到全量池并标记
+    return {
+      filtered: allDrinks,
+      filterApplied: false,
+      reason: 'diy_no_match_fallback',
+      stats: { total: allDrinks.length, filtered: allDrinks.length }
+    };
+  }
 
   const inventorySet = buildInventorySet(inventory);
   const currentHour = getHourFromTime(currentTime);

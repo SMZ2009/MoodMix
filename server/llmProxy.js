@@ -345,7 +345,9 @@ app.get('/', (req, res) => {
       { path: '/api/social-card-copy', method: 'POST', description: '社交卡片文案' },
       { path: '/api/speech-to-text', method: 'POST', description: '语音转文字' },
       { path: '/api/cocktaildb/*', method: 'ALL', description: 'CocktailDB 代理' },
-      { path: '/api/cocktail-image/:imageName', method: 'GET', description: '鸡尾酒图片代理' }
+      { path: '/api/cocktail-image/:imageName', method: 'GET', description: '鸡尾酒图片代理' },
+      { path: '/api/amap/nearby', method: 'GET', description: '附近酒吧搜索' },
+      { path: '/api/amap/regeo', method: 'GET', description: '逆地理编码' }
     ]
   });
 });
@@ -898,6 +900,51 @@ async function handleValidateOptimize(req, res) {
 
 app.post('/api/validate-optimize', validateApiKey, handleValidateOptimize);
 app.post('/api/validate_optimize', validateApiKey, handleValidateOptimize);
+
+/**
+ * POST /api/quality-eval
+ * POST /api/quality_eval (向后兼容)
+ * 单款饮品质量评估 — 五行相合度 + 情绪一致性
+ */
+async function handleQualityEval(req, res) {
+  const { moodSummary, userWuxing, drinkName, drinkWuxing, currentTime } = req.body;
+
+  if (!drinkName) {
+    return errorResponse(res, 400, '缺少 drinkName 参数');
+  }
+
+  const systemPrompt = `你是 MoodMix 的质量评估师。请评估以下饮品推荐的合理性。
+
+用户情绪：${moodSummary || '未知'}
+用户五行：${userWuxing || '未知'}
+推荐饮品：${drinkName}
+饮品五行：${drinkWuxing || '未知'}
+当前时间：${currentTime || '未知'}
+
+请从以下两个维度打分（0-100）：
+1. 五行相合度：推荐饮品的五行与用户五行是否相生相合（相生=高分，相克=低分）
+2. 情绪一致性：饮品的特性是否回应了用户的情绪需求（契合=高分，矛盾=低分）
+
+直接输出 JSON，不要任何解释：
+{"wuxingScore": 85, "emotionScore": 90}`;
+
+  try {
+    const data = await callLLM(systemPrompt, '请评估并返回JSON', {
+      model: MODEL_8B,
+      timeout: 15000,
+      maxRetries: 1
+    });
+    successResponse(res, data);
+  } catch (error) {
+    console.error('[QualityEval Error]', error.message);
+    errorResponse(res, 500, error.message, {
+      type: error.name === 'AbortError' ? 'timeout' : 'error'
+    });
+  }
+}
+
+app.post('/api/quality-eval', validateApiKey, handleQualityEval);
+app.post('/api/quality_eval', validateApiKey, handleQualityEval);
 
 /**
  * POST /api/generate-quotes
@@ -1484,6 +1531,154 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => {
     console.log('[Socket] 客户端已断开:', socket.id);
   });
+});
+
+// ═══════════════════════════════════════════
+// 高德地图 API 代理（附近可以喝功能）
+// ═══════════════════════════════════════════
+
+const AMAP_KEY = process.env.AMAP_KEY || process.env.REACT_APP_AMAP_KEY || '';
+
+/**
+ * GET /api/amap/nearby
+ * 搜索附近酒吧（高德 POI 周边搜索）
+ */
+app.get('/api/amap/nearby', async (req, res) => {
+  const { lng, lat, radius = 3000, keywords } = req.query;
+
+  if (!lng || !lat) {
+    return errorResponse(res, 400, '缺少 lng 或 lat 参数');
+  }
+
+  if (!AMAP_KEY) {
+    return errorResponse(res, 500, '高德 API Key 未配置。请在 .env 中设置 AMAP_KEY。');
+  }
+
+  try {
+    const currentFetch = await getFetch();
+    if (!currentFetch) {
+      return errorResponse(res, 500, 'Fetch implementation not found');
+    }
+
+    // 注意：`keywords` 在 Amap 中可能作为“名称过滤”，会导致即使 `types=071301` 有结果，
+    // 仍然返回空 pois。这里默认不传 keywords，仅在显式提供 keywords 时才附加。
+    const urlBase = `https://restapi.amap.com/v3/place/around?`
+      + `key=${AMAP_KEY}`
+      + `&location=${lng},${lat}`
+      + `&types=071301`
+      + `&radius=${radius}`
+      + `&offset=10`
+      + `&sortrule=distance`;
+
+    const keywordStr = typeof keywords === 'string' ? keywords.trim() : '';
+    const url = keywordStr
+      ? `${urlBase}&keywords=${encodeURIComponent(keywordStr)}`
+      : urlBase;
+
+    console.log('[Amap Nearby] Requesting:', url.replace(AMAP_KEY, '***'));
+
+    const response = await currentFetch(url);
+    const data = await response.json();
+
+    const mapPoisToBars = (pois) => (pois || []).map((poi) => ({
+      id: poi.id,
+      name: poi.name,
+      address: poi.address,
+      distance: parseInt(poi.distance),
+      location: poi.location,
+      tel: poi.tel || '',
+    }));
+
+    const poisCount = data?.pois?.length ?? 0;
+    if (data?.status === '1' && poisCount > 0) {
+      const bars = mapPoisToBars(data.pois);
+      successResponse(res, bars, {
+        amapStatus: data.status,
+        amapInfo: data.info,
+        poisCount,
+        usedFallback: false,
+      });
+      return;
+    }
+
+    // Fallback：如果 types 过滤后为空，尝试用 keywords-only 再搜一次（更贴近地图 UI 的“附近酒吧”搜索体验）
+    const keywordFallback = keywordStr || '酒吧';
+    const urlFallback = `https://restapi.amap.com/v3/place/around?`
+      + `key=${AMAP_KEY}`
+      + `&location=${lng},${lat}`
+      + `&keywords=${encodeURIComponent(keywordFallback)}`
+      + `&radius=${radius}`
+      + `&offset=10`
+      + `&sortrule=distance`;
+
+    console.log('[Amap Nearby Fallback] Requesting:', urlFallback.replace(AMAP_KEY, '***'));
+    const response2 = await currentFetch(urlFallback);
+    const data2 = await response2.json();
+    const poisCount2 = data2?.pois?.length ?? 0;
+
+    if (data2?.status === '1' && poisCount2 > 0) {
+      const bars = mapPoisToBars(data2.pois);
+      successResponse(res, bars, {
+        amapStatus: data2.status,
+        amapInfo: data2.info,
+        poisCount: poisCount2,
+        usedFallback: true,
+        initialAmapStatus: data?.status,
+        initialAmapInfo: data?.info,
+        initialPoisCount: poisCount,
+      });
+      return;
+    }
+
+    successResponse(res, [], {
+      amapStatus: data?.status ?? data2?.status,
+      amapInfo: data?.info ?? data2?.info,
+      poisCount: poisCount2,
+      usedFallback: true,
+      initialPoisCount: poisCount,
+    });
+  } catch (error) {
+    console.error('[Amap Nearby] Error:', error);
+    errorResponse(res, 500, '附近搜索失败', error.message);
+  }
+});
+
+/**
+ * GET /api/amap/regeo
+ * 逆地理编码 — 经纬度转地名
+ */
+app.get('/api/amap/regeo', async (req, res) => {
+  const { lng, lat } = req.query;
+
+  if (!lng || !lat) {
+    return errorResponse(res, 400, '缺少 lng 或 lat 参数');
+  }
+
+  if (!AMAP_KEY) {
+    return errorResponse(res, 500, '高德 API Key 未配置');
+  }
+
+  try {
+    const currentFetch = await getFetch();
+    if (!currentFetch) {
+      return errorResponse(res, 500, 'Fetch implementation not found');
+    }
+
+    const url = `https://restapi.amap.com/v3/geocode/regeo?key=${AMAP_KEY}&location=${lng},${lat}`;
+    const response = await currentFetch(url);
+    const data = await response.json();
+
+    if (data.status === '1') {
+      const comp = data.regeocode?.addressComponent;
+      const name = comp?.neighborhood?.name || comp?.township || '当前位置';
+      successResponse(res, name);
+    } else {
+      successResponse(res, '当前位置');
+    }
+  } catch (error) {
+    console.error('[Amap Regeo] Error:', error);
+    successResponse(res, '当前位置');
+  }
 });
 
 // 404 处理

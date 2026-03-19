@@ -9,6 +9,8 @@
  */
 
 import { AgentContext } from './AgentContext';
+import { safetyFilter } from '../../engine/safetyFilter';
+import { evaluateAllDrinks } from '../specialized/ValidatorOptimizer';
 
 export class AgentOrchestrator {
   constructor() {
@@ -213,7 +215,8 @@ export async function executeRecommendationPipeline(userInput, options = {}) {
   // 2. 候选池过滤（结合库存与当前时间，提前裁掉明显不适合的长尾）
   const filterResult = filterDrinkPool(allDrinksOriginal, entities, {
     inventory: options.inventory || [],
-    currentTime: options.currentTime || new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false }).replace(/\//g, '-')
+    currentTime: options.currentTime || new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false }).replace(/\//g, '-'),
+    mode: options.mode || 'pick'
   });
 
   console.log('│');
@@ -291,8 +294,15 @@ export async function executeRecommendationPipeline(userInput, options = {}) {
       const inventory = context.inventory;
 
       if (moodData && allDrinks && allDrinks.length > 0) {
-        const pool = evaluateAndSortDrinks(moodData, allDrinks, inventory);
-        const matches = pool.map((drink, idx) => ({
+        const pool = await evaluateAndSortDrinks(moodData, allDrinks, inventory);
+
+        // Phase 3.5: 安全拦截（同步，<10ms）
+        const safePool = safetyFilter(pool, moodData, allDrinks);
+        if (safePool.length !== pool.length) {
+          console.log(`[SafetyFilter] 安全拦截: ${pool.length} → ${safePool.length} 款`);
+        }
+
+        const matches = safePool.map((drink, idx) => ({
           drink,
           similarity: drink.similarity || (1 - idx * 0.05),
           rank: idx + 1,
@@ -300,34 +310,53 @@ export async function executeRecommendationPipeline(userInput, options = {}) {
         }));
         context.setIntermediate('matches', matches);
 
-        // 🔥 [性能优化关键点] 异步执行后置任务，不阻塞前端展示
-        console.log(`[Timer] ${Math.round(performance.now() - pipelineStartTime)}ms: 🚀 核心推荐完成，开启异步后置优化 (文案/验证)`);
+        console.log(`[Timer] ${Math.round(performance.now() - pipelineStartTime)}ms: 🚀 核心推荐完成（含安全拦截），开启异步后置优化 (文案/质量评估)`);
 
-        // 启动异步链
+        // 异步后置任务：文案生成 + 质量评估（并行，不阻塞 UI）
         (async () => {
           try {
-            // 1. 文案生成
+            const patternAnalysis = context.getIntermediate('patternAnalysis');
+            const contextData = { moodData, patternAnalysis, summary: moodData?.summary };
+            const safeDrinks = matches.map(m => m.drink);
+
+            // 并行执行: 文案生成 + 质量评估
             const copywriter = orchestrator.agents.get('CreativeCopywriter');
-            if (copywriter) {
-              const copyResult = await copywriter.execute(context);
-              context.setOutput('CreativeCopywriter', copyResult);
-              // 如果有回调，通知 UI 更新文案
-              if (options.onVectorSearchSuccess && matches.length > 0) {
-                const patternAnalysis = context.getIntermediate('patternAnalysis');
-                options.onVectorSearchSuccess(matches.map(m => m.drink), { moodData, patternAnalysis });
+
+            const [, qualityResults] = await Promise.all([
+              // 4a: 文案生成
+              (async () => {
+                if (copywriter) {
+                  const copyResult = await copywriter.execute(context);
+                  context.setOutput('CreativeCopywriter', copyResult);
+                  if (options.onVectorSearchSuccess && matches.length > 0) {
+                    options.onVectorSearchSuccess(safeDrinks, { moodData, patternAnalysis });
+                  }
+                }
+              })(),
+              // 4b: 质量评估
+              evaluateAllDrinks(safeDrinks, contextData),
+            ]);
+
+            // 质量评估完成 → 通知 UI
+            if (qualityResults && qualityResults.length > 0) {
+              context.setIntermediate('qualityResults', qualityResults);
+              const avgScore = Math.round(
+                qualityResults.reduce((s, r) => s + r.score, 0) / qualityResults.length
+              );
+              console.log(`[Async] 质量评估完成: 平均 ${avgScore}/100`);
+
+              if (options.onQualityEvalSuccess) {
+                options.onQualityEvalSuccess(qualityResults);
               }
-            }
-
-            // 2. 验证优化
-            const validator = orchestrator.agents.get('ValidatorOptimizer');
-            if (validator) {
-              const validationResult = await validator.execute(context);
-              context.setOutput('ValidatorOptimizer', validationResult);
-              console.log(`[Async] 质量验证完成: ${validationResult.data?.score || 0}/100`);
-
-              // 如果有验证回调，通知 UI 更新勋章
-              if (options.onValidationSuccess && validationResult.success) {
-                options.onValidationSuccess(validationResult.data);
+              if (options.onValidationSuccess) {
+                options.onValidationSuccess({
+                  score: avgScore,
+                  qualityResults,
+                  uiHints: {
+                    showBadge: avgScore >= 70,
+                    badgeText: avgScore >= 85 ? '心味相合' : avgScore >= 70 ? '恰有灵犀' : '随缘入味',
+                  },
+                });
               }
             }
           } catch (asyncErr) {

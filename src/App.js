@@ -8,7 +8,7 @@ import {
   Users, HeartOff, Loader2, Camera, X, ArrowLeft, Download, CheckCircle, Share2, Mic
 } from 'lucide-react';
 import CustomMenuIcon from './components/CustomMenuIcon';
-import { QRCodeSVG, QRCodeCanvas } from 'qrcode.react';
+import { QRCodeCanvas } from 'qrcode.react';
 import { io } from 'socket.io-client';
 
 import { inventoryStorage, favoriteStorage, collectionStorage, customDrinkStorage, userStorage } from './store/localStorageAdapter';
@@ -20,13 +20,13 @@ import SideNavigation from './components/SideNavigation';
 
 import { analyzeMood } from './api/moodAnalyzer';
 import { evaluateAndSortDrinks } from './engine/vectorEngine';
+import { evaluateAllDrinks } from './agents/specialized/ValidatorOptimizer';
 import { executeRecommendationPipeline, extractRecommendationResult, executeMixologyTask } from './agents';
 import { generatePhilosophyTags } from './engine/philosophyTags';
 import { fetchLiveQuotes } from './api/quoteGenerator';
 import { translateDrinkName, translateIngredient } from './data/translations';
 import { validateInput } from './utils/inputValidator';
 import { generateShareCard } from './utils/ShareCardGenerator';
-import MineSection from './components/MineSection';
 import IngredientManager from './components/IngredientManager';
 import CommunitySection from './components/CommunitySection';
 import GroupRecommendationModal from './components/GroupRecommendationModal';
@@ -35,9 +35,6 @@ import { InteractiveButton, SwipeableCard, PageTransition, Modal, LoadingTransit
 import IngredientEditModal from './components/IngredientEditModal';
 import './App.css';
 import cupRippleImage from './assets/cup-ripple.jpg';
-import navIconMix from './assets/nav_icon_mix.png';
-import navIconExplore from './assets/nav_icon_explore.png';
-import navIconMine from './assets/nav_icon_mine.png';
 
 // 一次性清除旧版诗化推荐语缓存 (针对 Phase 2 升级)
 if (!localStorage.getItem('moodmix_v2_cache_cleared')) {
@@ -57,6 +54,11 @@ const iconMap = {
   GlassWater,
   Flame
 };
+
+// 懒加载重组件：降低首屏主包体积
+const ExploreSectionLazy = React.lazy(() => import('./components/ExploreSection'));
+const MineSection = React.lazy(() => import('./components/MineSection'));
+const DrinkDetailSectionLazy = React.lazy(() => import('./components/DrinkDetailSection'));
 
 /**
  * 核心思路：根据图片实际宽高比决定渲染策略
@@ -115,15 +117,38 @@ function toShareCardImageSrc(rawSrc) {
  * - 宽高比 0.55-0.9：保留原比例，max-height 420px
  * - 宽高比 <0.55：aspect-ratio 9/16，max-height 450px
  */
-const ShareCardImage = ({ src }) => {
+const bgPresets = [
+  // 纯色
+  { id: 'warm', label: '暖石', bg: '#F5F0E8', textColor: '#3a3226' },
+  { id: 'ink', label: '墨夜', bg: '#1A1A1A', textColor: '#E8E0D4' },
+  { id: 'moss', label: '苔青', bg: '#2C3A2E', textColor: '#D4DECE' },
+  { id: 'clay', label: '陶赭', bg: '#8B6914', textColor: '#FFF8EE' },
+  { id: 'mist', label: '雾蓝', bg: '#E8EEF2', textColor: '#3A4A56' },
+  // 渐变
+  { id: 'dawn', label: '拂晓', bg: 'linear-gradient(160deg, #F5E6D8 0%, #E8D4C8 100%)', textColor: '#3a3226' },
+  { id: 'dusk', label: '暮色', bg: 'linear-gradient(160deg, #2C2016 0%, #3A2A1E 100%)', textColor: '#E8DDD0' },
+  { id: 'cloud', label: '行云', bg: 'linear-gradient(160deg, #E8E0F0 0%, #F0E8E0 100%)', textColor: '#3a3226' },
+];
+
+const layoutPresets = [
+  { id: 'classic', label: '图上文下' },
+  { id: 'side', label: '文左图右' },
+  { id: 'textonly', label: '纯文无图' },
+];
+
+const ShareCardImage = ({ src, frameBgColor = '#f0ebe3' }) => {
   return (
     <div style={{
-      width: '92%',
+      width: '100%',
       margin: '0 auto',
-      aspectRatio: '1 / 1',
+      height: '280px', /* Allow taller image for 16:9 card but keep space for text */
       overflow: 'hidden',
-      borderRadius: '32px',
-      background: '#f0ebe3',
+      borderRadius: '24px',
+      background: frameBgColor,
+      flexShrink: 0,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
     }}>
       <img
         src={src}
@@ -146,9 +171,36 @@ const ShareCardImage = ({ src }) => {
  * Redesigned Share Card Component (DOM-based)
  * 完整卡片布局，二维码包含在卡片内部
  */
-const ShareCard = forwardRef(({ drinkName, emotion, wuxing, imageSrc, llmCopy, qrCodeSrc }, ref) => {
+const ShareCard = forwardRef(({
+  drinkName,
+  emotion,
+  wuxing,
+  imageSrc,
+  llmCopy,
+  qrCodeSrc,
+  shareUrl,
+  bgPreset = 'warm',
+  layoutPreset = 'classic',
+  editorCompact = false,
+  customBg,
+  customTextColor,
+  isDarkBg
+}, ref) => {
   // 整体缩放系数：让卡片与文字更紧凑
-  const SCALE = 0.9;
+  const SCALE = editorCompact ? 0.78 : 1;
+
+  const currentBg = customBg ? { bg: customBg, textColor: customTextColor } : (bgPresets.find((p) => p.id === bgPreset) || bgPresets[0]);
+  const isDark = customBg ? !!isDarkBg : ['ink', 'moss', 'clay', 'dusk'].includes(bgPreset);
+  const textColor = currentBg.textColor || (isDark ? '#E8E0D4' : '#3a3226');
+  const subTextColor = isDark ? 'rgba(255,255,255,0.55)' : '#8c8b86';
+  const emotionTagBg = isDark ? 'rgba(255,255,255,0.10)' : 'rgba(60, 59, 54, 0.05)';
+  const emotionTagColor = isDark ? 'rgba(255,255,255,0.78)' : '#5c5b56';
+  const dividerStartColor = isDark ? 'rgba(255,255,255,0.28)' : '#d1cdc2';
+  const quoteBorderColor = isDark ? 'rgba(255,255,255,0.22)' : '#d1cdc2';
+  const quoteTextColor = isDark ? 'rgba(255,255,255,0.78)' : '#4c4b46';
+
+  const isSide = layoutPreset === 'side';
+  const isTextOnly = layoutPreset === 'textonly';
 
   // 兜底标签：当后端返回「待辩证」「无数据」等占位词时，用更友好的文案
   const safeEmotion = (!emotion || /待辩证|无数据/.test(emotion))
@@ -170,96 +222,178 @@ const ShareCard = forwardRef(({ drinkName, emotion, wuxing, imageSrc, llmCopy, q
         background: '#FAF8F5',
         transform: `scale(${SCALE})`,
         transformOrigin: 'top left',
+        height: '100%', /* 确保自适应容器高度 */
       }}
     >
       {/* 顶部品牌栏 - 优化版 */}
-      <div className="card-header" style={{ padding: '16px 20px', borderBottom: 'none' }}>
+      <div className="card-header" style={{ padding: '12px 20px', borderBottom: 'none', flexShrink: 0 }}>
         <div className="flex flex-col">
           <span className="brand" style={{
             fontFamily: "'Noto Serif SC', 'STSongti-SC', 'Songti SC', 'STKaiti', 'Source Han Serif SC', serif",
-            fontSize: '16px',
+            fontSize: '14px',
             fontWeight: 700,
             color: '#3c3b36',
             letterSpacing: '0.1em'
           }}>MoodMix | 心绪调饮</span>
           <span style={{
-            fontSize: '9px',
+            fontSize: '8px',
             color: '#a09382',
             textTransform: 'uppercase',
             letterSpacing: '0.2em',
             marginTop: '2px'
           }}>Oriental Alchemy</span>
         </div>
-        <span className="date" style={{ color: '#8c8b86', fontSize: '12px', fontFamily: '"FZYouSong", serif' }}>{formattedDate}</span>
+        <span className="date" style={{ color: '#8c8b86', fontSize: '11px', fontFamily: '"FZYouSong", serif' }}>{formattedDate}</span>
       </div>
 
-      {/* 图片区域 - 强制 3:4 */}
-      <div style={{ padding: '0 20px' }}>
-        <ShareCardImage src={imageSrc} />
-      </div>
-
-      {/* 内容区域 */}
-      <div className="card-body" style={{ padding: '20px' }}>
-        <h2 className="drink-name" style={{
-          fontSize: '28px',
-          marginBottom: '10px',
-          fontFamily: "'Noto Serif SC', 'STSongti-SC', 'Songti SC', 'STKaiti', 'Source Han Serif SC', serif",
-          color: '#1a1a1a'
-        }}>{drinkName}</h2>
-
-        {/* 移除 "此刻心迹" 前缀 */}
-        <div className="flex items-center gap-2 mb-4">
-          <span className="emotion-tag" style={{
-            background: 'rgba(60, 59, 54, 0.05)',
-            padding: '4px 12px',
-            borderRadius: '100px',
-            fontSize: '12px',
-            color: '#5c5b56',
-            fontFamily: "'Noto Serif SC', 'STSongti-SC', 'Songti SC', 'STKaiti', 'Source Han Serif SC', serif"
-          }}>{safeEmotion}</span>
-          <span style={{ color: '#d1cdc2', fontSize: '11px' }}>|</span>
-          <span style={{ fontSize: '12px', color: '#8c8b86', fontFamily: '"STKaiti", serif' }}>{safeWuxing}</span>
+          {/* 中间内容区：只切换背景 + 排版顺序 */}
+      <div
+        style={{
+          background: currentBg.bg,
+          display: 'flex',
+          flexDirection: isSide ? 'row' : 'column',
+          gap: isSide ? '14px' : '0',
+          alignItems: isSide ? 'center' : 'stretch',
+          padding: isSide ? '0 20px' : '0',
+          flex: 1,
+          overflow: 'hidden',
+        }}
+      >
+        {/* 图片区域（支持 textonly：display none，避免卸载图片） */}
+        <div
+          style={{
+            order: isSide ? 2 : 1,
+            flex: isSide ? '0 0 140px' : 'auto',
+            width: isSide ? '140px' : 'auto',
+            padding: isSide ? '20px 0' : '0 20px',
+            display: isTextOnly ? 'none' : 'block',
+            marginTop: isSide ? 0 : '16px',
+            flexShrink: 0,
+          }}
+        >
+          <ShareCardImage
+            src={imageSrc}
+            frameBgColor={isDark ? 'rgba(255,255,255,0.06)' : '#f0ebe3'}
+          />
         </div>
 
-        <div className="card-divider" style={{
-          height: '1px',
-          background: 'linear-gradient(90deg, #d1cdc2 0%, transparent 100%)',
-          margin: '16px 0',
-          opacity: 0.5
-        }} />
+        {/* 内容区域 */}
+        <div
+          className="card-body"
+          style={{
+            order: isSide ? 1 : 2,
+            padding: isTextOnly ? '24px 20px 20px' : isSide ? '20px 0 20px 0' : '12px 20px 12px',
+            textAlign: isTextOnly ? 'center' : 'left',
+            flex: '1 1 auto',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'flex-start',
+            overflow: 'hidden',
+            minHeight: 0,
+          }}
+        >
+          <h2
+            className="drink-name"
+            style={{
+              fontSize: isTextOnly ? '32px' : '20px',
+              marginBottom: isTextOnly ? '12px' : '2px',
+              fontFamily: "'Noto Serif SC', 'STSongti-SC', 'Songti SC', 'STKaiti', 'Source Han Serif SC', serif",
+              color: textColor,
+              flexShrink: 0,
+            }}
+          >
+            {drinkName}
+          </h2>
 
-        {/* 推荐语对齐画廊风格 */}
-        <div style={{
-          borderLeft: '2px solid #d1cdc2',
-          paddingLeft: '14px',
-          marginTop: '12px'
-        }}>
-          <p className="llm-copy" style={{
-            fontSize: '14px',
-            lineHeight: '1.8',
-            color: '#4c4b46',
-            fontFamily: "'Noto Serif SC', 'STSongti-SC', 'Songti SC', 'STKaiti', 'KaiTi', 'Source Han Serif SC', serif",
-            fontStyle: 'italic'
-          }}>{llmCopy}</p>
+          {/* 移除 "此刻心迹" 前缀 */}
+          <div
+            className="flex items-center gap-2 mb-1"
+            style={{ justifyContent: isTextOnly ? 'center' : 'flex-start', flexShrink: 0 }}
+          >
+            <span
+              className="emotion-tag"
+              style={{
+                background: emotionTagBg,
+                padding: '2px 8px',
+                borderRadius: '100px',
+                fontSize: '10px',
+                color: emotionTagColor,
+                fontFamily: "'Noto Serif SC', 'STSongti-SC', 'Songti SC', 'STKaiti', 'Source Han Serif SC', serif",
+              }}
+            >
+              {safeEmotion}
+            </span>
+            <span style={{ color: dividerStartColor, fontSize: '9px' }}>|</span>
+            <span style={{ fontSize: '10px', color: subTextColor, fontFamily: '"STKaiti", serif' }}>{safeWuxing}</span>
+          </div>
+
+          <div
+            className="card-divider"
+            style={{
+              height: '1px',
+              background: `linear-gradient(90deg, ${dividerStartColor} 0%, transparent 100%)`,
+              margin: isTextOnly ? '16px 0' : '4px 0',
+              opacity: 0.5,
+              flexShrink: 0,
+            }}
+          />
+
+          {/* 推荐语对齐画廊风格 / 纯文居中 */}
+          <div
+            style={{
+              borderLeft: isTextOnly ? 'none' : `2px solid ${quoteBorderColor}`,
+              paddingLeft: isTextOnly ? '0' : '8px',
+              marginTop: '4px',
+              textAlign: isTextOnly ? 'center' : 'left',
+              overflow: 'hidden',
+              display: 'flex',
+              alignItems: 'flex-start',
+            }}
+          >
+            <p
+              className="llm-copy"
+              style={{
+                fontSize: isTextOnly ? '15px' : '14px',
+                lineHeight: '1.6',
+                color: quoteTextColor,
+                fontFamily: "'Noto Serif SC', 'STSongti-SC', 'Songti SC', 'STKaiti', 'KaiTi', 'Source Han Serif SC', serif",
+                fontStyle: 'italic',
+                margin: 0,
+                display: '-webkit-box',
+                WebkitLineClamp: 5,
+                WebkitBoxOrient: 'vertical',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}
+            >
+              {llmCopy}
+            </p>
+          </div>
         </div>
       </div>
 
       {/* 底部引流区 */}
-      <div className="card-footer" style={{ borderTop: 'none', padding: '18px', paddingTop: '0' }}>
+      <div className="card-footer" style={{ borderTop: 'none', padding: '12px 20px', paddingTop: '0', flexShrink: 0 }}>
         <div className="flex items-center justify-between w-full">
           <div className="flex flex-col">
             <span className="cta" style={{ fontSize: '11px', color: '#a09382', letterSpacing: '0.05em' }}>扫码试试你的情绪饮品</span>
             <span style={{ fontSize: '9px', color: '#d1cdc2', textTransform: 'uppercase', marginTop: '2px' }}>Scan for your Mood Mix</span>
           </div>
           <div className="qr-code-box" style={{
-            width: '56px',
-            height: '56px',
+            width: '48px',
+            height: '48px',
             background: '#fff',
-            padding: '5px',
+            padding: '4px',
             borderRadius: '8px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
+            boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0
           }}>
-            {qrCodeSrc ? (
+            {shareUrl ? (
+              <QRCodeCanvas value={shareUrl} size={40} level="M" includeMargin={false} bgColor="#ffffff" fgColor="#3a3226" />
+            ) : qrCodeSrc ? (
               <img src={qrCodeSrc} alt="QR Code" className="qr-code-img" style={{ width: '100%', height: '100%' }} />
             ) : (
               <Sparkles size={18} className="text-[#a09382]/50" />
@@ -375,18 +509,6 @@ async function exportShareCard(cardElement) {
   }
 }
 
-// 默认分类（API 加载后会被替换）
-const DEFAULT_EXPLORE_CATEGORIES = [
-  { label: '全部', value: 'all' },
-  { label: '鸡尾酒', value: 'Cocktail' },
-  { label: '经典饮品', value: 'Ordinary Drink' },
-  { label: '短饮', value: 'Shot' },
-  { label: '啤酒', value: 'Beer' },
-  { label: '咖啡/茶', value: 'Coffee / Tea' },
-  { label: '奶昔', value: 'Shake' },
-  { label: '软饮料', value: 'Soft Drink' },
-];
-
 const NEGATIVE_KEYWORDS = ['慢', '累', '烦', '难', '压力', 'emo', '不开心', '糟', '委屈', '失败', '丧', '崩溃', '绝望', '无助', '痛苦', '想哭', '伤心', '难过', '心塞'];
 
 // 发泄意图关键词 - 用户想释放压力、宣泄情绪
@@ -444,7 +566,8 @@ const ORIENTAL_MOOD_TAGS = [
 
 const MoodInputSection = ({
   moodInput, setMoodInput, selectedMood, setSelectedMood, onGenerate, buttonFeedback, isMixing,
-  ingredientCount, onEditIngredients, onNavigate, activeTab, showFriendlyNotice
+  ingredientCount, onEditIngredients, onNavigate, activeTab, showFriendlyNotice,
+  currentMode, onModeChange
 }) => {
   // onGenerate can optionally accept a directMood value for immediate tag clicks
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
@@ -645,6 +768,7 @@ const MoodInputSection = ({
           {greeting.sub}
         </p>
       </div>
+
       <div className="relative flex-1 w-full flex flex-col items-center justify-center pb-12 sm:pb-16 translate-y-[90px]">
         {/* 标签散点布局容器 - 围绕杯子分布 */}
         <div className="absolute inset-0 z-10 pointer-events-none flex items-center justify-center -translate-y-[20px]">
@@ -725,72 +849,100 @@ const MoodInputSection = ({
           />
         </div>
 
-        <button
-          type="button"
-          className="relative z-30 mt-12 sm:mt-16 mb-0.5 sm:mb-1 px-5 py-2 text-[13px] sm:text-[14px] text-gray-700/80 transition-colors hover:text-gray-800 group"
-          style={{ fontFamily: "'Noto Serif SC', 'STSongti-SC', 'Songti SC', 'Source Han Serif SC', serif", fontWeight: 300, letterSpacing: '0.14em' }}
-          onClick={onEditIngredients}
-          aria-label={`当前有 ${ingredientCount} 种特调原料已备齐`}
-        >
-          <span
-            className="absolute inset-x-0 -inset-y-1 rounded-[999px] pointer-events-none"
-            style={{
-              background: 'radial-gradient(ellipse at 30% 46%, rgba(210, 170, 176, 0.18) 0%, rgba(210, 170, 176, 0.08) 34%, transparent 68%), radial-gradient(ellipse at 68% 52%, rgba(156, 184, 144, 0.18) 0%, rgba(156, 184, 144, 0.08) 32%, transparent 70%), radial-gradient(ellipse at 52% 50%, rgba(244, 241, 233, 0.12) 0%, transparent 74%)',
-              filter: 'blur(9px)',
-              backdropFilter: 'blur(12px)',
-              WebkitBackdropFilter: 'blur(12px)',
-              clipPath: 'polygon(6% 58%, 14% 36%, 30% 20%, 48% 12%, 66% 18%, 84% 34%, 95% 52%, 88% 66%, 72% 78%, 52% 84%, 30% 80%, 14% 72%)'
-            }}
-          />
-          <span className="relative inline-flex items-center gap-3">
-            <span>{ingredientCount} 种原料已备齐</span>
-            <span className="relative h-8 w-8 sm:h-9 sm:w-9">
+        {/* 模式切换 Tab + 原料提示 */}
+        <div className="relative z-30 mt-12 sm:mt-16 mb-0.5 sm:mb-1 flex flex-col items-center gap-1.5">
+          {/* 胶囊 Tab */}
+          <div className="flex items-center gap-0.5 bg-white/40 backdrop-blur-md rounded-full p-[2px] shadow-sm border border-white/60">
+            {[
+              { key: 'pick', label: '寻一杯' },
+              { key: 'diy', label: '调一杯' },
+            ].map(tab => (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => onModeChange(tab.key)}
+                className={`px-3.5 py-[5px] text-[11px] sm:text-[12px] leading-tight rounded-full transition-all duration-300 ${
+                  currentMode === tab.key
+                    ? 'bg-white/90 text-gray-800 shadow-sm font-medium'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+                style={{ fontFamily: "'Noto Serif SC', 'STSongti-SC', 'Songti SC', 'Source Han Serif SC', serif", letterSpacing: '0.08em' }}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {/* 原料提示：仅调一杯模式显示，保留原始装饰风格 */}
+          {currentMode === 'diy' && (
+            <button
+              type="button"
+              className="relative px-5 py-2 text-[13px] sm:text-[14px] text-gray-700/80 transition-colors hover:text-gray-800 group"
+              style={{ fontFamily: "'Noto Serif SC', 'STSongti-SC', 'Songti SC', 'Source Han Serif SC', serif", fontWeight: 300, letterSpacing: '0.14em' }}
+              onClick={onEditIngredients}
+              aria-label={`当前有 ${ingredientCount} 种特调原料已备齐`}
+            >
               <span
-                className="absolute inset-0 rounded-full opacity-0 group-active:opacity-100 group-active:[animation:ink-tap-ripple_420ms_ease-out]"
+                className="absolute inset-x-0 -inset-y-1 rounded-[999px] pointer-events-none"
                 style={{
-                  background: 'radial-gradient(circle, rgba(88, 97, 104, 0.16) 0%, rgba(88, 97, 104, 0.08) 34%, transparent 70%)'
+                  background: 'radial-gradient(ellipse at 30% 46%, rgba(210, 170, 176, 0.18) 0%, rgba(210, 170, 176, 0.08) 34%, transparent 68%), radial-gradient(ellipse at 68% 52%, rgba(156, 184, 144, 0.18) 0%, rgba(156, 184, 144, 0.08) 32%, transparent 70%), radial-gradient(ellipse at 52% 50%, rgba(244, 241, 233, 0.12) 0%, transparent 74%)',
+                  filter: 'blur(9px)',
+                  backdropFilter: 'blur(12px)',
+                  WebkitBackdropFilter: 'blur(12px)',
+                  clipPath: 'polygon(6% 58%, 14% 36%, 30% 20%, 48% 12%, 66% 18%, 84% 34%, 95% 52%, 88% 66%, 72% 78%, 52% 84%, 30% 80%, 14% 72%)'
                 }}
               />
-              <svg
-                viewBox="0 0 32 32"
-                aria-hidden="true"
-                className="absolute inset-[1px] h-[calc(100%-2px)] w-[calc(100%-2px)] opacity-90 transition-transform duration-500 group-hover:scale-105 group-hover:[animation:brush-breathe_3.2s_ease-in-out_infinite]"
-                style={{
-                  transform: 'rotate(28deg)',
-                  filter: 'drop-shadow(0 3px 6px rgba(92, 113, 138, 0.18))'
-                }}
-              >
-                <defs>
-                  <linearGradient id="leafWash" x1="0%" x2="74%" y1="100%" y2="4%">
-                    <stop offset="0%" stopColor="rgba(58, 101, 160, 0.95)" />
-                    <stop offset="42%" stopColor="rgba(155, 185, 214, 0.82)" />
-                    <stop offset="100%" stopColor="rgba(228, 233, 231, 0.92)" />
-                  </linearGradient>
-                  <linearGradient id="leafStem" x1="0%" x2="100%" y1="100%" y2="0%">
-                    <stop offset="0%" stopColor="rgba(115, 143, 176, 0.88)" />
-                    <stop offset="100%" stopColor="rgba(210, 220, 224, 0.94)" />
-                  </linearGradient>
-                </defs>
-                <path
-                  d="M6.5 25.5C4.8 20.1 5.7 13.9 10.1 9.7C14.3 5.7 20.2 5.3 25.8 7.1C22.8 11.2 19.5 15 16.4 18.9C13.4 22.5 10.5 26 6.5 25.5Z"
-                  fill="url(#leafWash)"
-                />
-                <path
-                  d="M6.8 25.2C8.7 23.6 10.1 22 12.1 19.4C15.8 14.7 19.4 10.8 25.7 7.2"
-                  fill="none"
-                  stroke="url(#leafStem)"
-                  strokeWidth="1.35"
-                  strokeLinecap="round"
-                />
-                <path d="M10.1 21.9L12.5 18.4" fill="none" stroke="rgba(188, 207, 220, 0.72)" strokeWidth="0.75" strokeLinecap="round" />
-                <path d="M12.8 18.6L15.4 16.1" fill="none" stroke="rgba(186, 205, 220, 0.7)" strokeWidth="0.75" strokeLinecap="round" />
-                <path d="M15.7 15.6L18.9 12.9" fill="none" stroke="rgba(191, 207, 220, 0.68)" strokeWidth="0.75" strokeLinecap="round" />
-                <path d="M14.1 19L10.6 17.2" fill="none" stroke="rgba(133, 165, 198, 0.42)" strokeWidth="0.7" strokeLinecap="round" />
-                <path d="M17.2 15.4L13.5 13.9" fill="none" stroke="rgba(127, 157, 191, 0.36)" strokeWidth="0.7" strokeLinecap="round" />
-              </svg>
-            </span>
-          </span>
-        </button>
+              <span className="relative inline-flex items-center gap-3">
+                <span>{ingredientCount} 种原料已备齐</span>
+                <span className="relative h-8 w-8 sm:h-9 sm:w-9">
+                  <span
+                    className="absolute inset-0 rounded-full opacity-0 group-active:opacity-100 group-active:[animation:ink-tap-ripple_420ms_ease-out]"
+                    style={{
+                      background: 'radial-gradient(circle, rgba(88, 97, 104, 0.16) 0%, rgba(88, 97, 104, 0.08) 34%, transparent 70%)'
+                    }}
+                  />
+                  <svg
+                    viewBox="0 0 32 32"
+                    aria-hidden="true"
+                    className="absolute inset-[1px] h-[calc(100%-2px)] w-[calc(100%-2px)] opacity-90 transition-transform duration-500 group-hover:scale-105 group-hover:[animation:brush-breathe_3.2s_ease-in-out_infinite]"
+                    style={{
+                      transform: 'rotate(28deg)',
+                      filter: 'drop-shadow(0 3px 6px rgba(92, 113, 138, 0.18))'
+                    }}
+                  >
+                    <defs>
+                      <linearGradient id="leafWash" x1="0%" x2="74%" y1="100%" y2="4%">
+                        <stop offset="0%" stopColor="rgba(58, 101, 160, 0.95)" />
+                        <stop offset="42%" stopColor="rgba(155, 185, 214, 0.82)" />
+                        <stop offset="100%" stopColor="rgba(228, 233, 231, 0.92)" />
+                      </linearGradient>
+                      <linearGradient id="leafStem" x1="0%" x2="100%" y1="100%" y2="0%">
+                        <stop offset="0%" stopColor="rgba(115, 143, 176, 0.88)" />
+                        <stop offset="100%" stopColor="rgba(210, 220, 224, 0.94)" />
+                      </linearGradient>
+                    </defs>
+                    <path
+                      d="M6.5 25.5C4.8 20.1 5.7 13.9 10.1 9.7C14.3 5.7 20.2 5.3 25.8 7.1C22.8 11.2 19.5 15 16.4 18.9C13.4 22.5 10.5 26 6.5 25.5Z"
+                      fill="url(#leafWash)"
+                    />
+                    <path
+                      d="M6.8 25.2C8.7 23.6 10.1 22 12.1 19.4C15.8 14.7 19.4 10.8 25.7 7.2"
+                      fill="none"
+                      stroke="url(#leafStem)"
+                      strokeWidth="1.35"
+                      strokeLinecap="round"
+                    />
+                    <path d="M10.1 21.9L12.5 18.4" fill="none" stroke="rgba(188, 207, 220, 0.72)" strokeWidth="0.75" strokeLinecap="round" />
+                    <path d="M12.8 18.6L15.4 16.1" fill="none" stroke="rgba(186, 205, 220, 0.7)" strokeWidth="0.75" strokeLinecap="round" />
+                    <path d="M15.7 15.6L18.9 12.9" fill="none" stroke="rgba(191, 207, 220, 0.68)" strokeWidth="0.75" strokeLinecap="round" />
+                    <path d="M14.1 19L10.6 17.2" fill="none" stroke="rgba(133, 165, 198, 0.42)" strokeWidth="0.7" strokeLinecap="round" />
+                    <path d="M17.2 15.4L13.5 13.9" fill="none" stroke="rgba(127, 157, 191, 0.36)" strokeWidth="0.7" strokeLinecap="round" />
+                  </svg>
+                </span>
+              </span>
+            </button>
+          )}
+        </div>
 
       </div>
 
@@ -1072,7 +1224,11 @@ const FriendlyNoticeModal = ({ isOpen, title, message, tone = 'default', onClose
                 disabled={isLoading}
                 className="w-full h-12"
               >
-                <span>{secondaryAction.label}</span>
+                {isLoading ? (
+                  <Loader2 size={18} className="animate-spin opacity-70" />
+                ) : (
+                  <span>{secondaryAction.label}</span>
+                )}
               </InteractiveButton>
             )}
 
@@ -1327,6 +1483,18 @@ const DrinkResultCard = ({ drink, isActive, moodResult, customQuote }) => {
 
 
 
+// 默认分类（API 加载后会被替换）
+const DEFAULT_EXPLORE_CATEGORIES = [
+  { label: '全部', value: 'all' },
+  { label: '鸡尾酒', value: 'Cocktail' },
+  { label: '经典饮品', value: 'Ordinary Drink' },
+  { label: '短饮', value: 'Shot' },
+  { label: '啤酒', value: 'Beer' },
+  { label: '咖啡/茶', value: 'Coffee / Tea' },
+  { label: '奶昔', value: 'Shake' },
+  { label: '软饮料', value: 'Soft Drink' },
+];
+
 const ExploreSection = ({
   category,
   onCategoryChange,
@@ -1405,29 +1573,26 @@ const ExploreSection = ({
               const ALCOHOL_CATS = ['鸡尾酒', '烈酒', '蒸馏酒', '啤酒', '葡萄酒', '利口酒'];
               const isAlcohol = ALCOHOL_CATS.includes(cat.value);
 
-              // 配色方案: 东方矿物色系 (舒缓、低饱和度)
+              // 配色方案: 与整体UI相符的玉质/温润色调
               let bgActive, bgInactive, colorActive, colorInactive, shadow, border;
+              bgInactive = 'rgba(255, 255, 255, 0.6)';
+              colorInactive = '#6b6961';
+              
               if (isAll) {
                 bgActive = '#3c3b36'; // 焦茶
-                bgInactive = 'rgba(255, 255, 255, 0.6)';
-                colorActive = '#f7f0e4';
-                colorInactive = '#3c3b36';
-                shadow = isActive ? '0 8px 24px rgba(60, 59, 54, 0.18)' : 'none';
-                border = isActive ? 'none' : '1px solid rgba(60, 59, 54, 0.12)';
+                colorActive = '#ebdfc8';
+                shadow = isActive ? '0 6px 16px rgba(60, 59, 54, 0.2)' : 'none';
+                border = isActive ? '1px solid #3c3b36' : '1px solid rgba(60, 59, 54, 0.1)';
               } else if (isAlcohol) {
-                bgActive = 'linear-gradient(135deg, #8b4513 0%, #a0522d 100%)'; // 赭石
-                bgInactive = 'rgba(255, 255, 255, 0.5)';
+                bgActive = '#8c6b54'; // 琥珀/暖褐
                 colorActive = '#f7f0e4';
-                colorInactive = '#8b4513';
-                shadow = isActive ? '0 8px 24px rgba(139, 69, 19, 0.15)' : 'none';
-                border = isActive ? 'none' : '1px solid rgba(139, 69, 19, 0.12)';
+                shadow = isActive ? '0 6px 16px rgba(140, 107, 84, 0.25)' : 'none';
+                border = isActive ? '1px solid #8c6b54' : '1px solid rgba(60, 59, 54, 0.1)';
               } else {
-                bgActive = 'linear-gradient(135deg, #4f7942 0%, #3d5229 100%)'; // 竹青/石绿
-                bgInactive = 'rgba(255, 255, 255, 0.5)';
+                bgActive = '#608a6e'; // 竹青/玉色
                 colorActive = '#f7f0e4';
-                colorInactive = '#4f7942';
-                shadow = isActive ? '0 8px 24px rgba(79, 121, 66, 0.15)' : 'none';
-                border = isActive ? 'none' : '1px solid rgba(79, 121, 66, 0.12)';
+                shadow = isActive ? '0 6px 16px rgba(96, 138, 110, 0.25)' : 'none';
+                border = isActive ? '1px solid #608a6e' : '1px solid rgba(60, 59, 54, 0.1)';
               }
 
               return (
@@ -1445,7 +1610,7 @@ const ExploreSection = ({
                     border: border,
                     color: isActive ? colorActive : colorInactive,
                     boxShadow: shadow,
-                    fontWeight: 700,
+                    fontWeight: isActive ? 600 : 400,
                     whiteSpace: 'nowrap',
                     fontSize: '0.85rem',
                     fontFamily: "'Noto Serif SC', 'STSongti-SC', 'Songti SC', 'STKaiti', 'KaiTi', 'Source Han Serif SC', serif",
@@ -1512,9 +1677,17 @@ const ExploreSection = ({
               >
                 <div className="p-2 sm:p-3 pb-0">
                   <div
-                    className="relative aspect-[4/5] bg-cover bg-center overflow-hidden shadow-inner"
-                    style={{ backgroundImage: `url(${drink.image})`, borderRadius: '20px' }}
+                    className="relative aspect-[4/5] overflow-hidden shadow-inner"
+                    style={{ borderRadius: '20px' }}
                   >
+                    <img
+                      src={drink.imagePreview || drink.image}
+                      alt={drink.name}
+                      loading="lazy"
+                      decoding="async"
+                      className="absolute inset-0 w-full h-full object-cover"
+                      draggable={false}
+                    />
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -1598,12 +1771,32 @@ const DrinkDetailSection = ({ drink, checkedIngredients, onToggleIngredient, onB
   const [shareCardUrl, setShareCardUrl] = useState(null);
   const [isGeneratingShare, setIsGeneratingShare] = useState(false);
   const [llmCopy, setLlmCopy] = useState('');
-  const [qrCodeDataUrl, setQrCodeDataUrl] = useState(null);
   const [overrideEmotionTag, setOverrideEmotionTag] = useState(null);
   const [overrideSceneTag, setOverrideSceneTag] = useState(null);
+  const [isShareEditorOpen, setIsShareEditorOpen] = useState(false);
   const shareCopy = (llmCopy && llmCopy.trim()) ? llmCopy : (philosophy?.quote || '「请先描述你此刻的心情，让我为你找到那杯对的酒」');
   const cardRef = useRef(null);
-  const qrCanvasRef = useRef(null);
+
+  // Share card style editor state
+  const [cardGradientTop, setCardGradientTop] = useState('#F5F0E8');
+  const [cardGradientBottom, setCardGradientBottom] = useState('#E8D4C8');
+
+  // Helper to determine if gradient is dark
+  const getLuminance = (hex) => {
+    let c = hex.substring(1);
+    if (c.length === 3) c = c.split('').map(x => x + x).join('');
+    let rgb = parseInt(c, 16);
+    let r = (rgb >> 16) & 0xff;
+    let g = (rgb >> 8) & 0xff;
+    let b = (rgb >> 0) & 0xff;
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  };
+
+  const lumTop = getLuminance(cardGradientTop);
+  const lumBottom = getLuminance(cardGradientBottom);
+  const isDarkBg = ((lumTop + lumBottom) / 2) < 128;
+  const customTextColor = isDarkBg ? '#E8E0D4' : '#3a3226';
+  const customBg = `linear-gradient(160deg, ${cardGradientTop} 0%, ${cardGradientBottom} 100%)`;
 
   if (!drink) return null;
 
@@ -1642,23 +1835,13 @@ const DrinkDetailSection = ({ drink, checkedIngredients, onToggleIngredient, onB
     return { tagEmotion, tagScene };
   };
 
-  const handleShare = async () => {
+  const prepareShareEditor = async () => {
     setIsGeneratingShare(true);
     try {
-      // 0. 生成二维码数据 URL
-      if (qrCanvasRef.current) {
-        const qrCanvas = qrCanvasRef.current.querySelector('canvas');
-        if (qrCanvas) {
-          const qrUrl = qrCanvas.toDataURL('image/png');
-          setQrCodeDataUrl(qrUrl);
-        }
-      }
-
       let poeticalCopy = '岁序更迭，此情可待';
 
       // 1. 获取 LLM 文案 / 标签
       if (!moodResult) {
-        // 无情绪输入场景（典型：从 Explore 进入）
         const agentResult = await executeMixologyTask('SOCIAL_CARD_NO_MOOD', { drink });
 
         if (agentResult) {
@@ -1684,7 +1867,6 @@ const DrinkDetailSection = ({ drink, checkedIngredients, onToggleIngredient, onB
           setOverrideSceneTag(fallback.tagScene);
         }
       } else {
-        // 正常情绪流程下的分享卡文案（仅文案由 LLM 生成）
         const prompt = `你是 MoodMix 的文案诗人。请为分享卡片生成一段情绪文案。
 
 要求：
@@ -1701,7 +1883,6 @@ const DrinkDetailSection = ({ drink, checkedIngredients, onToggleIngredient, onB
 
 请直接输出文案，不要任何前缀或解释。`;
 
-        // 使用专用的 SOCIAL_CARD 任务类型
         const agentResult = await executeMixologyTask('SOCIAL_CARD', { drink, prompt });
 
         const payload = agentResult && (agentResult.data || agentResult);
@@ -1715,29 +1896,34 @@ const DrinkDetailSection = ({ drink, checkedIngredients, onToggleIngredient, onB
 
       setLlmCopy(poeticalCopy);
 
-      // Wait for state to update
-      await new Promise(resolve => setTimeout(resolve, 800));
-
-      // 再次获取二维码（确保状态已更新）
-      if (qrCanvasRef.current) {
-        const qrCanvas = qrCanvasRef.current.querySelector('canvas');
-        if (qrCanvas) {
-          const qrUrl = qrCanvas.toDataURL('image/png');
-          setQrCodeDataUrl(qrUrl);
-        }
-      }
-
-      await new Promise(resolve => setTimeout(resolve, 200));
-
-      // 2. 将 DOM 生成图片
-      if (cardRef.current) {
-        const blob = await exportShareCard(cardRef.current);
-        const imageUrl = URL.createObjectURL(blob);
-        setShareCardUrl(imageUrl);
-      }
+      // Wait for React to re-render ShareCard with updated copy.
+      await new Promise(resolve => setTimeout(resolve, 250));
     } catch (error) {
-      console.error('Failed to generate share card:', error);
-      alert('生成分享卡片失败，请稍后重试');
+      console.error('Failed to prepare share card editor:', error);
+      alert('生成分享卡片文案失败，请稍后重试');
+    } finally {
+      setIsGeneratingShare(false);
+    }
+  };
+
+  const openShareEditor = async () => {
+    // Open editor first so the UI appears immediately.
+    setIsShareEditorOpen(true);
+    // Avoid re-calling LLM if already prepared.
+    if (llmCopy && llmCopy.trim()) return;
+    await prepareShareEditor();
+  };
+
+  const handleSaveCard = async () => {
+    if (!cardRef.current) return;
+    setIsGeneratingShare(true);
+    try {
+      const blob = await exportShareCard(cardRef.current);
+      const imageUrl = URL.createObjectURL(blob);
+      setShareCardUrl(imageUrl);
+    } catch (error) {
+      console.error('Failed to export share card:', error);
+      alert('保存分享卡片失败，请稍后重试');
     } finally {
       setIsGeneratingShare(false);
     }
@@ -1812,7 +1998,7 @@ const DrinkDetailSection = ({ drink, checkedIngredients, onToggleIngredient, onB
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={handleShare}
+            onClick={openShareEditor}
             disabled={isGeneratingShare}
             aria-label="分享"
             className="flex items-center justify-center bg-white/50 backdrop-blur-md border border-gray-200/50 text-gray-800 w-10 h-10 rounded-full shadow-sm hover:bg-white/80 transition-all active:scale-95 disabled:opacity-50"
@@ -2004,7 +2190,10 @@ const DrinkDetailSection = ({ drink, checkedIngredients, onToggleIngredient, onB
             backdropFilter: 'blur(10px)',
             WebkitBackdropFilter: 'blur(10px)'
           }}
-          onClick={() => setShareCardUrl(null)}
+          onClick={() => {
+            setShareCardUrl(null);
+            setIsShareEditorOpen(false);
+          }}
         >
           <img
             src={shareCardUrl}
@@ -2015,31 +2204,153 @@ const DrinkDetailSection = ({ drink, checkedIngredients, onToggleIngredient, onB
         </div>
       )}
 
-      {/* Hidden Share Card for generating image */}
-      {!shareCardUrl && (
-        <div style={{ position: 'fixed', left: '-2000px', top: '0', pointerEvents: 'none', zIndex: -1 }}>
-          {/* Hidden QR Code Canvas */}
-          <div ref={qrCanvasRef} style={{ width: '88px', height: '88px' }}>
-            <QRCodeCanvas
-              value={getShareLink()}
-              size={88}
-              level="M"
-              includeMargin={false}
-              bgColor="#ffffff"
-              fgColor="#3a3226"
-            />
+      {/* 分享卡片样式自定义弹窗 */}
+      {isShareEditorOpen && !shareCardUrl && (
+        <div
+          className="fixed inset-0 z-[101] flex items-center justify-center px-4"
+          style={{
+            background: 'rgba(0,0,0,0.5)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
+          }}
+          onClick={() => setIsShareEditorOpen(false)}
+        >
+          <div
+            className="glass-modal rounded-[2rem] p-4 w-full max-w-sm"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              display: 'flex',
+              flexDirection: 'column',
+              scrollbarWidth: 'none',
+              msOverflowStyle: 'none',
+            }}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ fontFamily: '"Noto Serif SC", serif', fontSize: '16px', fontWeight: 800, color: '#1a1a1a', letterSpacing: '0.08em' }}>
+                  分享卡片
+                </div>
+                
+                {/* 自定义渐变背景放到标题旁边 */}
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '8px',
+                  background: 'rgba(255, 255, 255, 0.6)',
+                  padding: '4px 10px',
+                  borderRadius: '100px',
+                  border: '1px solid rgba(0,0,0,0.05)',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
+                }}>
+                  <span style={{ fontSize: '11px', color: '#5c5446', fontWeight: 600 }}>背景色</span>
+                  <div style={{ width: '1px', height: '10px', background: 'rgba(0,0,0,0.1)' }}></div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <label htmlFor="gradient-top-app" style={{ fontSize: '11px', color: '#8a7e6b', cursor: 'pointer' }}>上</label>
+                    <div style={{
+                      width: '22px',
+                      height: '22px',
+                      borderRadius: '50%',
+                      backgroundColor: cardGradientTop,
+                      border: '1px solid rgba(0,0,0,0.1)',
+                      overflow: 'hidden',
+                      position: 'relative'
+                    }}>
+                      <input
+                        id="gradient-top-app"
+                        type="color"
+                        value={cardGradientTop}
+                        onChange={(e) => setCardGradientTop(e.target.value)}
+                        style={{
+                          opacity: 0,
+                          width: '150%',
+                          height: '150%',
+                          position: 'absolute',
+                          top: '-25%',
+                          left: '-25%',
+                          cursor: 'pointer'
+                        }}
+                      />
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <label htmlFor="gradient-bottom-app" style={{ fontSize: '11px', color: '#8a7e6b', cursor: 'pointer' }}>下</label>
+                    <div style={{
+                      width: '22px',
+                      height: '22px',
+                      borderRadius: '50%',
+                      backgroundColor: cardGradientBottom,
+                      border: '1px solid rgba(0,0,0,0.1)',
+                      overflow: 'hidden',
+                      position: 'relative'
+                    }}>
+                      <input
+                        id="gradient-bottom-app"
+                        type="color"
+                        value={cardGradientBottom}
+                        onChange={(e) => setCardGradientBottom(e.target.value)}
+                        style={{
+                          opacity: 0,
+                          width: '150%',
+                          height: '150%',
+                          position: 'absolute',
+                          top: '-25%',
+                          left: '-25%',
+                          cursor: 'pointer'
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                aria-label="关闭"
+                onClick={() => setIsShareEditorOpen(false)}
+                style={{
+                  width: 34,
+                  height: 34,
+                  borderRadius: 9999,
+                  border: '1px solid rgba(255,255,255,0.35)',
+                  background: 'rgba(255,255,255,0.4)',
+                  color: '#1a1a1a',
+                  cursor: 'pointer',
+                  flexShrink: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '20px',
+                  lineHeight: 1,
+                  paddingBottom: '2px',
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'center', width: '280px', height: '498px', margin: '0 auto', overflow: 'hidden' }}>
+              <div style={{ transform: 'scale(0.78)', transformOrigin: 'top center', width: '360px', height: '640px' }}>
+                <ShareCard
+                  ref={cardRef}
+                  drinkName={drink.name}
+                  emotion={overrideEmotionTag || diagnosisTag}
+                  wuxing={overrideSceneTag || strategyTag}
+                  imageSrc={toShareCardImageSrc(drink.image)}
+                  llmCopy={shareCopy}
+                  shareUrl={getShareLink()}
+                  customBg={customBg}
+                  customTextColor={customTextColor}
+                  isDarkBg={isDarkBg}
+                  editorCompact={false}
+                />
+              </div>
+            </div>
           </div>
-          <ShareCard
-            ref={cardRef}
-            drinkName={drink.name}
-            emotion={overrideEmotionTag || diagnosisTag}
-            wuxing={overrideSceneTag || strategyTag}
-            imageSrc={toShareCardImageSrc(drink.image)}
-            llmCopy={shareCopy}
-            qrCodeSrc={qrCodeDataUrl}
-          />
         </div>
       )}
+
+      {/* 分享卡片导出使用弹窗内预览 DOM（不再渲染离屏副本） */}
     </div>
   );
 };
@@ -2056,10 +2367,12 @@ const App = () => {
   const [userInventory, setUserInventory] = useState({ standard: [], custom: [] });
   const [favoriteDrinks, setFavoriteDrinks] = useState([]);
   const [sessionIngredients, setSessionIngredients] = useState([]);
+  const [currentMode, setCurrentMode] = useState('pick'); // 'pick' | 'diy'
   const [showIngredientModal, setShowIngredientModal] = useState(false);
   const [moodResult, setMoodResult] = useState(null);
   const [customQuotes, setCustomQuotes] = useState({});
   const [validationResult, setValidationResult] = useState(null);
+  const [qualityResults, setQualityResults] = useState({});
   const [dakaDrinks, setDakaDrinks] = useState([]);
   const [showDakaModal, setShowDakaModal] = useState(false);
   const [dakaDrink, setDakaDrink] = useState(null);
@@ -2081,11 +2394,11 @@ const App = () => {
   const [shareCardUrl, setShareCardUrl] = useState(null);
   const [isGeneratingShare, setIsGeneratingShare] = useState(false);
   const cardRef = useRef(null);
-  const qrCanvasRef = useRef(null);
   const [llmCopy, setLlmCopy] = useState('');
-  const [qrCodeDataUrl, setQrCodeDataUrl] = useState(null);
   const [shareCardDrink, setShareCardDrink] = useState(null);
   const [shareCardImageSrc, setShareCardImageSrc] = useState(null);
+  const [shareCardOverrideEmotionTag, setShareCardOverrideEmotionTag] = useState(null);
+  const [shareCardOverrideSceneTag, setShareCardOverrideSceneTag] = useState(null);
   const [lastDakaSharePayload, setLastDakaSharePayload] = useState(null);
   const [isSideNavOpen, setIsSideNavOpen] = useState(false);
   const [showIngredientLibrary, setShowIngredientLibrary] = useState(false);
@@ -2313,15 +2626,6 @@ const App = () => {
     setIsGeneratingShare(true);
     setIsShareLoading(true);
     try {
-      // 0. 生成二维码数据 URL
-      if (qrCanvasRef.current) {
-        const qrCanvas = qrCanvasRef.current.querySelector('canvas');
-        if (qrCanvas) {
-          const qrUrl = qrCanvas.toDataURL('image/png');
-          setQrCodeDataUrl(qrUrl);
-        }
-      }
-
       // 1. 获取 LLM 文案
       const prompt = `你是 MoodMix 的文案诗人。请为分享卡片生成一段情绪文案。
 
@@ -2339,7 +2643,6 @@ const App = () => {
 
 请直接输出文案，不要任何前缀或解释。`;
 
-      // 使用专用的 SOCIAL_CARD 任务类型
       const agentResult = await executeMixologyTask('SOCIAL_CARD', { drink: currentDrink, prompt });
 
       // 安全提取文案
@@ -2382,23 +2685,45 @@ const App = () => {
     const shareCardSrc = toShareCardImageSrc(imageSrc);
     setShareCardDrink(drink);
     setShareCardImageSrc(shareCardSrc);
+    setShareCardOverrideEmotionTag(null);
+    setShareCardOverrideSceneTag(null);
     setIsGeneratingShare(true);
     setIsShareLoading(true);
     try {
-      // 0. 生成二维码数据 URL
-      if (qrCanvasRef.current) {
-        const qrCanvas = qrCanvasRef.current.querySelector('canvas');
-        if (qrCanvas) {
-          const qrUrl = qrCanvas.toDataURL('image/png');
-          setQrCodeDataUrl(qrUrl);
-        }
-      }
+      let poeticalCopy = '岁序更迭，此情可待';
 
-      // 1. 文案：优先用用户打卡文案；为空则回退 LLM
-      if (trimmedNote) {
-        setLlmCopy(trimmedNote);
+      if (!moodResult) {
+        // No mood context: call SOCIAL_CARD_NO_MOOD to get copy + emotion/scene tags
+        const agentResult = await executeMixologyTask('SOCIAL_CARD_NO_MOOD', { drink });
+        if (agentResult) {
+          const resultPayload = agentResult.data || agentResult;
+          const { copy, tagEmotion, tagScene } = resultPayload || {};
+          if (typeof copy === 'string' && copy.trim()) {
+            poeticalCopy = copy.trim();
+          }
+          if (tagEmotion || tagScene) {
+            setShareCardOverrideEmotionTag(tagEmotion || null);
+            setShareCardOverrideSceneTag(tagScene || null);
+          } else {
+            const abv = typeof drink.abv === 'number' ? drink.abv : null;
+            let tagEmotionFallback = '随心一杯';
+            let tagSceneFallback = '此刻刚刚好';
+            if (abv !== null) {
+              if (abv === 0) { tagEmotionFallback = '清醒不醉'; tagSceneFallback = '午后小憩'; }
+              else if (abv <= 8) { tagEmotionFallback = '微醺柔软'; tagSceneFallback = '下班后小酌'; }
+              else if (abv <= 20) { tagEmotionFallback = '慢火续暖'; tagSceneFallback = '周末放空'; }
+              else { tagEmotionFallback = '深夜烈星'; tagSceneFallback = '收尾一杯'; }
+            }
+            setShareCardOverrideEmotionTag(tagEmotionFallback);
+            setShareCardOverrideSceneTag(tagSceneFallback);
+          }
+        }
       } else {
-        const prompt = `你是 MoodMix 的文案诗人。请为分享卡片生成一段情绪文案。
+        // Has mood context: use note if provided, otherwise call SOCIAL_CARD for LLM copy
+        if (trimmedNote) {
+          poeticalCopy = trimmedNote;
+        } else {
+          const prompt = `你是 MoodMix 的文案诗人。请为分享卡片生成一段情绪文案。
 
 要求：
 - 2-3 句话，总字数控制在 30-50 字
@@ -2414,21 +2739,22 @@ const App = () => {
 
 请直接输出文案，不要任何前缀或解释。`;
 
-        const agentResult = await executeMixologyTask('SOCIAL_CARD', { drink, prompt });
-
-        let poeticalCopy = '岁序更迭，此情可待';
-        if (agentResult && agentResult.success && agentResult.data && typeof agentResult.data.copy === 'string') {
-          poeticalCopy = agentResult.data.copy;
-        } else if (typeof agentResult === 'string') {
-          poeticalCopy = agentResult;
+          const agentResult = await executeMixologyTask('SOCIAL_CARD', { drink, prompt });
+          const resultPayload = agentResult && (agentResult.data || agentResult);
+          if (resultPayload && typeof resultPayload.copy === 'string') {
+            poeticalCopy = resultPayload.copy;
+          } else if (typeof agentResult === 'string') {
+            poeticalCopy = agentResult;
+          }
         }
-        setLlmCopy(poeticalCopy);
       }
 
-      // Let React paint updates before capture
-      await new Promise(resolve => requestAnimationFrame(() => resolve()));
+      setLlmCopy(poeticalCopy);
 
-      // 2. 将 DOM 生成图片
+      // Let React paint updates before capture
+      await new Promise(resolve => setTimeout(resolve, 250));
+
+      // 将 DOM 生成图片
       if (cardRef.current) {
         const blob = await exportShareCard(cardRef.current);
         const imageUrl = URL.createObjectURL(blob);
@@ -2923,8 +3249,9 @@ const App = () => {
     const startTime = performance.now();
     console.log(`[Timer] 0ms: 用户点击按钮，开始寻味流程`);
     
-    // 🔥 重置上一次的文案，避免旧数据导致闪烁
+    // 🔥 重置上一次的文案和质量评估，避免旧数据导致闪烁
     setCustomQuotes({});
+    setQualityResults({});
     
     setMixMode('generating');
     // 初始玄学式 Loading 文案：先依据当前输入/情绪锚点做一次东方解读
@@ -2958,7 +3285,8 @@ const App = () => {
       finalInputForAI += ' (用户选择: 发泄释放，需要刺激、冰冷、烈酒、酸苦的饮品)';
     }
 
-    if (sessionIngredients.length > 0) {
+    const isDiyMode = currentMode === 'diy';
+    if (isDiyMode && sessionIngredients.length > 0) {
       finalInputForAI += `\n(重要参考: 用户目前拥有的原料: ${sessionIngredients.join(', ')})`;
     }
 
@@ -2994,7 +3322,8 @@ const App = () => {
       const quoteReadyPromise = new Promise(resolve => { quotePromiseResolve = resolve; });
 
       const agentPromise = executeRecommendationPipeline(finalInputForAI, {
-        inventory: sessionIngredients,
+        inventory: isDiyMode ? sessionIngredients : [],
+        mode: currentMode,
         allDrinks: allDrinksForPipeline,
         currentTime: new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false }).replace(/\//g, '-'),
         interventionType: currentInterventionType,
@@ -3020,6 +3349,12 @@ const App = () => {
         onValidationSuccess: (report) => {
           console.log('[App] 异步验证报告送达，更新 UI 勋章');
           setValidationResult(report);
+        },
+        onQualityEvalSuccess: (results) => {
+          console.log('[App] 异步质量评估送达，更新心境契合度');
+          const map = {};
+          results.forEach(r => { map[r.drinkId] = r; });
+          setQualityResults(map);
         }
       });
 
@@ -3077,7 +3412,7 @@ const App = () => {
       setMixMode('home');
       showFriendlyNotice('灵感有些迟疑', '分析网络可能存在波动，请稍后再试。', 'error');
     }
-  }, [emotionType, interventionType, moodInput, selectedMood, sessionIngredients, apiDrinks, customDrinks, setRecommendationPool, setCurrentBatchIndex, setCurrentCardIndex, setMixMode, setShowRecommendationGallery, setCustomQuotes, showFriendlyNotice]);
+  }, [emotionType, interventionType, moodInput, selectedMood, sessionIngredients, currentMode, apiDrinks, customDrinks, setRecommendationPool, setCurrentBatchIndex, setCurrentCardIndex, setMixMode, setShowRecommendationGallery, setCustomQuotes, showFriendlyNotice]);
 
   // 调用后端千问API进行情绪分析和饮品推荐
   const processMoodAndGenerate = useCallback(async (directMoodValue = null) => {
@@ -3098,9 +3433,9 @@ const App = () => {
     }
 
 
-    // 如果有自定义原料，附加到 Prompt
+    // 如果有自定义原料且为 DIY 模式，附加到 Prompt
     let finalInputForAI = combinedInput;
-    if (sessionIngredients.length > 0) {
+    if (currentMode === 'diy' && sessionIngredients.length > 0) {
       finalInputForAI += `\n(重要参考: 用户目前拥有的原料: ${sessionIngredients.join(', ')})`;
     }
 
@@ -3143,7 +3478,7 @@ const App = () => {
     setMixMode('generating');
     // 流态卡片会自动调用 /api/analyze_mood_stream
     // 完成后调用 handleStreamingComplete 继续推荐流程
-  }, [moodInput, selectedMood, sessionIngredients, apiDrinks, customDrinks, showFriendlyNotice]);
+  }, [moodInput, selectedMood, sessionIngredients, currentMode, apiDrinks, customDrinks, showFriendlyNotice]);
 
   /**
    * 流态分析完成后的回调
@@ -3175,8 +3510,9 @@ const App = () => {
         };
     }
 
-    // 🔥 重置上一次的文案，避免旧数据导致闪烁
+    // 🔥 重置上一次的文案和质量评估，避免旧数据导致闪烁
     setCustomQuotes({});
+    setQualityResults({});
 
     try {
       // 检查饮品数据是否已加载
@@ -3190,8 +3526,8 @@ const App = () => {
       const customDrinksWithVector = customDrinks.filter(d => d.vector && d.vector.length === 8);
       const allDrinksForPipeline = [...apiDrinks, ...customDrinksWithVector];
 
-      // 使用向量引擎评估和排序饮品
-      const rankedDrinks = evaluateAndSortDrinks(moodData, allDrinksForPipeline, sessionIngredients);
+      // 使用向量引擎评估和排序饮品（pick 模式不传库存，避免原料过滤干扰推荐）
+      const rankedDrinks = await evaluateAndSortDrinks(moodData, allDrinksForPipeline, currentMode === 'diy' ? sessionIngredients : []);
       const topMatches = rankedDrinks.slice(0, 9);
 
       // 🔥 [优化] 先异步获取 LLM 文案，等待完成后再显示卡片
@@ -3250,6 +3586,21 @@ const App = () => {
       setMixMode('home');
       setShowRecommendationGallery(true);
 
+      // 异步质量评估（不阻塞 UI，结果到达后更新心境契合度）
+      if (topMatches.length > 0) {
+        const contextData = { moodData, patternAnalysis, summary };
+        evaluateAllDrinks(topMatches, contextData).then((results) => {
+          if (results && results.length > 0) {
+            const map = {};
+            results.forEach(r => { map[r.drinkId] = r; });
+            setQualityResults(map);
+            console.log('[StreamingComplete] 心境契合度评估完成:', results.length, '款');
+          }
+        }).catch(err => {
+          console.warn('[StreamingComplete] 质量评估失败:', err);
+        });
+      }
+
       console.log(`[StreamingComplete] ${Math.round(performance.now() - startTime)}ms: 推荐完成`);
 
     } catch (error) {
@@ -3257,7 +3608,7 @@ const App = () => {
       setMixMode('home');
       showFriendlyNotice('灵感有些迟疑', '推荐过程出现问题，请稍后再试。', 'error');
     }
-  }, [apiDrinks, customDrinks, sessionIngredients, showFriendlyNotice, setCustomQuotes]);
+  }, [apiDrinks, customDrinks, sessionIngredients, currentMode, showFriendlyNotice, setCustomQuotes]);
 
   const toggleIngredient = useCallback((id) => {
     setCheckedIngredients(prev => ({ ...prev, [id]: !prev[id] }));
@@ -3334,7 +3685,7 @@ const App = () => {
       )}
 
       <main className="flex-1 flex flex-col w-full relative">
-        {activeTab === 'mix' && showRecommendationGallery && visibleDrinks.length > 0 && (
+        {activeTab === 'mix' && showRecommendationGallery && visibleDrinks.length > 0 && !currentDrink && (
           <RecommendationGallery
             drinks={visibleDrinks}
             onBack={() => {
@@ -3353,6 +3704,7 @@ const App = () => {
             moodResult={moodResult}
             customQuotes={customQuotes}
             validation={validationResult}
+            qualityResults={qualityResults}
           />
         )}
 
@@ -3368,10 +3720,12 @@ const App = () => {
                 buttonFeedback={{ ...buttonFeedback, loadingText: buttonLoadingText }}
                 isMixing={mixMode === 'generating'}
                 ingredientCount={ingredientCount}
-                onEditIngredients={() => setShowIngredientModal(true)}
+                onEditIngredients={() => setShowIngredientLibrary(true)}
                 onNavigate={handleNavClick}
                 activeTab={activeTab}
                 showFriendlyNotice={showFriendlyNotice}
+                currentMode={currentMode}
+                onModeChange={setCurrentMode}
               />
             )}
 
@@ -3394,40 +3748,57 @@ const App = () => {
 
         {activeTab === 'explore' && !currentDrink && (
           <PageTransition animation="fade" duration={400}>
-            <ExploreSection
-              category={exploreCategory}
-              onCategoryChange={handleExploreCategoryChange}
-              cardFeedback={cardFeedback}
-              onSelectDrink={handleExploreSelectDrink}
-              favoriteDrinks={favoriteDrinks}
-              onLikeDrink={handleLikeDrink}
-              onUnlikeDrink={handleUnlikeDrink}
-              apiDrinks={apiDrinks}
-              apiLoading={apiLoading}
-              apiError={apiError}
-              apiCategories={apiCategories}
-              onSearch={handleExploreSearch}
-              onNavigate={handleNavClick}
-              activeTab={activeTab}
-              onAddCustomDrink={handleOpenCustomDrinkModal}
-            />
+            <React.Suspense
+              fallback={
+                <div className="flex flex-col items-center justify-center h-56 sm:h-64 text-gray-400">
+                  <Loader2 size={36} className="text-indigo-400 animate-spin mb-4" />
+                  <p className="text-gray-400 text-xs sm:text-sm">正在加载灵感库...</p>
+                </div>
+              }
+            >
+              <ExploreSectionLazy
+                category={exploreCategory}
+                onCategoryChange={handleExploreCategoryChange}
+                cardFeedback={cardFeedback}
+                onSelectDrink={handleExploreSelectDrink}
+                favoriteDrinks={favoriteDrinks}
+                onLikeDrink={handleLikeDrink}
+                onUnlikeDrink={handleUnlikeDrink}
+                apiDrinks={apiDrinks}
+                apiLoading={apiLoading}
+                apiError={apiError}
+                apiCategories={apiCategories}
+                onSearch={handleExploreSearch}
+                onNavigate={handleNavClick}
+                activeTab={activeTab}
+                onAddCustomDrink={handleOpenCustomDrinkModal}
+              />
+            </React.Suspense>
           </PageTransition>
         )}
 
         {activeTab === 'mine' && !currentDrink && (
           <PageTransition animation="fade" duration={400}>
-            <MineSection
-              favorites={favoriteDrinks}
-              cardFeedback={cardFeedback}
-              onSelectDrink={setCurrentDrink}
-              onNavigate={handleNavClick}
-              activeTab={activeTab}
-              dakaNotes={dakaDrinks}
-              onDeleteDakaNote={handleRequestDeleteNote}
-              currentCity={currentCity}
-              locationLoading={locationLoading}
-              locationError={locationError}
-            />
+            <React.Suspense
+              fallback={
+                <div className="flex items-center justify-center h-56 sm:h-64 text-gray-400 text-xs sm:text-sm">
+                  正在加载我的页面...
+                </div>
+              }
+            >
+              <MineSection
+                favorites={favoriteDrinks}
+                cardFeedback={cardFeedback}
+                onSelectDrink={setCurrentDrink}
+                onNavigate={handleNavClick}
+                activeTab={activeTab}
+                dakaNotes={dakaDrinks}
+                onDeleteDakaNote={handleRequestDeleteNote}
+                currentCity={currentCity}
+                locationLoading={locationLoading}
+                locationError={locationError}
+              />
+            </React.Suspense>
           </PageTransition>
         )}
 
@@ -3442,37 +3813,45 @@ const App = () => {
 
         {currentDrink && (
           <PageTransition animation="slide" duration={400}>
-            <DrinkDetailSection
-              drink={currentDrink}
-              checkedIngredients={checkedIngredients}
-              onToggleIngredient={toggleIngredient}
-              onBack={() => {
-                setCurrentDrink(null);
-                setCheckedIngredients({});
-              }}
-              onMore={() => { }}
-              onFocusMode={() => {
-                setIsFocusMode(true);
-                setCurrentStep(0);
-              }}
-              currentStep={currentStep}
-              cardFeedback={cardFeedback}
-              isLiked={favoriteDrinks.some(d => d.id === currentDrink?.id)}
-              onLikeDrink={(drink) => {
-                if (favoriteDrinks.some(d => d.id === drink.id)) {
-                  handleUnlikeDrink(drink.id);
-                } else {
-                  handleLikeDrink(drink);
-                }
-              }}
-              isDaka={dakaDrinks.some(d => d.id === currentDrink?.id)}
-              onDakaDrink={handleOpenDakaModal}
-              moodResult={moodResult}
-              onHelp={(drink) => {
-                setDrinkHelpTarget(drink);
-                setShowDrinkHelpModal(true);
-              }}
-            />
+            <React.Suspense
+              fallback={
+                <div className="flex items-center justify-center h-56 sm:h-64 text-gray-400 text-xs sm:text-sm">
+                  正在加载饮品详情...
+                </div>
+              }
+            >
+              <DrinkDetailSectionLazy
+                drink={currentDrink}
+                checkedIngredients={checkedIngredients}
+                onToggleIngredient={toggleIngredient}
+                onBack={() => {
+                  setCurrentDrink(null);
+                  setCheckedIngredients({});
+                }}
+                onMore={() => {}}
+                onFocusMode={() => {
+                  setIsFocusMode(true);
+                  setCurrentStep(0);
+                }}
+                currentStep={currentStep}
+                cardFeedback={cardFeedback}
+                isLiked={favoriteDrinks.some(d => d.id === currentDrink?.id)}
+                onLikeDrink={(drink) => {
+                  if (favoriteDrinks.some(d => d.id === drink.id)) {
+                    handleUnlikeDrink(drink.id);
+                  } else {
+                    handleLikeDrink(drink);
+                  }
+                }}
+                isDaka={dakaDrinks.some(d => d.id === currentDrink?.id)}
+                onDakaDrink={handleOpenDakaModal}
+                moodResult={moodResult}
+                onHelp={(drink) => {
+                  setDrinkHelpTarget(drink);
+                  setShowDrinkHelpModal(true);
+                }}
+              />
+            </React.Suspense>
           </PageTransition>
         )}
       </main>
@@ -3576,29 +3955,32 @@ const App = () => {
       )}
 
       {/* Hidden Share Card DOM for App-level generation */}
-      {!shareCardUrl && shareCardDrink && (
-        <div style={{ position: 'fixed', left: '-2000px', top: '0', pointerEvents: 'none', zIndex: -1 }}>
-          <div ref={qrCanvasRef} style={{ width: '88px', height: '88px' }}>
-            <QRCodeCanvas
-              value={getAppShareLink(shareCardDrink)}
-              size={88}
-              level="M"
-              includeMargin={false}
-              bgColor="#ffffff"
-              fgColor="#3a3226"
+      {!shareCardUrl && shareCardDrink && (() => {
+        const _philosophy = generatePhilosophyTags(shareCardDrink.dimensions, moodResult, shareCardDrink.name);
+        const _diagnosisTag = _philosophy?.tags?.[0] || shareCardDrink.dimensions?.mood || '气机待调';
+        const _strategyTag = _philosophy?.tags?.[1] || (shareCardDrink.dimensions?.wuxing ? `五行属${shareCardDrink.dimensions.wuxing}` : '调和气机');
+        const _emotionTag = shareCardOverrideEmotionTag || _diagnosisTag;
+        const _sceneTag = shareCardOverrideSceneTag || _strategyTag;
+        const _customBg = 'linear-gradient(160deg, #F5F0E8 0%, #E8D4C8 100%)';
+        const _customTextColor = '#3a3226';
+        return (
+          <div style={{ position: 'fixed', left: '-2000px', top: '0', pointerEvents: 'none', zIndex: -1 }}>
+            <ShareCard
+              ref={cardRef}
+              drinkName={shareCardDrink.name}
+              emotion={_emotionTag}
+              wuxing={_sceneTag}
+              imageSrc={shareCardImageSrc || toShareCardImageSrc(shareCardDrink.image)}
+              llmCopy={llmCopy}
+              shareUrl={getAppShareLink(shareCardDrink)}
+              customBg={_customBg}
+              customTextColor={_customTextColor}
+              isDarkBg={false}
+              editorCompact={false}
             />
           </div>
-          <ShareCard
-            ref={cardRef}
-            drinkName={shareCardDrink.name}
-            emotion={shareCardDrink.dimensions?.mood || '悠然'}
-            wuxing={shareCardDrink.dimensions?.wuxing ? `五行属${shareCardDrink.dimensions.wuxing}` : '五行调和'}
-            imageSrc={shareCardImageSrc || toShareCardImageSrc(shareCardDrink.image)}
-            llmCopy={llmCopy}
-            qrCodeSrc={qrCodeDataUrl}
-          />
-        </div>
-      )}
+        );
+      })()}
 
       {/* Ingredient Library Fullscreen */}
       {showIngredientLibrary && (
@@ -3691,9 +4073,7 @@ const DakaModal = ({ drink, onClose, onSave }) => {
   const [customImage, setCustomImage] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [llmCopy, setLlmCopy] = useState('');
-  const [qrCodeDataUrl, setQrCodeDataUrl] = useState('');
   const cardRef = useRef(null);
-  const qrCanvasRef = useRef(null);
   const fileInputRef = useRef(null);
   const [shareCardUrl, setShareCardUrl] = useState(null);
 
@@ -3724,13 +4104,6 @@ const DakaModal = ({ drink, onClose, onSave }) => {
     if (isGenerating) return;
     setIsGenerating(true);
     try {
-      if (qrCanvasRef.current) {
-        const qrCanvas = qrCanvasRef.current.querySelector('canvas');
-        if (qrCanvas) {
-          setQrCodeDataUrl(qrCanvas.toDataURL('image/png'));
-        }
-      }
-
       const prompt = `你是 MoodMix 的文案诗人。请为分享卡片生成一段情绪文案。结合饮品名：${drink.name}，推荐理由：${drink.reason || '无'}。`;
       const agentResult = await executeMixologyTask('SOCIAL_CARD', { drink, prompt });
       
@@ -3740,7 +4113,7 @@ const DakaModal = ({ drink, onClose, onSave }) => {
       }
       setLlmCopy(poeticalCopy);
 
-      await new Promise(resolve => setTimeout(resolve, 800));
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       if (cardRef.current) {
         const blob = await exportShareCard(cardRef.current);
@@ -3854,9 +4227,6 @@ const DakaModal = ({ drink, onClose, onSave }) => {
 
         {!shareCardUrl && (
           <div style={{ position: 'fixed', left: '-2000px', top: '0', pointerEvents: 'none', zIndex: -1 }}>
-            <div ref={qrCanvasRef} style={{ width: '88px', height: '88px' }}>
-              <QRCodeCanvas value={getShareLink()} size={88} level="M" includeMargin={false} bgColor="#ffffff" fgColor="#3a3226" />
-            </div>
             <ShareCard
               ref={cardRef}
               drinkName={drink.name}
@@ -3864,7 +4234,7 @@ const DakaModal = ({ drink, onClose, onSave }) => {
               wuxing={drink.dimensions?.wuxing ? `五行属${drink.dimensions.wuxing}` : '五行调和'}
               imageSrc={customImage || drink.image}
               llmCopy={llmCopy}
-              qrCodeSrc={qrCodeDataUrl}
+              shareUrl={getShareLink()}
             />
           </div>
         )}
@@ -3980,6 +4350,9 @@ const CustomDrinkModal = ({ isOpen, onClose, onSave }) => {
 };
 
 export default App;
+
+// Named exports for lazy-loaded components
+export { ShareCard, exportShareCard };
 
 // 自定义 SVG 图标：东方极简/毛笔白描感 + 充实填充感
 // 1. 特调 (Mix)：青瓷杯/琉璃盏剪影，带升腾气韵

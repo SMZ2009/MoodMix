@@ -302,6 +302,8 @@ function transformDrink(apiDrink) {
         abv: abv, // 使用真实计算的体积比 ABV
         tags,
         image: apiDrink.strDrinkThumb || '',
+        // Explore 列表用更小尺寸预览图；点击进入详情页再用 image 加载原图
+        imagePreview: apiDrink.strDrinkThumb ? `${apiDrink.strDrinkThumb}/preview` : '',
         reason: '', // 不再用英文 instructions 作为 reason
         briefIngredients,
         ingredients,
@@ -322,6 +324,7 @@ function transformDrinkBrief(apiDrink) {
         name: apiDrink.strDrink,
         subName: '',
         image: apiDrink.strDrinkThumb || '',
+        imagePreview: apiDrink.strDrinkThumb ? `${apiDrink.strDrinkThumb}/preview` : '',
         // 简略模式下没有详细数据
         needDetail: true,
     };

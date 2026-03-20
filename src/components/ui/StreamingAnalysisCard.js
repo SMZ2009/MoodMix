@@ -1,6 +1,24 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { calculateWuxingFromBirthday } from '../../engine/profileWuxing';
 
+const IS_DEV = process.env.NODE_ENV === 'development';
+
+/** Parse one SSE line: optional space after "data:", tolerate no space before JSON. */
+function parseSseLine(line) {
+  const trimmed = line.trim();
+  if (!/^data:\s*/i.test(trimmed)) return null;
+  const jsonStr = trimmed.replace(/^data:\s*/i, '').trim();
+  if (!jsonStr || jsonStr === '[DONE]') return null;
+  try {
+    return JSON.parse(jsonStr);
+  } catch (e) {
+    if (IS_DEV && (jsonStr.length > 200 || /"done"\s*:\s*true/.test(jsonStr))) {
+      console.warn('[StreamingAnalysisCard] SSE JSON parse error:', e.message, jsonStr.slice(0, 280));
+    }
+    return null;
+  }
+}
+
 const StreamingAnalysisCard = ({ 
   isActive, 
   userInput,
@@ -136,90 +154,104 @@ const StreamingAnalysisCard = ({
         let resultData = null;
         let fullText = '';
 
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
+        const applyStreamPayload = (data) => {
+          if (data.delta) {
+            fullText += data.delta;
 
-          lineBuffer += decoder.decode(value, { stream: true });
+            let displayText = '';
+            const resultIndex = fullText.indexOf('[RESULT]');
+            const thoughtIndex = fullText.indexOf('[THOUGHT]');
+            let textToProcess = fullText;
 
+            if (resultIndex !== -1) {
+              const start = thoughtIndex !== -1 ? thoughtIndex + 9 : 0;
+              textToProcess = fullText.slice(start, resultIndex);
+            }
+
+            const trimmed = textToProcess.trim();
+            const hasJsonStart = trimmed.startsWith('{') || trimmed.startsWith('[');
+            const hasJsonKeyPattern = /"\w+"\s*:/.test(trimmed);
+            const hasCodeFence = trimmed.startsWith('```') || trimmed.includes('```');
+            const hasJsonTag = /```?\s*json/i.test(trimmed);
+            const hasTechnicalMarker =
+              hasJsonStart ||
+              hasJsonKeyPattern ||
+              hasCodeFence ||
+              hasJsonTag ||
+              /"emotion"\s*:/.test(trimmed) ||
+              /"somatic"\s*:/.test(trimmed);
+
+            if (!hasTechnicalMarker && trimmed.length > 0) {
+              displayText = trimmed;
+            }
+            if (displayText) {
+              setStreamingText(displayText);
+            }
+          }
+
+          if (data.done) {
+            if (data.error) {
+              throw new Error(data.error);
+            }
+            resultData = data.data;
+            resultDataRef.current = resultData;
+            return true;
+          }
+          return false;
+        };
+
+        const drainLineBuffer = (includePartialLine) => {
           let newlineIndex;
           while ((newlineIndex = lineBuffer.indexOf('\n')) >= 0) {
             const line = lineBuffer.slice(0, newlineIndex).trim();
             lineBuffer = lineBuffer.slice(newlineIndex + 1);
+            const data = parseSseLine(line);
+            if (!data) continue;
+            if (applyStreamPayload(data)) return true;
+          }
+          if (includePartialLine && lineBuffer.trim()) {
+            const data = parseSseLine(lineBuffer.trim());
+            lineBuffer = '';
+            if (data && applyStreamPayload(data)) return true;
+          }
+          return false;
+        };
 
-            if (!line.startsWith('data: ')) continue;
-
-            try {
-              const data = JSON.parse(line.slice(6));
-
-              // 处理流式文本片段
-              if (data.delta) {
-                fullText += data.delta;
-                
-                // --- 启发式解析策略 ---
-                let displayText = '';
-                
-                // 1. 寻找 [RESULT] 标记作为思绪的终点
-                const resultIndex = fullText.indexOf('[RESULT]');
-                const thoughtIndex = fullText.indexOf('[THOUGHT]');
-                
-                let textToProcess = fullText;
-                
-                if (resultIndex !== -1) {
-                    // 已到达结果区，取 [THOUGHT] 之后到 [RESULT] 之前的全部内容
-                    const start = thoughtIndex !== -1 ? thoughtIndex + 9 : 0;
-                    textToProcess = fullText.slice(start, resultIndex);
-                }
-                
-                // 过滤 JSON / 代码块 / 技术性内容，只保留自然语言提示
-                const trimmed = textToProcess.trim();
-
-                // 明显是 JSON 或接近 JSON 的结构
-                const hasJsonStart = trimmed.startsWith('{') || trimmed.startsWith('[');
-                const hasJsonKeyPattern = /"\w+"\s*:/.test(trimmed);
-
-                // 代码块 / markdown 片段（如 ```json { "emotion"...）
-                const hasCodeFence = trimmed.startsWith('```') || trimmed.includes('```');
-                const hasJsonTag = /```?\s*json/i.test(trimmed);
-
-                // 其它我们明确不希望展示给用户的技术性标记
-                const hasTechnicalMarker =
-                  hasJsonStart ||
-                  hasJsonKeyPattern ||
-                  hasCodeFence ||
-                  hasJsonTag ||
-                  /"emotion"\s*:/.test(trimmed) ||
-                  /"somatic"\s*:/.test(trimmed);
-                
-                if (!hasTechnicalMarker && trimmed.length > 0) {
-                  displayText = trimmed;
-                }
-                
-                if (displayText) {
-                    setStreamingText(displayText);
-                }
-              }
-
-              if (data.done) {
-                if (data.error) {
-                  throw new Error(data.error);
-                }
-                resultData = data.data;
-                resultDataRef.current = resultData;
-                break;
-              }
-            } catch (e) {
-              // Skip parse errors for intermediate chunks
-            }
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) {
+            lineBuffer += decoder.decode(new Uint8Array(), { stream: false });
+            if (drainLineBuffer(true)) break;
+            break;
           }
 
-          if (resultData) break;
+          lineBuffer += decoder.decode(value, { stream: true });
+          if (drainLineBuffer(false)) break;
         }
 
-        // 如果整个流结束仍然没有解析到结构化结果，则视为错误，交给 onError 处理
-        if (!resultData) {
+        // 服务端若在流内已返回完整 JSON，但终端 SSE 帧丢失时，尝试从全文提取（与 llmProxy finishStream 一致）
+        if (!resultData && fullText) {
+          try {
+            const jsonMatch = fullText.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+              const parsed = JSON.parse(jsonMatch[0]);
+              if (parsed && (parsed.moodData || parsed.patternAnalysis || parsed.summary)) {
+                resultData = parsed;
+                resultDataRef.current = resultData;
+                if (IS_DEV) {
+                  console.warn('[StreamingAnalysisCard] Recovered structured result from fullText fallback');
+                }
+              }
+            }
+          } catch (e) {
+            if (IS_DEV) {
+              console.warn('[StreamingAnalysisCard] fullText JSON fallback failed:', e.message);
+            }
+          }
+        }
 
-          throw new Error('STREAMING_NO_RESULT');
+        if (!resultData) {
+          throw new Error('STREAMING_NO_RESULT: 未收到结束帧或解析失败');
         }
 
         clearInterval(statusInterval);

@@ -543,6 +543,12 @@ app.post('/api/analyze_mood_stream', async (req, res) => {
       if (!shouldContinue) break;
     }
 
+    // Flush UTF-8 decoder (multi-byte char at chunk boundary) before draining line buffer
+    const utf8Tail = decoder.decode(new Uint8Array(), { stream: false });
+    if (utf8Tail) {
+      processChunk(utf8Tail);
+    }
+
     // 处理最后剩余的 buffer
     if (lineBuffer.trim()) {
       processChunk('\n');
@@ -585,14 +591,20 @@ app.post('/api/analyze_mood_stream', async (req, res) => {
 
     console.log(`[Stream] 分析完成: "${user_input.slice(0, 30)}..."`);
 
-    // 发送最终结果
+    // 发送最终结果（与 llmProxy handleStreamMoodAnalysis 终端帧格式一致）
+    if (res.writableEnded) {
+      console.warn('[Stream] 终端帧未发送: 响应已结束（客户端可能已断开）');
+      return;
+    }
     res.write(`data: ${JSON.stringify({ data: parsed, done: true })}\n\n`);
     res.end();
 
   } catch (error) {
     console.error('[Stream] 流式处理错误:', error);
-    res.write(`data: ${JSON.stringify({ error: error.message, done: true })}\n\n`);
-    res.end();
+    if (!res.writableEnded) {
+      res.write(`data: ${JSON.stringify({ error: error.message, done: true })}\n\n`);
+      res.end();
+    }
   }
 });
 

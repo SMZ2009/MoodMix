@@ -651,8 +651,11 @@ async function handleStreamMoodAnalysis(req, res) {
     };
 
     const finishStream = () => {
-      if (res.writableEnded) return;
-      
+      if (res.writableEnded) {
+        console.warn('[Stream] finishStream skipped: response already ended (client disconnect or double-close); terminal SSE frame not sent');
+        return;
+      }
+
       try {
         const jsonMatch = accumulated.match(/\{[\s\S]*\}/);
         const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : accumulated);
@@ -676,7 +679,9 @@ async function handleStreamMoodAnalysis(req, res) {
         console.error('[Stream] Final parse error:', e.message);
         sendEvent({ done: true, error: '解析失败', raw: accumulated });
       }
-      res.end();
+      if (!res.writableEnded) {
+        res.end();
+      }
     };
 
     const reader = response.body;
@@ -693,6 +698,8 @@ async function handleStreamMoodAnalysis(req, res) {
           const text = decoder.decode(value, { stream: true });
           if (processChunk(text)) break;
         }
+        const upstreamTail = decoder.decode(new Uint8Array(), { stream: false });
+        if (upstreamTail) processChunk(upstreamTail);
       } finally {
         webReader.releaseLock();
         finishStream();

@@ -43,6 +43,28 @@ const getFetch = async () => {
   }
 };
 
+/** 与 llmProxy 一致：解析 SiliconFlow 错误体 */
+function formatSiliconflowUpstreamError(status, errorText) {
+  const raw = (errorText || '').trim();
+  let upstream = '';
+  try {
+    const j = JSON.parse(raw);
+    if (j && typeof j.message === 'string') upstream = j.message;
+    else if (j && typeof j.error === 'string') upstream = j.error;
+  } catch (_) {
+    if (raw) upstream = raw.slice(0, 400);
+  }
+  if (!upstream) upstream = `HTTP ${status}`;
+  if (/balance is insufficient|余额不足|insufficient balance/i.test(upstream) || /30001/.test(raw)) {
+    return '大模型服务账户余额不足，请前往 SiliconFlow 控制台充值后重试。';
+  }
+  if (/invalid api key|incorrect api key|api key not valid|invalid.*api\s*key/i.test(upstream)) {
+    return '大模型 API Key 无效或已过期，请检查 .env 中的 SILICONFLOW_API_KEY。';
+  }
+  const short = upstream.length > 220 ? `${upstream.slice(0, 220)}…` : upstream;
+  return `服务暂时不可用（${status}）：${short}`;
+}
+
 // 信任代理（用于 Render.com 等云平台）
 app.set('trust proxy', 1);
 
@@ -424,15 +446,17 @@ ${contextDescriptions}
 // 端点：流式情绪分析 (SSE Streaming)
 // ═══════════════════════════════════════════
 app.post('/api/analyze_mood_stream', async (req, res) => {
-  // 设置 SSE 头
+  // 设置 SSE 头（禁用反向代理缓冲，避免移动端长时间无字节被断开）
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
     'Cache-Control': 'no-cache',
     'Connection': 'keep-alive',
+    'X-Accel-Buffering': 'no',
     'Access-Control-Allow-Origin': '*'
   });
 
   try {
+    res.write(': connected\n\n');
     const { user_input, current_time, user_profile } = req.body;
     if (!user_input || typeof user_input !== 'string' || !user_input.trim()) {
       res.write(`data: ${JSON.stringify({ error: '缺少 user_input', done: true })}\n\n`);
@@ -454,10 +478,11 @@ app.post('/api/analyze_mood_stream', async (req, res) => {
     console.log(`[Stream] 开始请求 SiliconFlow (${SILICONFLOW_MODEL})...`);
 
     const controller = new AbortController();
+    const UPSTREAM_STREAM_MS = 90000;
     const timeoutId = setTimeout(() => {
-      console.warn('[Stream] 请求超时 (30s)');
+      console.warn(`[Stream] 上游请求超时 (${UPSTREAM_STREAM_MS / 1000}s)`);
       controller.abort();
-    }, 30000);
+    }, UPSTREAM_STREAM_MS);
 
     let response;
     try {
@@ -491,7 +516,7 @@ app.post('/api/analyze_mood_stream', async (req, res) => {
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`[Stream] API 响应错误 [${response.status}]:`, errorText);
-      res.write(`data: ${JSON.stringify({ error: `API error: ${response.status}`, done: true })}\n\n`);
+      res.write(`data: ${JSON.stringify({ error: formatSiliconflowUpstreamError(response.status, errorText), done: true })}\n\n`);
       res.end();
       return;
     }
@@ -500,6 +525,16 @@ app.post('/api/analyze_mood_stream', async (req, res) => {
 
     let accumulated = '';
     let lineBuffer = '';
+
+    const keepAlive = setInterval(() => {
+      if (!res.writableEnded) {
+        try {
+          res.write(': keepalive\n\n');
+        } catch (e) {
+          clearInterval(keepAlive);
+        }
+      }
+    }, 12000);
 
     // 统一处理流的辅助函数
     const processChunk = (chunkText) => {
@@ -534,24 +569,28 @@ app.post('/api/analyze_mood_stream', async (req, res) => {
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
 
-      const chunkText = decoder.decode(value, { stream: true });
-      const shouldContinue = processChunk(chunkText);
-      if (!shouldContinue) break;
-    }
+        const chunkText = decoder.decode(value, { stream: true });
+        const shouldContinue = processChunk(chunkText);
+        if (!shouldContinue) break;
+      }
 
-    // Flush UTF-8 decoder (multi-byte char at chunk boundary) before draining line buffer
-    const utf8Tail = decoder.decode(new Uint8Array(), { stream: false });
-    if (utf8Tail) {
-      processChunk(utf8Tail);
-    }
+      // Flush UTF-8 decoder (multi-byte char at chunk boundary) before draining line buffer
+      const utf8Tail = decoder.decode(new Uint8Array(), { stream: false });
+      if (utf8Tail) {
+        processChunk(utf8Tail);
+      }
 
-    // 处理最后剩余的 buffer
-    if (lineBuffer.trim()) {
-      processChunk('\n');
+      // 处理最后剩余的 buffer
+      if (lineBuffer.trim()) {
+        processChunk('\n');
+      }
+    } finally {
+      clearInterval(keepAlive);
     }
 
     // 解析最终结果
@@ -621,7 +660,7 @@ app.post('/api/comprehensive_analyze', async (req, res) => {
     });
   }
 
-  const { user_input, current_time } = req.body;
+  const { user_input, current_time, user_profile } = req.body;
 
   if (!user_input || typeof user_input !== 'string' || !user_input.trim()) {
     return res.status(400).json({

@@ -3656,7 +3656,11 @@ const App = () => {
         }}
         onError={(error) => {
           setMixMode('home');
-          showFriendlyNotice('灵感有些迟疑', '分析网络可能存在波动，请稍后再试。', 'error');
+          const detail =
+            error && typeof error.message === 'string' && error.message.trim()
+              ? error.message.trim()
+              : '分析网络可能存在波动，请稍后再试。';
+          showFriendlyNotice('灵感有些迟疑', detail, 'error');
         }}
       />
       <SideNavigation

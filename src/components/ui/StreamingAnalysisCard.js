@@ -113,26 +113,63 @@ const StreamingAnalysisCard = ({
 
       abortControllerRef.current = new AbortController();
 
+      // Profile injection (deterministic birthday -> birthdayWuxing).
+      const STORAGE_KEY_PROFILE = 'moodmix_profile';
+      let user_profile = { profileApplied: false, birthdayWuxing: null, birthplace: '', longTermCity: '' };
       try {
-        // Profile injection (deterministic birthday -> birthdayWuxing).
-        const STORAGE_KEY_PROFILE = 'moodmix_profile';
-        let user_profile = { profileApplied: false, birthdayWuxing: null, birthplace: '', longTermCity: '' };
-        try {
-          const stored = localStorage.getItem(STORAGE_KEY_PROFILE);
-          if (stored) {
-            const profile = JSON.parse(stored);
-            const birthdayWuxing = calculateWuxingFromBirthday(profile?.birthday);
-            user_profile = {
-              profileApplied: !!birthdayWuxing,
-              birthdayWuxing,
-              birthplace: profile?.birthplace || '',
-              longTermCity: profile?.longTermCity || profile?.city || ''
-            };
-          }
-        } catch (e) {
-          // Keep fallback (no profile) if localStorage is unavailable.
+        const stored = localStorage.getItem(STORAGE_KEY_PROFILE);
+        if (stored) {
+          const profile = JSON.parse(stored);
+          const birthdayWuxing = calculateWuxingFromBirthday(profile?.birthday);
+          user_profile = {
+            profileApplied: !!birthdayWuxing,
+            birthdayWuxing,
+            birthplace: profile?.birthplace || '',
+            longTermCity: profile?.longTermCity || profile?.city || ''
+          };
         }
+      } catch (e) {
+        // Keep fallback (no profile) if localStorage is unavailable.
+      }
 
+      const runComprehensiveFallback = async () => {
+        const r = await fetch('/api/comprehensive_analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user_input: userInput,
+            current_time: new Date().toISOString(),
+            user_profile
+          }),
+          signal: abortControllerRef.current.signal
+        });
+        if (!r.ok) {
+          throw new Error(`聚合分析失败 (${r.status})`);
+        }
+        const json = await r.json();
+        if (!json.success || !json.data) {
+          throw new Error(json.error || '聚合分析返回异常');
+        }
+        const { moodData, patternAnalysis, vectorResult } = json.data;
+        const summary = moodData?.summary || '寻味之旅已开启';
+        return { moodData, patternAnalysis, vectorResult, summary };
+      };
+
+      const completeAnalysis = (data) => {
+        resultDataRef.current = data;
+        clearInterval(statusInterval);
+        setPhase('complete');
+        setStatusText('心意已达');
+        const s = data.summary || data.moodData?.summary;
+        if (s) setSummaryText(s);
+        setTimeout(() => {
+          if (onStreamCompleteRef.current && resultDataRef.current) {
+            onStreamCompleteRef.current(resultDataRef.current);
+          }
+        }, 800);
+      };
+
+      try {
         const response = await fetch('/api/analyze_mood_stream', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -144,7 +181,17 @@ const StreamingAnalysisCard = ({
           signal: abortControllerRef.current.signal
         });
 
+        if (IS_DEV) {
+          fetch('http://127.0.0.1:7693/ingest/adc81e44-f8f0-44ea-8bd0-d1a31dbda974',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'StreamingAnalysisCard.js:post-fetch',message:'analyze_mood_stream response',data:{status:response.status,ok:response.ok,contentType:response.headers.get('content-type')||''},timestamp:Date.now(),hypothesisId:'H1',runId:'pre-fix'})}).catch(()=>{});
+        }
+
         if (!response.ok) {
+          const errBody = await response.text().catch(() => '');
+          if (IS_DEV) {
+            let errJsonHint = '';
+            try { const j = JSON.parse(errBody); errJsonHint = (j.error || j.message || '').toString().slice(0, 200); } catch (_) {}
+            fetch('http://127.0.0.1:7693/ingest/adc81e44-f8f0-44ea-8bd0-d1a31dbda974',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'StreamingAnalysisCard.js:http-not-ok',message:'non-2xx body',data:{status:response.status,bodySnippet:errBody.slice(0,400),parsedError:errJsonHint},timestamp:Date.now(),hypothesisId:'H1',runId:'pre-fix'})}).catch(()=>{});
+          }
           throw new Error(`API error: ${response.status}`);
         }
 
@@ -190,6 +237,9 @@ const StreamingAnalysisCard = ({
           }
 
           if (data.done) {
+            if (IS_DEV) {
+              fetch('http://127.0.0.1:7693/ingest/adc81e44-f8f0-44ea-8bd0-d1a31dbda974',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'StreamingAnalysisCard.js:sse-done',message:'terminal SSE frame',data:{hasError:!!data.error,errorStr:(data.error&&String(data.error).slice(0,200))||'',hasData:!!data.data,dataKeys:data.data&&typeof data.data==='object'?Object.keys(data.data).slice(0,12):[]},timestamp:Date.now(),hypothesisId:'H2',runId:'pre-fix'})}).catch(()=>{});
+            }
             if (data.error) {
               throw new Error(data.error);
             }
@@ -251,32 +301,29 @@ const StreamingAnalysisCard = ({
         }
 
         if (!resultData) {
-          throw new Error('STREAMING_NO_RESULT: 未收到结束帧或解析失败');
-        }
-
-        clearInterval(statusInterval);
-        setPhase('complete');
-        setStatusText('心意已达');
-
-
-        if (resultData?.summary) {
-          setSummaryText(resultData.summary);
-        }
-
-        setTimeout(() => {
-
-          if (onStreamCompleteRef.current && resultDataRef.current) {
-            onStreamCompleteRef.current(resultDataRef.current);
+          if (IS_DEV) {
+            fetch('http://127.0.0.1:7693/ingest/adc81e44-f8f0-44ea-8bd0-d1a31dbda974',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'StreamingAnalysisCard.js:no-result',message:'STREAMING_NO_RESULT',data:{fullTextLen:fullText.length,hasResultMarker:fullText.includes('[RESULT]'),fullHead:fullText.slice(0,120)},timestamp:Date.now(),hypothesisId:'H3',runId:'pre-fix'})}).catch(()=>{});
           }
-        }, 800);
+          throw new Error('STREAMING_NO_RESULT');
+        }
+
+        completeAnalysis(resultData);
 
       } catch (error) {
         clearInterval(statusInterval);
         if (error.name === 'AbortError') return;
-        console.error('[StreamingAnalysisCard] Error:', error);
-        setPhase('error');
-        setStatusText('灵感有些迟疑…');
-        if (onErrorRef.current) onErrorRef.current(error);
+        try {
+          const fb = await runComprehensiveFallback();
+          completeAnalysis(fb);
+        } catch (fallbackErr) {
+          if (IS_DEV) {
+            fetch('http://127.0.0.1:7693/ingest/adc81e44-f8f0-44ea-8bd0-d1a31dbda974',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'StreamingAnalysisCard.js:catch',message:'stream error',data:{name:error.name,message:String(error.message).slice(0,300),fallback:String(fallbackErr.message).slice(0,200)},timestamp:Date.now(),hypothesisId:'H4',runId:'pre-fix'})}).catch(()=>{});
+          }
+          console.error('[StreamingAnalysisCard] Error:', error, fallbackErr);
+          setPhase('error');
+          setStatusText('灵感有些迟疑…');
+          if (onErrorRef.current) onErrorRef.current(fallbackErr);
+        }
       } finally {
         isRunningRef.current = false;
       }

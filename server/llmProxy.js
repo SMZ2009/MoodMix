@@ -13,6 +13,7 @@
 
 const express = require('express');
 const cors = require('cors');
+const fs = require('fs');
 const path = require('path');
 const http = require('http');
 const { Server } = require('socket.io');
@@ -33,6 +34,7 @@ const io = new Server(server, {
   pingInterval: 25000
 });
 const PORT = process.env.PORT || process.env.PROXY_PORT || 3001;
+const AGENT_DEBUG_LOG = path.join(__dirname, '..', '.cursor', 'debug.log');
 
 // ═══════════════════════════════════════════
 // 配置常量
@@ -64,6 +66,29 @@ const getFetch = async () => {
     return null;
   }
 };
+
+/** 将 SiliconFlow 非 2xx 响应体转为可展示文案（避免只显示 API error: 403） */
+function formatSiliconflowUpstreamError(status, errorText) {
+  const raw = (errorText || '').trim();
+  let upstream = '';
+  try {
+    const j = JSON.parse(raw);
+    if (j && typeof j.message === 'string') upstream = j.message;
+    else if (j && typeof j.error === 'string') upstream = j.error;
+  } catch (_) {
+    if (raw) upstream = raw.slice(0, 400);
+  }
+  if (!upstream) upstream = `HTTP ${status}`;
+
+  if (/balance is insufficient|余额不足|insufficient balance/i.test(upstream) || /30001/.test(raw)) {
+    return '大模型服务账户余额不足，请前往 SiliconFlow 控制台充值后重试。';
+  }
+  if (/invalid api key|incorrect api key|api key not valid|invalid.*api\s*key/i.test(upstream)) {
+    return '大模型 API Key 无效或已过期，请检查 .env 中的 SILICONFLOW_API_KEY。';
+  }
+  const short = upstream.length > 220 ? `${upstream.slice(0, 220)}…` : upstream;
+  return `服务暂时不可用（${status}）：${short}`;
+}
 
 /**
  * 统一的成功响应格式
@@ -170,6 +195,11 @@ const validateApiKey = (req, res, next) => {
   const apiKey = process.env.SILICONFLOW_API_KEY;
   
   if (!apiKey || apiKey === 'your_key_here') {
+    // #region agent log
+    try {
+      fs.appendFileSync(AGENT_DEBUG_LOG, JSON.stringify({ location: 'llmProxy.js:validateApiKey', message: 'missing or placeholder SILICONFLOW_API_KEY', data: { hasKey: !!apiKey, isPlaceholder: apiKey === 'your_key_here', path: req.path }, timestamp: Date.now(), hypothesisId: 'H1', runId: 'pre-fix' }) + '\n');
+    } catch (_) {}
+    // #endregion
     return errorResponse(res, 500, 'SILICONFLOW_API_KEY 未配置。请在 .env 文件中设置你的 API Key。');
   }
   
@@ -610,7 +640,7 @@ async function handleStreamMoodAnalysis(req, res) {
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`[Stream] API 响应错误 [${response.status}]:`, errorText);
-      sendEvent({ error: `API error: ${response.status}`, done: true });
+      sendEvent({ error: formatSiliconflowUpstreamError(response.status, errorText), done: true });
       res.end();
       return;
     }

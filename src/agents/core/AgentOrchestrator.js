@@ -295,7 +295,8 @@ export async function executeRecommendationPipeline(userInput, options = {}) {
       const inventory = context.inventory;
 
       if (moodData && allDrinks && allDrinks.length > 0) {
-        const pool = await evaluateAndSortDrinks(moodData, allDrinks, inventory, patternAnalysis);
+        const rankingSalt = cleanUserInput;
+        const pool = await evaluateAndSortDrinks(moodData, allDrinks, inventory, patternAnalysis, rankingSalt);
 
         // Phase 3.5: 安全拦截（同步，<10ms）
         const safePool = safetyFilter(pool, moodData, allDrinks);
@@ -317,7 +318,13 @@ export async function executeRecommendationPipeline(userInput, options = {}) {
         (async () => {
           try {
             const patternAnalysis = context.getIntermediate('patternAnalysis');
-            const contextData = { moodData, patternAnalysis, summary: moodData?.summary };
+            const contextData = {
+              moodData,
+              patternAnalysis,
+              summary: moodData?.summary,
+              rankingSalt: cleanUserInput,
+              vectorResult: context.getIntermediate('vectorResult'),
+            };
             const safeDrinks = matches.map(m => m.drink);
 
             // 并行执行: 文案生成 + 质量评估
@@ -330,7 +337,13 @@ export async function executeRecommendationPipeline(userInput, options = {}) {
                   const copyResult = await copywriter.execute(context);
                   context.setOutput('CreativeCopywriter', copyResult);
                   if (options.onVectorSearchSuccess && matches.length > 0) {
-                    options.onVectorSearchSuccess(safeDrinks, { moodData, patternAnalysis });
+                    options.onVectorSearchSuccess(safeDrinks, {
+                      moodData,
+                      patternAnalysis,
+                      summary: moodData?.summary,
+                      rankingSalt: cleanUserInput,
+                      vectorResult: context.getIntermediate('vectorResult'),
+                    });
                   }
                 }
               })(),

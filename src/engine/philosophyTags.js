@@ -125,6 +125,23 @@ const TASTE_MODIFIERS = {
     spicy: { threshold: 3, word: '辛香', effect: '升提' },
 };
 
+/** 矩阵格内次强味觉时改写「·」后半，减少全员「凉爽·顺滑」 */
+const TASTE_MATRIX_TAIL = {
+    sour: '开胃',
+    sweet: '回甘',
+    bitter: '清苦',
+    spicy: '开窍',
+    umami: '鲜醇',
+};
+
+const RELATION_PHRASE_VARIANTS = {
+    生: (el) => [`借${el}生发`, `借${el}舒扬`, `以${el}顺势`],
+    被生: (el) => [`以${el}滋养`, `承${el}之润`, `得${el}之养`],
+    克: (el) => [`以${el}制衡`, `借${el}降伏`, `用${el}镇一下`],
+    被克: (el) => [`借${el}收敛`, `以${el}收束`, `用${el}压住`],
+    同: (el) => [`同${el}共振`, `与${el}同频`, `和${el}同调`],
+};
+
 // ============================================================
 //  标签生成函数
 // ============================================================
@@ -141,6 +158,29 @@ function getDimensionIntensity(moodData, key) {
     return 0;
 }
 
+/** FNV-1a，与 vectorEngine 一致，用于稳定盐与哈希抽签 */
+function hash32(str) {
+    const s = String(str ?? '');
+    let h = 2166136261;
+    for (let i = 0; i < s.length; i++) {
+        h ^= s.charCodeAt(i);
+        h = Math.imul(h, 16777619);
+    }
+    return h >>> 0;
+}
+
+/** 从摘要粗判主维，减轻低强度时五行偏置单一 */
+function inferPrimaryFromSummary(summary) {
+    const t = String(summary || '');
+    if (/夜|凌晨|深夜|熬夜|失眠|睡不着/.test(t)) return 'time';
+    if (/社交|聚会|应酬|场合|热闹|朋友/.test(t)) return 'socialContext';
+    if (/神思|思绪|乱想|散|乱|专注|头脑/.test(t)) return 'cognitive';
+    if (/累|乏|疲惫|酸痛|身体|寒|燥热|胃/.test(t)) return 'somatic';
+    if (/想|要|希望|需要|慰藉|安静|释放|提神/.test(t)) return 'demand';
+    if (/愁|忧|焦虑|不安|情绪|心|郁/.test(t)) return 'emotion';
+    return null;
+}
+
 /**
  * 标签1：辨证标签 —— "你现在怎么了"
  * 
@@ -151,9 +191,10 @@ function getDimensionIntensity(moodData, key) {
  * 
  * @param {Object} moodData - Agent 1 输出的六维数据
  * @param {Object} patternAnalysis - Agent 2 输出的辨证结论
+ * @param {{ summary?: string, rankingSalt?: string }|null} tagContext - 用于低强度时主维打散
  * @returns {string} 如 "郁气难舒" / "心绪浮躁，神思困顿"
  */
-function generateDiagnosisTag(moodData, patternAnalysis) {
+function generateDiagnosisTag(moodData, patternAnalysis, tagContext = null) {
     if (!moodData || !patternAnalysis) {
         // 增加日志以定位缺失点
         if (!moodData) console.warn('[PhilosophyTags] generateDiagnosisTag failed: moodData is missing');
@@ -179,16 +220,26 @@ function generateDiagnosisTag(moodData, patternAnalysis) {
     ];
 
     const maxI = Math.max(...dims.map((d) => d.intensity), 0);
-    // 若模型完全未给强度：按用户五行略作偏置，避免永远落在「情绪→倦怠沉闷」
+    // 若模型完全未给强度：摘要关键词 / 哈希盐 轮转主维，避免水行恒为 demand→「想要慰藉」
     if (maxI < 0.02) {
-        const biasPrimary = {
-            wood: 'emotion',
-            fire: 'emotion',
-            earth: 'somatic',
-            metal: 'cognitive',
-            water: 'demand',
-        };
-        const prefer = biasPrimary[userWuxing] || 'emotion';
+        const summary =
+            (tagContext && tagContext.summary) ||
+            moodData.summary ||
+            '';
+        const rankingSalt = (tagContext && tagContext.rankingSalt) || '';
+        let prefer = inferPrimaryFromSummary(summary);
+        if (!prefer) {
+            const h = hash32(String(summary) + String(rankingSalt));
+            const biasPools = {
+                wood: ['emotion', 'somatic', 'demand'],
+                fire: ['emotion', 'cognitive', 'demand'],
+                earth: ['somatic', 'emotion', 'demand'],
+                metal: ['cognitive', 'emotion', 'somatic'],
+                water: ['emotion', 'demand', 'somatic', 'socialContext'],
+            };
+            const pool = biasPools[userWuxing] || ['emotion', 'demand', 'somatic'];
+            prefer = pool[h % pool.length];
+        }
         dims = dims.map((d) =>
             d.key === prefer ? { ...d, intensity: 0.55 } : { ...d, intensity: 0.2 }
         );
@@ -228,11 +279,30 @@ function generateDiagnosisTag(moodData, patternAnalysis) {
         }
 
     } else if (primary.key === 'demand') {
-        // 从 demand 的物理映射推断诉求类型
         const actionScore = moodData.demand?.drinkMapping?.actionScore ?? 2;
-        if (actionScore >= 4) mainTag = STATE_DESCRIPTORS.demand.release;
-        else if (actionScore <= 1) mainTag = STATE_DESCRIPTORS.demand.calm;
-        else mainTag = STATE_DESCRIPTORS.demand.comfort;
+        const stateText = (moodData.demand?.physical?.state || '').toString();
+        const midSalt = hash32(
+            String(moodData.summary || '') + stateText + String(tagContext?.rankingSalt || '')
+        );
+        if (actionScore >= 4) {
+            mainTag = STATE_DESCRIPTORS.demand.release;
+        } else if (actionScore <= 1) {
+            mainTag = STATE_DESCRIPTORS.demand.calm;
+        } else if (/静|安|睡|缓|慢|淡/.test(stateText)) {
+            mainTag = STATE_DESCRIPTORS.demand.calm;
+        } else if (/聚|闹|兴|社交|人|场/.test(stateText)) {
+            mainTag = STATE_DESCRIPTORS.demand.social;
+        } else if (/提|神|醒|冲|劲/.test(stateText)) {
+            mainTag = STATE_DESCRIPTORS.demand.energize;
+        } else {
+            const midPool = [
+                STATE_DESCRIPTORS.demand.comfort,
+                '想要缓一缓',
+                '想要被接住',
+                '想要一点安定',
+            ];
+            mainTag = midPool[midSalt % midPool.length];
+        }
     } else if (primary.key === 'time') {
         const hour = moodData.time?.physical?.hour ?? moodData.time?.hour;
         if (hour != null && (hour >= 22 || hour < 5)) {
@@ -288,20 +358,30 @@ function generateDiagnosisTag(moodData, patternAnalysis) {
  *
  * @param {Object} patternAnalysis - Agent 2 输出
  * @param {string} drinkWuXing - 饮品五行 (英文 key)
+ * @param {string} drinkName - 饮品名，用于同关系下短语分流
+ * @param {Object} [dimensions] - 饮品维度（预留与味觉联动）
  * @returns {string} 如 "以金制衡" / "同火共振"
  */
-function generateStrategyTag(patternAnalysis, drinkWuXing) {
+function generateStrategyTag(patternAnalysis, drinkWuXing, drinkName = '', dimensions = null) {
     if (!patternAnalysis || !drinkWuXing) {
         return '调和气机';
     }
 
     const userWuxing = patternAnalysis?.wuxing?.user || 'earth';
-    const userEl = WUXING_CN[userWuxing] || '气';
     const drinkEl = WUXING_CN[drinkWuXing] || '气';
 
     const relation = getWuxingRelation(userWuxing, drinkWuXing);
-    const phraseBuilder = RELATION_PHRASES[relation];
+    const variantsFn = RELATION_PHRASE_VARIANTS[relation];
+    if (variantsFn) {
+        const variants = variantsFn(drinkEl);
+        const taste = dimensions?.taste || {};
+        const tasteHint = ['sour', 'sweet', 'bitter', 'spicy', 'umami']
+            .sort((a, b) => (taste[b] ?? 0) - (taste[a] ?? 0))[0];
+        const idx = hashSelect(`${drinkName}_${tasteHint || 'x'}`, variants.length);
+        return variants[idx];
+    }
 
+    const phraseBuilder = RELATION_PHRASES[relation];
     return phraseBuilder ? phraseBuilder(drinkEl) : `${drinkEl}调养`;
 }
 
@@ -314,9 +394,10 @@ function generateStrategyTag(patternAnalysis, drinkWuXing) {
  *   3. 格式统一 "XX·YY"
  *
  * @param {Object} dimensions - 饮品物理维度
+ * @param {string} drinkName - 同格矩阵时分流「·」后半
  * @returns {string} 如 "清冽·沉降" / "辛香·升提"
  */
-function generateSensoryTag(dimensions) {
+function generateSensoryTag(dimensions, drinkName = '') {
     if (!dimensions) {
         return '口感待品';
     }
@@ -360,6 +441,26 @@ function generateSensoryTag(dimensions) {
     if (dominantTaste && maxExcess > 0) {
         const parts = sensory.split('·');
         sensory = `${parts[0]}·${dominantTaste.effect}`;
+    } else {
+        // 未过 TASTE_MODIFIERS 阈值时，仍可用主味觉轻改后半，避免同格全员雷同
+        const tasteKeys = ['sour', 'sweet', 'bitter', 'spicy', 'umami'];
+        let bestK = null;
+        let bestV = -1;
+        for (const k of tasteKeys) {
+            const val = taste[k] ?? 0;
+            if (val > bestV) {
+                bestV = val;
+                bestK = k;
+            }
+        }
+        if (bestK && bestV >= 2.5 && TASTE_MATRIX_TAIL[bestK]) {
+            const parts = sensory.split('·');
+            if (parts.length === 2) {
+                const pick = hashSelect(`${drinkName}_${matrixKey}_${bestK}`, 2);
+                const tail = pick === 0 ? TASTE_MATRIX_TAIL[bestK] : parts[1];
+                sensory = `${parts[0]}·${tail}`;
+            }
+        }
     }
 
     return sensory;
@@ -383,9 +484,9 @@ function generateSensoryTag(dimensions) {
  * 坏的推荐语示例（v3.0 的问题）：
  *   "「木气偏郁，以纠偏调中，甘甜冰凉之恢复平衡」" ← 机器拼接感
  */
-function generateLocalQuote(moodData, patternAnalysis, dimensions, drinkName) {
+function generateLocalQuote(moodData, patternAnalysis, dimensions, drinkName, tagContext = null) {
     // 获取状态描述 (复用 tag1 的逻辑)
-    const stateDesc = generateDiagnosisTag(moodData, patternAnalysis) || '心绪有些波澜';
+    const stateDesc = generateDiagnosisTag(moodData, patternAnalysis, tagContext) || '心绪有些波澜';
 
     // 获取饮品的核心感官特征
     const sensory = describeDrinkCharacter(dimensions);
@@ -587,17 +688,22 @@ export function generatePhilosophyTags(dimensions, contextData = null, drinkName
         };
     }
 
+    const tagContext = {
+        summary: contextData.summary || moodData.summary,
+        rankingSalt: contextData.rankingSalt || '',
+    };
+
     // 确定饮品五行
     const drinkWuXing = determineDrinkWuXing(dimensions);
 
     // 生成三个标签
     // 如果依然缺少 patternAnalysis，但有 moodData，尝试在生成时做最后一次兜底
-    const tag1 = generateDiagnosisTag(moodData, patternAnalysis);
-    const tag2 = generateStrategyTag(patternAnalysis, drinkWuXing);
-    const tag3 = generateSensoryTag(dimensions);
+    const tag1 = generateDiagnosisTag(moodData, patternAnalysis, tagContext);
+    const tag2 = generateStrategyTag(patternAnalysis, drinkWuXing, drinkName, dimensions);
+    const tag3 = generateSensoryTag(dimensions, drinkName);
 
     // 生成本地推荐语
-    const quote = generateLocalQuote(moodData, patternAnalysis, dimensions, drinkName);
+    const quote = generateLocalQuote(moodData, patternAnalysis, dimensions, drinkName, tagContext);
 
 
     return {

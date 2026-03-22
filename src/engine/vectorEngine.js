@@ -135,6 +135,61 @@ function applyPatternAnalysisToUserVector(v, patternAnalysis, moodData, rankingS
 }
 
 /**
+ * 用户原文盐：微调味觉/质地/温度维，使同一辨证下换文案仍改变检索排序。
+ */
+function applyRankingSaltPerturbation(v, rankingSalt, summary) {
+    const h = hash32(String(rankingSalt || '') + String(summary || ''));
+    const d0 = ((h % 21) - 10) / 10;
+    const d1 = (((h >> 7) % 11) - 5) / 5;
+    const d2 = (((h >> 15) % 13) - 6) / 3;
+    v[0] = Math.max(0, Math.min(10, (v[0] ?? 5) + d0));
+    v[1] = Math.max(-3, Math.min(3, (v[1] ?? 0) + d1));
+    v[2] = Math.max(-5, Math.min(5, (v[2] ?? 0) + d2));
+}
+
+function l1Distance8(a, b) {
+    if (!a || !b || a.length < 8 || b.length < 8) return 0;
+    let s = 0;
+    for (let i = 0; i < 8; i++) s += Math.abs(a[i] - b[i]);
+    return s;
+}
+
+/**
+ * 从前 poolSize 名中贪心选 k 款：已选集合内饮品离线向量两两尽量远，减少「同一风味簇占满 Top9」。
+ */
+function diversifyByEmbedding(sortedPool, k, poolSize) {
+    const pool = sortedPool.slice(0, Math.min(poolSize, sortedPool.length));
+    if (pool.length <= k) return pool.map(stripEmbed);
+    const selected = [pool[0]];
+    const rest = pool.slice(1);
+    while (selected.length < k && rest.length) {
+        let bestI = 0;
+        let bestScore = -Infinity;
+        for (let i = 0; i < rest.length; i++) {
+            const cand = rest[i];
+            const emb = cand.embeddingVector;
+            let minD = Infinity;
+            for (const s of selected) {
+                const d = l1Distance8(emb, s.embeddingVector);
+                if (d < minD) minD = d;
+            }
+            const score = minD + cand.similarityScore * 8;
+            if (score > bestScore) {
+                bestScore = score;
+                bestI = i;
+            }
+        }
+        selected.push(rest.splice(bestI, 1)[0]);
+    }
+    return selected.map(stripEmbed);
+}
+
+function stripEmbed(item) {
+    const { embeddingVector: _, ...rest } = item;
+    return rest;
+}
+
+/**
  * 构造用户的需求向量 (用于余弦相似度计算)
  * @param {Object|null} patternAnalysis - 可选；有则合并五行/策略到向量，避免仅靠默认 drinkMapping
  * @param {string} rankingSalt - 用户原始输入等，用于时序微扰
@@ -158,7 +213,9 @@ export function buildUserVector(moodData, patternAnalysis = null, rankingSalt = 
     // 7: 动作: 1-5
     v[7] = Math.max(moodData.demand?.drinkMapping?.actionScore ?? 0, moodData.socialContext?.drinkMapping?.actionScore ?? 0) || 2;
 
-    return applyPatternAnalysisToUserVector(v, patternAnalysis, moodData, rankingSalt);
+    applyPatternAnalysisToUserVector(v, patternAnalysis, moodData, rankingSalt);
+    applyRankingSaltPerturbation(v, rankingSalt, moodData?.summary);
+    return v;
 }
 
 /**
@@ -308,7 +365,8 @@ export async function evaluateAndSortDrinks(
         const evaluatedItem = {
             ...drink,
             ...(hasInventory ? { missingCount, missingItems, isReadyToMake } : {}),
-            similarityScore: similarity
+            similarityScore: similarity,
+            embeddingVector: v.slice(),
         };
 
         evaluatedBasePool.push(evaluatedItem);
@@ -321,32 +379,11 @@ export async function evaluateAndSortDrinks(
 
     let finalPool = evaluatedBasePool;
 
-    // 前端只取前 9（首屏展示为主，减少长尾计算）
-    const top9 = finalPool.slice(0, 9);
-
-    // #region agent log
-    if (typeof console !== 'undefined') {
-        const hasMapping = !!(
-            moodData?.emotion?.drinkMapping?.colorCode != null ||
-            moodData?.emotion?.drinkMapping?.tasteScore != null
-        );
-        console.log(
-            '__MM_DEBUG_NDJSON__',
-            JSON.stringify({
-                location: 'vectorEngine:evaluateAndSortDrinks',
-                hypothesisId: 'override-v3-salt-v4',
-                hasMapping,
-                wuxing: patternAnalysis?.wuxing?.user,
-                v3: userVector[3],
-                v4: userVector[4],
-                poolSize: allDrinks.length,
-                top9ids: top9.map((d) => d.id),
-                runId: 'post-fix-2',
-                timestamp: Date.now(),
-            })
-        );
-    }
-    // #endregion
+    const pickMode = !sessionIngredients || sessionIngredients.length === 0;
+    const top9 =
+        pickMode && finalPool.length > 9
+            ? diversifyByEmbedding(finalPool, 9, 40)
+            : finalPool.slice(0, 9);
 
     console.log('🏆 Top 9 最终推荐结果排行:');
     top9.forEach((d, i) => {

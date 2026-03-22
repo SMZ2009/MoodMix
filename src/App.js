@@ -3553,6 +3553,7 @@ const App = () => {
             moodData,
             patternAnalysis,
             summary,
+            rankingSalt,
             // 如果后端没有返回 vectorResult，某些逻辑可能还需要它，但通常在后端完成
             vectorResult: resultData.vectorResult 
           };

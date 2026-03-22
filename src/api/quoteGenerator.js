@@ -1,5 +1,114 @@
 import { generatePhilosophyTags } from '../engine/philosophyTags';
 
+/**
+ * 构建饮品物理特征描述；阈值均未命中时用 vector / 次高味觉作 fallback。
+ */
+function buildDrinkProfile(drink) {
+    if (!drink) return '风味待品';
+
+    const dimensions = drink.dimensions;
+    if (!dimensions) {
+        return vectorOrTasteFallback(drink);
+    }
+
+    const { taste, temperature, texture, aroma } = dimensions;
+    const parts = [];
+
+    if (taste) {
+        if (taste.sour > 3) parts.push('酸爽');
+        else if (taste.sweet > 4) parts.push('甘甜');
+        else if (taste.bitter > 3) parts.push('微苦');
+        else if (taste.spicy > 2) parts.push('辛香');
+        else if (taste.umami > 3) parts.push('鲜醇');
+        else {
+            const ranked = ['sour', 'sweet', 'bitter', 'spicy', 'umami']
+                .map((k) => ({ k, v: taste[k] ?? 0 }))
+                .sort((a, b) => b.v - a.v);
+            if (ranked.length >= 2 && ranked[1].v >= 1.5) {
+                const w = { sour: '微酸', sweet: '清甜', bitter: '清苦', spicy: '微辛', umami: '鲜香' };
+                parts.push(w[ranked[1].k] || '层次细腻');
+            }
+        }
+    }
+
+    const temp = temperature?.value || 0;
+    if (temp > 2) parts.push('温热');
+    else if (temp < -2) parts.push('冰凉');
+
+    if (texture) {
+        if (texture.value > 1) parts.push('绵密');
+        else if (texture.value < -1) parts.push('清透');
+    }
+
+    const aromaVal = aroma?.value || aroma || 0;
+    if (aromaVal > 7) parts.push('馥郁');
+    else if (aromaVal > 4) parts.push('清香');
+
+    if (parts.length > 0) return parts.join('，');
+    return vectorOrTasteFallback(drink);
+}
+
+function vectorOrTasteFallback(drink) {
+    const dims = drink.dimensions;
+    const taste = dims?.taste;
+    if (taste) {
+        const ranked = ['sour', 'sweet', 'bitter', 'spicy', 'umami']
+            .map((k) => ({ k, v: taste[k] ?? 0 }))
+            .sort((a, b) => b.v - a.v);
+        if (ranked[0] && ranked[0].v >= 1.2) {
+            const w = { sour: '偏酸灵', sweet: '偏甘润', bitter: '偏清苦', spicy: '偏辛香', umami: '偏鲜香' };
+            const bit = w[ranked[0].k];
+            if (bit) return bit;
+        }
+    }
+    const v = drink.vector;
+    if (v && v.length >= 8) {
+        const bits = [];
+        const t = v[0];
+        if (t <= 3) bits.push('风味偏淡');
+        else if (t >= 7) bits.push('风味饱满');
+        const tmp = v[2];
+        if (tmp <= -2) bits.push('偏凉');
+        else if (tmp >= 2) bits.push('偏暖');
+        const tex = v[1];
+        if (tex <= -1) bits.push('质地清透');
+        else if (tex >= 1) bits.push('质地厚润');
+        if (bits.length) return bits.join('，');
+    }
+    return '层次细腻';
+}
+
+/**
+ * 匹配原因：有向量结果时写主导维度；否则写推荐位次与近似度。
+ */
+function generateMatchReason(contextData, drink, rankIndex) {
+    const rank = typeof rankIndex === 'number' ? rankIndex + 1 : null;
+    const sim = drink.similarityScore ?? drink.similarity;
+    const simPct = typeof sim === 'number' ? (sim * 100).toFixed(1) : null;
+
+    if (!contextData || !contextData.vectorResult) {
+        if (rank && simPct != null) return `本批推荐第 ${rank} 位，风味接近度约 ${simPct}%`;
+        if (rank) return `本批推荐第 ${rank} 位`;
+        if (simPct != null) return `风味接近度约 ${simPct}%`;
+        return '综合匹配';
+    }
+
+    const { weights } = contextData.vectorResult;
+    if (!weights) {
+        if (rank && simPct != null) return `第 ${rank} 位 · 接近度约 ${simPct}%`;
+        if (rank) return `第 ${rank} 位`;
+        return '综合匹配';
+    }
+
+    const dimensions = ['味觉', '质地', '温度', '颜色', '时序', '嗅觉', '酒精度', '动作'];
+    const maxWeightIdx = weights.indexOf(Math.max(...weights));
+    const highWeightDim = dimensions[maxWeightIdx] || '综合';
+    if (rank && simPct != null) {
+        return `第 ${rank} 位 · ${highWeightDim}权重主导 · 接近度约 ${simPct}%`;
+    }
+    return `在${highWeightDim}维度匹配度最高`;
+}
+
 // 内存缓存字典，防止短时间重复查重
 let inMemoryQuoteCache = null;
 
@@ -66,7 +175,7 @@ export async function fetchLiveQuotes(drinksList, contextData, batchSize = 15, f
     // 1. 本地缓存碰撞测试 & 构造 Batch Request
     const targetDrinks = drinksList.slice(0, batchSize);
 
-    targetDrinks.forEach(drink => {
+    targetDrinks.forEach((drink, rankIndex) => {
         // 使用新版本的 generatePhilosophyTags，传入完整上下文
         const philosophyResult = generatePhilosophyTags(drink.dimensions, contextData, drink.name);
 
@@ -81,7 +190,7 @@ export async function fetchLiveQuotes(drinksList, contextData, batchSize = 15, f
             strategy: strategyTag,
             drinkProfile: buildDrinkProfile(drink),
             sensory: sensoryTag,
-            matchReason: generateMatchReason(contextData, drink),
+            matchReason: generateMatchReason(contextData, drink, rankIndex),
             // 新增：透传原始五行和策略 Key，方便模型匹配意象
             userWuxing: contextData.patternAnalysis?.wuxing?.user || 'earth',
             strategyType: contextData.patternAnalysis?.strategy?.type || 'balance',
@@ -122,62 +231,6 @@ export async function fetchLiveQuotes(drinksList, contextData, batchSize = 15, f
 
     console.log(`[QuoteGenerator] 🧠 需要请求 LLM 的饮品数量: ${unachedItems.length}`);
     console.log('[QuoteGenerator] 📤 发送的items数据:', JSON.stringify(unachedItems, null, 2));
-
-    /**
-     * 构建饮品的核心物理特征描述
-     */
-    function buildDrinkProfile(drink) {
-        if (!drink || !drink.dimensions) return '口感平衡';
-
-        const { taste, temperature, texture, aroma } = drink.dimensions;
-        const parts = [];
-
-        // 味觉
-        if (taste) {
-            if (taste.sour > 3) parts.push('酸爽');
-            else if (taste.sweet > 4) parts.push('甘甜');
-            else if (taste.bitter > 3) parts.push('微苦');
-            else if (taste.spicy > 2) parts.push('辛香');
-            else if (taste.umami > 3) parts.push('鲜醇');
-        }
-
-        // 温度
-        const temp = temperature?.value || 0;
-        if (temp > 2) parts.push('温热');
-        else if (temp < -2) parts.push('冰凉');
-
-        // 质地
-        if (texture) {
-            if (texture.value > 1) parts.push('绵密');
-            else if (texture.value < -1) parts.push('清透');
-        }
-
-        // 香气
-        const aromaVal = aroma?.value || aroma || 0;
-        if (aromaVal > 7) parts.push('馥郁');
-        else if (aromaVal > 4) parts.push('清香');
-
-        return parts.length > 0 ? parts.join('，') : '口感平衡';
-    }
-
-    /**
-     * 生成匹配原因描述
-     */
-    function generateMatchReason(contextData, drink) {
-        if (!contextData || !contextData.vectorResult) {
-            return '综合匹配';
-        }
-
-        const { targetVector, weights } = contextData.vectorResult;
-        if (!targetVector || !weights) return '综合匹配';
-
-        // 找出权重最高的维度
-        const dimensions = ['味觉', '质地', '温度', '颜色', '时序', '嗅觉', '酒精度', '动作'];
-        const maxWeightIdx = weights.indexOf(Math.max(...weights));
-
-        const highWeightDim = dimensions[maxWeightIdx] || '综合';
-        return `在${highWeightDim}维度匹配度最高`;
-    }
 
     console.log(`[QuoteGenerator] 🧠 存在 ${unachedItems.length} 杯酒需要请求 LLM 灵感...`);
 

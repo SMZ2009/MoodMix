@@ -4,7 +4,9 @@ import { inventoryStorage, ingredientCategories } from '../store/localStorageAda
 
 const DEFAULT_CATEGORIES = [
     '基酒', '利口酒', '苦精', '果汁', '水果', '糖浆/甜味剂', '气泡饮料',
-    '乳制品/蛋类', '香草/香料', '装饰', '其他'
+    '乳制品/蛋类', '香草/香料', '装饰',
+    '味美思', '葡萄酒/起泡酒',
+    '其他'
 ];
 
 const IngredientManager = ({ userInventory, onUpdate, showCustomForm, setShowCustomForm }) => {
@@ -106,7 +108,12 @@ const IngredientManager = ({ userInventory, onUpdate, showCustomForm, setShowCus
         if (apiCategories.length > 0) {
             const ordered = DEFAULT_CATEGORIES.filter(c => apiCategories.includes(c));
             const extra = apiCategories.filter(c => !DEFAULT_CATEGORIES.includes(c));
-            return [...ordered, ...extra];
+            const merged = [...ordered, ...extra];
+            // 「其他」始终置底；未来若有新分类只出现在 extra 里也不会插到「其他」下面
+            if (merged.includes('其他')) {
+                return merged.filter(c => c !== '其他').concat(['其他']);
+            }
+            return merged;
         }
         return DEFAULT_CATEGORIES;
     }, [standardIngredients]);

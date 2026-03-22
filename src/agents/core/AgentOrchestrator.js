@@ -296,7 +296,14 @@ export async function executeRecommendationPipeline(userInput, options = {}) {
 
       if (moodData && allDrinks && allDrinks.length > 0) {
         const rankingSalt = cleanUserInput;
-        const pool = await evaluateAndSortDrinks(moodData, allDrinks, inventory, patternAnalysis, rankingSalt);
+        const pool = await evaluateAndSortDrinks(
+          moodData,
+          allDrinks,
+          inventory,
+          patternAnalysis,
+          rankingSalt,
+          options.interventionType || null
+        );
 
         // Phase 3.5: 安全拦截（同步，<10ms）
         const safePool = safetyFilter(pool, moodData, allDrinks);

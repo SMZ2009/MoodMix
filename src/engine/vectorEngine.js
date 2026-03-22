@@ -147,6 +147,27 @@ function applyRankingSaltPerturbation(v, rankingSalt, summary) {
     v[2] = Math.max(-5, Math.min(5, (v[2] ?? 0) + d2));
 }
 
+/**
+ * 发泄/安抚与流式六维解耦：LLM 仍可能给出偏甘润的向量，此处按用户明确选择把检索目标拉向
+ * 烈/冷/高刺激（vent）或 柔/暖/低度（soothe）。饮品 v[6] 离线向量存的是 ABV 比例感。
+ */
+function applyInterventionBiasToUserVector(v, interventionType) {
+    if (!v || v.length < 8) return v;
+    if (interventionType === 'vent') {
+        v[0] = Math.min(10, (v[0] ?? 5) + 1.6);
+        v[1] = Math.min(3, (v[1] ?? 0) + 0.6);
+        v[2] = Math.max(-5, (v[2] ?? 0) - 2.5);
+        v[6] = Math.min(95, (v[6] ?? 40) + 22);
+        v[7] = Math.min(5, Math.max(1, Math.round((v[7] ?? 2) + 1.2)));
+    } else if (interventionType === 'soothe') {
+        v[0] = Math.max(0, (v[0] ?? 5) - 0.9);
+        v[2] = Math.min(5, (v[2] ?? 0) + 1.8);
+        v[6] = Math.max(15, (v[6] ?? 40) - 18);
+        v[7] = Math.max(1, Math.round((v[7] ?? 2) - 0.6));
+    }
+    return v;
+}
+
 function l1Distance8(a, b) {
     if (!a || !b || a.length < 8 || b.length < 8) return 0;
     let s = 0;
@@ -194,7 +215,7 @@ function stripEmbed(item) {
  * @param {Object|null} patternAnalysis - 可选；有则合并五行/策略到向量，避免仅靠默认 drinkMapping
  * @param {string} rankingSalt - 用户原始输入等，用于时序微扰
  */
-export function buildUserVector(moodData, patternAnalysis = null, rankingSalt = '') {
+export function buildUserVector(moodData, patternAnalysis = null, rankingSalt = '', interventionType = null) {
     const v = new Array(8).fill(0);
     // 0: 味觉: 0-10
     v[0] = moodData.emotion?.drinkMapping?.tasteScore ?? 5;
@@ -215,6 +236,7 @@ export function buildUserVector(moodData, patternAnalysis = null, rankingSalt = 
 
     applyPatternAnalysisToUserVector(v, patternAnalysis, moodData, rankingSalt);
     applyRankingSaltPerturbation(v, rankingSalt, moodData?.summary);
+    applyInterventionBiasToUserVector(v, interventionType);
     return v;
 }
 
@@ -267,11 +289,12 @@ export async function evaluateAndSortDrinks(
     allDrinks,
     sessionIngredients,
     patternAnalysis = null,
-    rankingSalt = ''
+    rankingSalt = '',
+    interventionType = null
 ) {
     const drinkVectors = await loadDrinkVectors();
     const dynamicWeights = computeDynamicWeights(moodData);
-    const userVector = buildUserVector(moodData, patternAnalysis, rankingSalt);
+    const userVector = buildUserVector(moodData, patternAnalysis, rankingSalt, interventionType);
 
     const moodSig = JSON.stringify({
         em: moodData?.emotion?.physical?.intensity,

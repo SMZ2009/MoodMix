@@ -3406,7 +3406,8 @@ const App = () => {
         allDrinksForPipeline,
         currentMode === 'diy' ? sessionIngredients : [],
         patternAnalysis,
-        rankingSalt
+        rankingSalt,
+        interventionType
       );
       const topMatches = rankedDrinks.slice(0, 9);
 
@@ -3489,7 +3490,7 @@ const App = () => {
       setMixMode('home');
       showFriendlyNotice('灵感有些迟疑', '推荐过程出现问题，请稍后再试。', 'error');
     }
-  }, [apiDrinks, customDrinks, sessionIngredients, currentMode, showFriendlyNotice, setCustomQuotes, moodInput, selectedMood, streamUserInputForMood]);
+  }, [apiDrinks, customDrinks, sessionIngredients, currentMode, showFriendlyNotice, setCustomQuotes, moodInput, selectedMood, streamUserInputForMood, interventionType]);
 
   const toggleIngredient = useCallback((id) => {
     setCheckedIngredients(prev => ({ ...prev, [id]: !prev[id] }));

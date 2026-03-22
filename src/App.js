@@ -1096,44 +1096,37 @@ const InterventionModal = ({ isOpen, onClose, onSelectType }) => {
           >
             万般心绪，皆是过客。<br />此刻，愿以何种心境入杯？
           </h2>
-          <div className="flex flex-col w-full gap-4">
-            <button
+          <div className="flex flex-col w-full gap-3">
+            <InteractiveButton
+              variant="glass-primary"
               onClick={() => onSelectType('soothe')}
-              className="group relative h-[58px] w-full rounded-2xl overflow-hidden transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
-              style={{
-                background: 'linear-gradient(135deg, rgba(60,59,54,0.88) 0%, rgba(40,39,34,0.95) 100%)',
-                boxShadow: '0 12px 24px rgba(60,54,40,0.20), inset 0 1px 0 rgba(255,255,255,0.12)',
-                backdropFilter: 'blur(8px)',
-                WebkitBackdropFilter: 'blur(8px)',
-              }}
+              className="w-full h-12"
             >
-              <span className="relative z-10 font-bold tracking-[0.15em] text-[#f7f0e4]" style={{ fontFamily: '"STKaiti", "KaiTi", serif' }}>
+              <span
+                style={{
+                  fontFamily: '"STKaiti", "KaiTi", serif',
+                  fontWeight: 700,
+                  letterSpacing: '0.15em',
+                }}
+              >
                 寻一抹宁静
               </span>
-              <div
-                className="absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-500"
-                style={{ background: 'radial-gradient(circle at center, white, transparent 70%)' }}
-              />
-            </button>
-
-            <button
+            </InteractiveButton>
+            <InteractiveButton
+              variant="glass-secondary"
               onClick={() => onSelectType('vent')}
-              className="group relative h-[58px] w-full rounded-2xl overflow-hidden transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
-              style={{
-                background: 'rgba(255,255,255,0.08)',
-                border: '1.5px solid rgba(60,59,54,0.35)',
-                backdropFilter: 'blur(12px)',
-                WebkitBackdropFilter: 'blur(12px)',
-              }}
+              className="w-full h-12"
             >
-              <span className="relative z-10 font-bold tracking-[0.15em]" style={{ fontFamily: '"STKaiti", "KaiTi", serif', color: 'rgba(60,59,54,0.85)' }}>
+              <span
+                style={{
+                  fontFamily: '"STKaiti", "KaiTi", serif',
+                  fontWeight: 700,
+                  letterSpacing: '0.15em',
+                }}
+              >
                 觅一处疏解
               </span>
-              <div
-                className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                style={{ background: 'rgba(60,59,54,0.06)' }}
-              />
-            </button>
+            </InteractiveButton>
           </div>
 
         </div>

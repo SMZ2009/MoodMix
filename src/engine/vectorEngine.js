@@ -1,5 +1,3 @@
-import { debugIngest } from '../utils/debugIngest';
-
 let drinkVectorsCache = null;
 
 /** 稳定哈希：用于在相似度极度接近时打散排序，避免每次同一批酒固定占 Top9 */
@@ -100,10 +98,11 @@ export function computeDynamicWeights(moodData) {
 }
 
 /**
- * 辨证结论映射到检索向量：用户五行 → 颜色维 (1–5 木火土金水)，策略微调动作维。
- * 无 drinkMapping 时全量应用；有 drinkMapping 时仅对颜色维做 0.5 混合，避免覆盖完整 LLM。
+ * 辨证结论映射到检索向量：用户五行 → 颜色维 (1–5)。
+ * 流式 LLM 常给 drinkMapping.colorCode≈3，若仅做 0.5 混合，火/水/土 的 v[3] 仍接近 3，Top9 几乎不变。
+ * 因此：只要有辨证五行，颜色维以辨证为准覆盖；并用 summary+盐微调时序维打散近并列。
  */
-function applyPatternAnalysisToUserVector(v, patternAnalysis, moodData) {
+function applyPatternAnalysisToUserVector(v, patternAnalysis, moodData, rankingSalt = '') {
     if (!patternAnalysis?.wuxing?.user) return v;
     const w = patternAnalysis.wuxing.user;
     const colorByWuxing = { wood: 1, fire: 2, earth: 3, metal: 4, water: 5 };
@@ -114,25 +113,33 @@ function applyPatternAnalysisToUserVector(v, patternAnalysis, moodData) {
         moodData?.emotion?.drinkMapping?.colorCode != null ||
         moodData?.emotion?.drinkMapping?.tasteScore != null;
 
+    // 颜色维：辨证优先（否则与 LLM 默认 colorCode 叠加后几乎恒为 3）
+    v[3] = cc;
+
+    const pol = patternAnalysis.polarity?.type;
+    const st = patternAnalysis.strategy?.type;
     if (!hasMapping) {
-        v[3] = cc;
-        const pol = patternAnalysis.polarity?.type;
         if (pol === 'positive') v[0] = Math.min(10, (v[0] || 5) + 0.5);
         else if (pol === 'negative') v[0] = Math.max(0, (v[0] || 5) - 0.5);
-        const st = patternAnalysis.strategy?.type;
         if (st === 'counter') v[7] = Math.min(5, Math.max(1, Math.round((v[7] || 2) + 1)));
         else if (st === 'resonate') v[7] = Math.min(5, Math.max(1, Math.round((v[7] || 2) - 1)));
     } else {
-        v[3] = Math.round(0.5 * (v[3] || 3) + 0.5 * cc);
+        if (st === 'counter') v[7] = Math.min(5, Math.max(1, Math.round((v[7] || 2) + 0.5)));
+        else if (st === 'resonate') v[7] = Math.min(5, Math.max(1, Math.round((v[7] || 2) - 0.5)));
     }
+
+    const tShift = (hash32(String(moodData?.summary || '') + w + String(rankingSalt || '')) % 9) - 4;
+    v[4] = Math.max(0, Math.min(23, Math.round((v[4] || 12) + tShift)));
+
     return v;
 }
 
 /**
  * 构造用户的需求向量 (用于余弦相似度计算)
  * @param {Object|null} patternAnalysis - 可选；有则合并五行/策略到向量，避免仅靠默认 drinkMapping
+ * @param {string} rankingSalt - 用户原始输入等，用于时序微扰
  */
-export function buildUserVector(moodData, patternAnalysis = null) {
+export function buildUserVector(moodData, patternAnalysis = null, rankingSalt = '') {
     const v = new Array(8).fill(0);
     // 0: 味觉: 0-10
     v[0] = moodData.emotion?.drinkMapping?.tasteScore ?? 5;
@@ -151,7 +158,7 @@ export function buildUserVector(moodData, patternAnalysis = null) {
     // 7: 动作: 1-5
     v[7] = Math.max(moodData.demand?.drinkMapping?.actionScore ?? 0, moodData.socialContext?.drinkMapping?.actionScore ?? 0) || 2;
 
-    return applyPatternAnalysisToUserVector(v, patternAnalysis, moodData);
+    return applyPatternAnalysisToUserVector(v, patternAnalysis, moodData, rankingSalt);
 }
 
 /**
@@ -198,10 +205,16 @@ function weightedCosineSimilarity(u, v, weights) {
 /**
  * 第1&2&3步：进行双轨过滤 + 加权计算矩阵推荐
  */
-export async function evaluateAndSortDrinks(moodData, allDrinks, sessionIngredients, patternAnalysis = null) {
+export async function evaluateAndSortDrinks(
+    moodData,
+    allDrinks,
+    sessionIngredients,
+    patternAnalysis = null,
+    rankingSalt = ''
+) {
     const drinkVectors = await loadDrinkVectors();
     const dynamicWeights = computeDynamicWeights(moodData);
-    const userVector = buildUserVector(moodData, patternAnalysis);
+    const userVector = buildUserVector(moodData, patternAnalysis, rankingSalt);
 
     const moodSig = JSON.stringify({
         em: moodData?.emotion?.physical?.intensity,
@@ -241,7 +254,6 @@ export async function evaluateAndSortDrinks(moodData, allDrinks, sessionIngredie
     }
 
     const evaluatedBasePool = [];
-    let fallbackVectorCount = 0;
 
     for (const drink of allDrinks) {
         // ID 兼容处理 (API 返回的是字母开头如 api_11000)
@@ -252,7 +264,6 @@ export async function evaluateAndSortDrinks(moodData, allDrinks, sessionIngredie
 
         // 如果连向量库都没有，赋予一个基准向量而不是直接 continue 丢弃
         const hasOfflineVec = !!(drinkVectors[vectorId] && drinkVectors[vectorId].v);
-        if (!hasOfflineVec) fallbackVectorCount += 1;
         let v = hasOfflineVec ? drinkVectors[vectorId].v : [5, 0, 0, 3, 12, 5, 15, 3];
 
         // 核心修复：如果传进来的 drink 没有自带的 abv (如来自之前旧版本的缓存或不完整的 fallback)，
@@ -314,31 +325,26 @@ export async function evaluateAndSortDrinks(moodData, allDrinks, sessionIngredie
     const top9 = finalPool.slice(0, 9);
 
     // #region agent log
-    {
-        const scores = top9.map((d) => d.similarityScore);
-        const scoreSpread = scores.length ? Math.max(...scores) - Math.min(...scores) : 0;
-        const top1 = evaluatedBasePool[0]?.similarityScore;
-        const nearTieCount = evaluatedBasePool.filter(
-            (d) => top1 != null && Math.abs(d.similarityScore - top1) < 0.0005
-        ).length;
-        debugIngest({
-            location: 'vectorEngine.js:evaluateAndSortDrinks',
-            message: 'ranking diagnostics',
-            data: {
-                hypothesisId: 'H1-H5',
+    if (typeof console !== 'undefined') {
+        const hasMapping = !!(
+            moodData?.emotion?.drinkMapping?.colorCode != null ||
+            moodData?.emotion?.drinkMapping?.tasteScore != null
+        );
+        console.log(
+            '__MM_DEBUG_NDJSON__',
+            JSON.stringify({
+                location: 'vectorEngine:evaluateAndSortDrinks',
+                hypothesisId: 'override-v3-salt-v4',
+                hasMapping,
+                wuxing: patternAnalysis?.wuxing?.user,
+                v3: userVector[3],
+                v4: userVector[4],
                 poolSize: allDrinks.length,
-                fallbackVectorCount,
-                fallbackRatio: allDrinks.length ? fallbackVectorCount / allDrinks.length : 0,
-                userVector,
-                moodSig: moodSig.slice(0, 400),
-                moodHash,
-                scoreSpread,
-                nearTieBandCount: nearTieCount,
-                top9: top9.map((d) => ({ id: d.id, s: Number(d.similarityScore.toFixed(6)) })),
-                patternWuxing: patternAnalysis?.wuxing?.user,
-            },
-            runId: 'post-fix',
-        });
+                top9ids: top9.map((d) => d.id),
+                runId: 'post-fix-2',
+                timestamp: Date.now(),
+            })
+        );
     }
     // #endregion
 

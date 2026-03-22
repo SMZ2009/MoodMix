@@ -75,16 +75,6 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// 前端调试埋点（远程 Render：写入服务日志；勿记录密钥/PII）
-app.post('/api/debug-ingest', (req, res) => {
-  try {
-    console.log('[NDJSON_DEBUG]', JSON.stringify(req.body));
-  } catch (e) {
-    console.log('[NDJSON_DEBUG]', String(req.body));
-  }
-  res.status(204).end();
-});
-
 // 处理 Host header（允许所有 Host）
 app.use((req, res, next) => {
   next();

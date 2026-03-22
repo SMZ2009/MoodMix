@@ -26,7 +26,6 @@ import { generatePhilosophyTags } from './engine/philosophyTags';
 import { fetchLiveQuotes } from './api/quoteGenerator';
 import { translateDrinkName, translateIngredient } from './data/translations';
 import { validateInput } from './utils/inputValidator';
-import { debugIngest } from './utils/debugIngest';
 import { generateShareCard } from './utils/ShareCardGenerator';
 import IngredientManager from './components/IngredientManager';
 import CommunitySection from './components/CommunitySection';
@@ -3531,30 +3530,14 @@ const App = () => {
       const customDrinksWithVector = customDrinks.filter(d => d.vector && d.vector.length === 8);
       const allDrinksForPipeline = [...apiDrinks, ...customDrinksWithVector];
 
-      // #region agent log
-      debugIngest({
-        location: 'App.js:handleStreamingComplete',
-        message: 'mood snapshot before evaluateAndSortDrinks',
-        data: {
-          hypothesisId: 'H1',
-          summaryLen: (summary || '').length,
-          summaryHead: String(summary || '').slice(0, 80),
-          hasMoodData: !!moodData,
-          emInt: moodData?.emotion?.physical?.intensity,
-          soInt: moodData?.somatic?.physical?.intensity,
-          paWuxing: patternAnalysis?.wuxing?.user,
-          poolLen: allDrinksForPipeline.length,
-        },
-        runId: 'post-fix',
-      });
-      // #endregion
-
       // 使用向量引擎评估和排序饮品（pick 模式不传库存，避免原料过滤干扰推荐）
+      const rankingSalt = `${moodInput || ''}${selectedMood || ''}`.trim();
       const rankedDrinks = await evaluateAndSortDrinks(
         moodData,
         allDrinksForPipeline,
         currentMode === 'diy' ? sessionIngredients : [],
-        patternAnalysis
+        patternAnalysis,
+        rankingSalt
       );
       const topMatches = rankedDrinks.slice(0, 9);
 
@@ -3636,7 +3619,7 @@ const App = () => {
       setMixMode('home');
       showFriendlyNotice('灵感有些迟疑', '推荐过程出现问题，请稍后再试。', 'error');
     }
-  }, [apiDrinks, customDrinks, sessionIngredients, currentMode, showFriendlyNotice, setCustomQuotes]);
+  }, [apiDrinks, customDrinks, sessionIngredients, currentMode, showFriendlyNotice, setCustomQuotes, moodInput, selectedMood]);
 
   const toggleIngredient = useCallback((id) => {
     setCheckedIngredients(prev => ({ ...prev, [id]: !prev[id] }));

@@ -1221,6 +1221,129 @@ ${JSON.stringify(fullContext, null, 2)}
 });
 
 // ═══════════════════════════════════════════
+// 端点：单杯质量评估（与 llmProxy /api/quality-eval 对齐，供 ValidatorOptimizer 并行调用）
+// ═══════════════════════════════════════════
+app.post(['/api/quality-eval', '/api/quality_eval'], async (req, res) => {
+  const apiKey = process.env.SILICONFLOW_API_KEY;
+
+  if (!apiKey || apiKey === 'your_key_here') {
+    return res.status(500).json({
+      success: false,
+      error: 'SILICONFLOW_API_KEY 未配置'
+    });
+  }
+
+  const { moodSummary, userWuxing, drinkName, drinkWuxing, currentTime } = req.body;
+
+  if (!drinkName) {
+    return res.status(400).json({
+      success: false,
+      error: '缺少 drinkName 参数'
+    });
+  }
+
+  const qualityModel =
+    process.env.SILICONFLOW_MODEL_QUALITY ||
+    process.env.SILICONFLOW_MODEL_8B ||
+    SILICONFLOW_MODEL;
+
+  const systemPrompt = `你是 MoodMix 的质量评估师。请评估以下饮品推荐的合理性。
+
+用户情绪：${moodSummary || '未知'}
+用户五行：${userWuxing || '未知'}
+推荐饮品：${drinkName}
+饮品五行：${drinkWuxing || '未知'}
+当前时间：${currentTime || '未知'}
+
+请从以下两个维度打分（0-100）：
+1. 五行相合度：推荐饮品的五行与用户五行是否相生相合（相生=高分，相克=低分）
+2. 情绪一致性：饮品的特性是否回应了用户的情绪需求（契合=高分，矛盾=低分）
+
+直接输出 JSON，不要任何解释：
+{"wuxingScore": 85, "emotionScore": 90}`;
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => {
+    controller.abort();
+  }, 15000);
+
+  try {
+    const fetch = await getFetch();
+    const response = await fetch(SILICONFLOW_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: qualityModel,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: '请评估并返回JSON' }
+        ],
+        temperature: 0.5,
+        max_tokens: 200
+      }),
+      signal: controller.signal
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[API] quality-eval SiliconFlow error:', response.status, errorText);
+      return res.status(response.status).json({
+        success: false,
+        error: formatSiliconflowUpstreamError(response.status, errorText)
+      });
+    }
+
+    const result = await response.json();
+    let content = (result.choices?.[0]?.message?.content || '').trim();
+    if (content.includes('```')) {
+      const fence = content.match(/```(?:json)?([\s\S]*?)```/);
+      if (fence) content = fence[1].trim();
+    }
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    let parsed;
+    try {
+      parsed = JSON.parse(jsonMatch ? jsonMatch[0] : content);
+    } catch (e) {
+      console.error('[API] quality-eval JSON parse failed:', e.message, content.slice(0, 200));
+      return res.status(500).json({
+        success: false,
+        error: '解析模型返回失败'
+      });
+    }
+
+    const wuxingScore = Number(parsed.wuxingScore);
+    const emotionScore = Number(parsed.emotionScore);
+
+    return res.json({
+      success: true,
+      data: {
+        wuxingScore: Number.isFinite(wuxingScore) ? wuxingScore : 75,
+        emotionScore: Number.isFinite(emotionScore) ? emotionScore : 75
+      },
+      meta: { timestamp: new Date().toISOString() }
+    });
+  } catch (error) {
+    clearTimeout(timeoutId);
+    console.error('[API] quality-eval error:', error.message);
+    if (error.name === 'AbortError') {
+      return res.status(504).json({
+        success: false,
+        error: 'quality-eval 请求超时'
+      });
+    }
+    return res.status(500).json({
+      success: false,
+      error: error.message || 'Internal server error'
+    });
+  }
+});
+
+// ═══════════════════════════════════════════
 // 辅助函数
 // ═══════════════════════════════════════════
 
@@ -1634,7 +1757,7 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log(`   端口: ${PORT}`);
   console.log(`   前端: 从 ${buildPath} 提供`);
   console.log(`   WebSocket: ✅ 已启用 (Socket.IO)`);
-  console.log(`   API: /api/analyze_mood, /api/analyze_mood_stream, /api/generate_quotes, /api/comprehensive_analyze, /api/generate-drink-dimensions, /api/drink-assistant, /api/validate_optimize, /api/drink/like, /api/drink/unlike, /api/drink/like-stats/:drinkId`);
+  console.log(`   API: /api/analyze_mood, /api/analyze_mood_stream, /api/generate_quotes, /api/comprehensive_analyze, /api/generate-drink-dimensions, /api/drink-assistant, /api/validate_optimize, /api/quality-eval, /api/drink/like, /api/drink/unlike, /api/drink/like-stats/:drinkId`);
   console.log(`   模型: ${SILICONFLOW_MODEL}`);
   console.log(`   API Key: ${hasKey ? '✅ 已配置' : '❌ 未配置'}`);
   console.log(`   环境: ${process.env.NODE_ENV || 'development'}`);

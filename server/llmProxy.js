@@ -319,6 +319,15 @@ app.use(express.json({ limit: '10mb' }));
 app.use(logRequest);
 app.use(rateLimiter);
 
+app.post('/api/debug-ingest', (req, res) => {
+  try {
+    console.log('[NDJSON_DEBUG]', JSON.stringify(req.body));
+  } catch (e) {
+    console.log('[NDJSON_DEBUG]', String(req.body));
+  }
+  res.status(204).end();
+});
+
 // ═══════════════════════════════════════════
 // 全局异常处理
 // ═══════════════════════════════════════════

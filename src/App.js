@@ -26,6 +26,7 @@ import { generatePhilosophyTags } from './engine/philosophyTags';
 import { fetchLiveQuotes } from './api/quoteGenerator';
 import { translateDrinkName, translateIngredient } from './data/translations';
 import { validateInput } from './utils/inputValidator';
+import { debugIngest } from './utils/debugIngest';
 import { generateShareCard } from './utils/ShareCardGenerator';
 import IngredientManager from './components/IngredientManager';
 import CommunitySection from './components/CommunitySection';
@@ -3525,6 +3526,24 @@ const App = () => {
       // 合并API饮品和用户自定义饮品
       const customDrinksWithVector = customDrinks.filter(d => d.vector && d.vector.length === 8);
       const allDrinksForPipeline = [...apiDrinks, ...customDrinksWithVector];
+
+      // #region agent log
+      debugIngest({
+        location: 'App.js:handleStreamingComplete',
+        message: 'mood snapshot before evaluateAndSortDrinks',
+        data: {
+          hypothesisId: 'H1',
+          summaryLen: (summary || '').length,
+          summaryHead: String(summary || '').slice(0, 80),
+          hasMoodData: !!moodData,
+          emInt: moodData?.emotion?.physical?.intensity,
+          soInt: moodData?.somatic?.physical?.intensity,
+          paWuxing: patternAnalysis?.wuxing?.user,
+          poolLen: allDrinksForPipeline.length,
+        },
+        runId: 'pre-fix',
+      });
+      // #endregion
 
       // 使用向量引擎评估和排序饮品（pick 模式不传库存，避免原料过滤干扰推荐）
       const rankedDrinks = await evaluateAndSortDrinks(moodData, allDrinksForPipeline, currentMode === 'diy' ? sessionIngredients : []);

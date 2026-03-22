@@ -1,3 +1,5 @@
+import { debugIngest } from '../utils/debugIngest';
+
 let drinkVectorsCache = null;
 
 /** 稳定哈希：用于在相似度极度接近时打散排序，避免每次同一批酒固定占 Top9 */
@@ -207,6 +209,7 @@ export async function evaluateAndSortDrinks(moodData, allDrinks, sessionIngredie
     }
 
     const evaluatedBasePool = [];
+    let fallbackVectorCount = 0;
 
     for (const drink of allDrinks) {
         // ID 兼容处理 (API 返回的是字母开头如 api_11000)
@@ -216,7 +219,9 @@ export async function evaluateAndSortDrinks(moodData, allDrinks, sessionIngredie
         }
 
         // 如果连向量库都没有，赋予一个基准向量而不是直接 continue 丢弃
-        let v = drinkVectors[vectorId] ? drinkVectors[vectorId].v : [5, 0, 0, 3, 12, 5, 15, 3];
+        const hasOfflineVec = !!(drinkVectors[vectorId] && drinkVectors[vectorId].v);
+        if (!hasOfflineVec) fallbackVectorCount += 1;
+        let v = hasOfflineVec ? drinkVectors[vectorId].v : [5, 0, 0, 3, 12, 5, 15, 3];
 
         // 核心修复：如果传进来的 drink 没有自带的 abv (如来自之前旧版本的缓存或不完整的 fallback)，
         // 则强制从由全量配料推导出的离线缓存向量 (index 6 记录的是 ABV) 中提取
@@ -275,6 +280,34 @@ export async function evaluateAndSortDrinks(moodData, allDrinks, sessionIngredie
 
     // 前端只取前 9（首屏展示为主，减少长尾计算）
     const top9 = finalPool.slice(0, 9);
+
+    // #region agent log
+    {
+        const scores = top9.map((d) => d.similarityScore);
+        const scoreSpread = scores.length ? Math.max(...scores) - Math.min(...scores) : 0;
+        const top1 = evaluatedBasePool[0]?.similarityScore;
+        const nearTieCount = evaluatedBasePool.filter(
+            (d) => top1 != null && Math.abs(d.similarityScore - top1) < 0.0005
+        ).length;
+        debugIngest({
+            location: 'vectorEngine.js:evaluateAndSortDrinks',
+            message: 'ranking diagnostics',
+            data: {
+                hypothesisId: 'H1-H5',
+                poolSize: allDrinks.length,
+                fallbackVectorCount,
+                fallbackRatio: allDrinks.length ? fallbackVectorCount / allDrinks.length : 0,
+                userVector,
+                moodSig: moodSig.slice(0, 280),
+                moodHash,
+                scoreSpread,
+                nearTieBandCount: nearTieCount,
+                top9: top9.map((d) => ({ id: d.id, s: Number(d.similarityScore.toFixed(6)) })),
+            },
+            runId: 'pre-fix',
+        });
+    }
+    // #endregion
 
     console.log('🏆 Top 9 最终推荐结果排行:');
     top9.forEach((d, i) => {

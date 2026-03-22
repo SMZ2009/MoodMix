@@ -130,6 +130,18 @@ const TASTE_MODIFIERS = {
 // ============================================================
 
 /**
+ * 读取六维 signal 强度（与 vectorEngine 一致：优先 physical.intensity）
+ */
+function getDimensionIntensity(moodData, key) {
+    const block = moodData[key];
+    if (!block || typeof block !== 'object') return 0;
+    if (typeof block.intensity === 'number') return block.intensity;
+    const ph = block.physical?.intensity;
+    if (typeof ph === 'number') return ph;
+    return 0;
+}
+
+/**
  * 标签1：辨证标签 —— "你现在怎么了"
  * 
  * 逻辑：
@@ -156,13 +168,31 @@ function generateDiagnosisTag(moodData, patternAnalysis) {
     const wuxingMap = { '木': 'wood', '火': 'fire', '土': 'earth', '金': 'metal', '水': 'water' };
     const userWuxing = wuxingMap[rawWuxing] || rawWuxing;
 
-    // 收集各维度的 intensity
-    const dims = [
-        { key: 'emotion', intensity: moodData.emotion?.intensity ?? 0.5 },
-        { key: 'somatic', intensity: moodData.somatic?.intensity ?? 0.3 },
-        { key: 'cognitive', intensity: moodData.cognitive?.intensity ?? 0.3 },
-        { key: 'demand', intensity: moodData.demand?.intensity ?? 0.3 },
+    // 收集各维度的 intensity（必须用 physical.intensity，否则恒为默认值 → 辨证永远是「倦怠沉闷」）
+    let dims = [
+        { key: 'emotion', intensity: getDimensionIntensity(moodData, 'emotion') },
+        { key: 'somatic', intensity: getDimensionIntensity(moodData, 'somatic') },
+        { key: 'cognitive', intensity: getDimensionIntensity(moodData, 'cognitive') },
+        { key: 'demand', intensity: getDimensionIntensity(moodData, 'demand') },
+        { key: 'time', intensity: getDimensionIntensity(moodData, 'time') },
+        { key: 'socialContext', intensity: getDimensionIntensity(moodData, 'socialContext') },
     ];
+
+    const maxI = Math.max(...dims.map((d) => d.intensity), 0);
+    // 若模型完全未给强度：按用户五行略作偏置，避免永远落在「情绪→倦怠沉闷」
+    if (maxI < 0.02) {
+        const biasPrimary = {
+            wood: 'emotion',
+            fire: 'emotion',
+            earth: 'somatic',
+            metal: 'cognitive',
+            water: 'demand',
+        };
+        const prefer = biasPrimary[userWuxing] || 'emotion';
+        dims = dims.map((d) =>
+            d.key === prefer ? { ...d, intensity: 0.55 } : { ...d, intensity: 0.2 }
+        );
+    }
 
     // 按 intensity 降序
     dims.sort((a, b) => b.intensity - a.intensity);
@@ -203,6 +233,21 @@ function generateDiagnosisTag(moodData, patternAnalysis) {
         if (actionScore >= 4) mainTag = STATE_DESCRIPTORS.demand.release;
         else if (actionScore <= 1) mainTag = STATE_DESCRIPTORS.demand.calm;
         else mainTag = STATE_DESCRIPTORS.demand.comfort;
+    } else if (primary.key === 'time') {
+        const hour = moodData.time?.physical?.hour ?? moodData.time?.hour;
+        if (hour != null && (hour >= 22 || hour < 5)) {
+            mainTag = polarity === 'positive' ? '夜静神清' : '夜深神倦';
+        } else {
+            mainTag = polarity === 'positive' ? STATE_DESCRIPTORS.cognitive.positive : STATE_DESCRIPTORS.cognitive.negative;
+        }
+    } else if (primary.key === 'socialContext') {
+        const st = (moodData.socialContext?.physical?.state || '').toString();
+        if (/独|一个人|独处/.test(st)) mainTag = '独处静寂';
+        else if (/聚|朋友|热闹|场合/.test(st)) {
+            mainTag = polarity === 'positive' ? '兴致正浓' : '应酬乏力';
+        } else {
+            mainTag = polarity === 'positive' ? '在场自适' : '气虚体倦';
+        }
     }
 
     // --- 如果次要维度也很强 (intensity > 0.6)，附加补充 ---

@@ -85,7 +85,7 @@ export async function fetchLiveQuotes(drinksList, contextData, batchSize = 15, f
             // 新增：透传原始五行和策略 Key，方便模型匹配意象
             userWuxing: contextData.patternAnalysis?.wuxing?.user || 'earth',
             strategyType: contextData.patternAnalysis?.strategy?.type || 'balance',
-            moodSummary: contextData.moodData?.summary || ''
+            moodSummary: contextData.summary || contextData.moodData?.summary || ''
         };
 
         // 用标签和原始五行作为缓存关键特征

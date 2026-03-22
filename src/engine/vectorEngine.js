@@ -1,5 +1,16 @@
 let drinkVectorsCache = null;
 
+/** 稳定哈希：用于在相似度极度接近时打散排序，避免每次同一批酒固定占 Top9 */
+function hash32(str) {
+    const s = String(str ?? '');
+    let h = 2166136261;
+    for (let i = 0; i < s.length; i++) {
+        h ^= s.charCodeAt(i);
+        h = Math.imul(h, 16777619);
+    }
+    return h >>> 0;
+}
+
 async function loadDrinkVectors() {
     if (drinkVectorsCache) return drinkVectorsCache;
     const mod = await import('../data/drinkVectors');
@@ -160,6 +171,17 @@ export async function evaluateAndSortDrinks(moodData, allDrinks, sessionIngredie
     const dynamicWeights = computeDynamicWeights(moodData);
     const userVector = buildUserVector(moodData);
 
+    const moodSig = JSON.stringify({
+        em: moodData?.emotion?.physical?.intensity,
+        so: moodData?.somatic?.physical?.intensity,
+        co: moodData?.cognitive?.physical?.intensity,
+        de: moodData?.demand?.physical?.intensity,
+        ti: moodData?.time?.physical?.intensity,
+        sc: moodData?.socialContext?.physical?.intensity,
+        sum: moodData?.summary,
+    });
+    const moodHash = hash32(moodSig);
+
     console.groupCollapsed('🍹 [VectorEngine] 新一轮推荐匹配开始');
     console.log('📌 动态维度权重 (Dynamic Weights):', dynamicWeights);
     console.log('👤 用户情绪与需求映射向量 (User Vector):', userVector);
@@ -206,6 +228,9 @@ export async function evaluateAndSortDrinks(moodData, allDrinks, sessionIngredie
         const ingredientsArray = drink.ingredients || drink.briefIngredients || [];
 
         let similarity = weightedCosineSimilarity(userVector, v, dynamicWeights);
+        // 心境签名 × 饮品 ID 微扰：分数大量并列时仍能保持不同输入下的排序差异
+        const dHash = hash32(String(vectorId) + moodSig);
+        similarity += ((moodHash ^ dHash) % 2001 - 1000) / 1e6;
 
         // 只有在 DIY 模式（传入了有效库存）时才分析原料缺失情况
         const hasInventory = sessionIngredients && sessionIngredients.length > 0;

@@ -1357,7 +1357,7 @@ function buildSystemPrompt() {
 moodData 为六维结构，键名固定为：emotion、somatic、time、cognitive、demand、socialContext；每维需包含 physical、philosophy 或 drinkMapping 等字段，数值合理。
 
 patternAnalysis 为中医辨证结论，必须包含：
-- polarity: { "type": "negative"|"positive"|"mixed", "confidence": 0~1 }
+- polarity: { "type": "negative"|"positive"|"mixed", "confidence": 0~1 }；若用户同时表达多种情绪或转折并存（如「累但开心」），type 须为 "mixed"
 - wuxing: { "user": "wood"|"fire"|"earth"|"metal"|"water" }
 - strategy: { "type": "counter"|"harmonize"|"resonate"|"correct"|"balance", "logic": "简短说明" }
 

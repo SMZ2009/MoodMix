@@ -21,7 +21,7 @@ import SideNavigation from './components/SideNavigation';
 import { analyzeMood } from './api/moodAnalyzer';
 import { evaluateAndSortDrinks } from './engine/vectorEngine';
 import { evaluateAllDrinks } from './agents/specialized/ValidatorOptimizer';
-import { executeRecommendationPipeline, extractRecommendationResult, executeMixologyTask } from './agents';
+import { executeMixologyTask } from './agents';
 import { generatePhilosophyTags } from './engine/philosophyTags';
 import { fetchLiveQuotes } from './api/quoteGenerator';
 import { translateDrinkName, translateIngredient } from './data/translations';
@@ -552,8 +552,18 @@ function detectNegativeIntent(input) {
   return null;
 }
 
+/** 转折/并存：同时含负向词与正向词且有关键转折标记时，交给流式六维，不走本地「全负面→发泄/安抚」分支 */
+const MIXED_EMOTION_CONTRAST_MARKERS = /但|却|可是|不过|然而|虽然|即使|虽|尽管如此|既[^，。]{0,6}又|又[^，。]{0,6}又/;
+const MIXED_EMOTION_POSITIVE_SIGNALS = ['开心', '高兴', '快乐', '释然', '欣慰', '满足', '安心', '幸福', '期待', '轻松', '值得', '感恩', '踏实', '有希望', '亮堂', '甜'];
 
-
+function detectMixedEmotionContrast(text) {
+  if (!text || !text.trim()) return false;
+  if (!MIXED_EMOTION_CONTRAST_MARKERS.test(text)) return false;
+  const lower = text.toLowerCase();
+  const hasNeg = NEGATIVE_KEYWORDS.some((kw) => lower.includes(kw.toLowerCase()));
+  const hasPos = MIXED_EMOTION_POSITIVE_SIGNALS.some((kw) => text.includes(kw));
+  return hasNeg && hasPos;
+}
 
 const ORIENTAL_MOOD_TAGS = [
   { label: '早起唤醒', value: '#早起唤醒' },
@@ -3202,12 +3212,47 @@ const App = () => {
   const [buttonLoadingText, setButtonLoadingText] = useState('静心感受中…');
 
   /**
+   * 传给流式心境 API 的 user_input：发泄/安抚时追加与旧 `finalInputForAI` 一致的干预后缀，
+   * 便于模型与推荐链区分疏泄 vs 治愈；DIY 时附带原料参考。
+   */
+  const streamUserInputForMood = useMemo(() => {
+    const raw = (moodInput + (selectedMood || '')).trim();
+    const base = raw || '心情不太好';
+    let out = raw;
+    if (interventionType === 'soothe') {
+      out = `${base} (用户选择: 温柔治愈，需要安抚、温暖、低度、甘甜的饮品)`;
+    } else if (interventionType === 'vent') {
+      out = `${base} (用户选择: 发泄释放，需要刺激、冰冷、烈酒、酸苦的饮品)`;
+    }
+    if (currentMode === 'diy' && sessionIngredients.length > 0) {
+      out += `\n(重要参考: 用户目前拥有的原料: ${sessionIngredients.join(', ')})`;
+    }
+    return out;
+  }, [moodInput, selectedMood, interventionType, currentMode, sessionIngredients]);
+
+  /**
    * 轻量东方情绪解读，用于 LoadingTransition 文案
    * - 不额外调用 LLM，基于易经/五行/七情做规则化描述
+   * @param {'vent'|'soothe'|null} interventionHint — 负面情绪弹窗选择，与流式 API 语境一致
    */
-  const buildOrientalLoadingText = useCallback((rawInput, rawSelectedMood) => {
+  const buildOrientalLoadingText = useCallback((rawInput, rawSelectedMood, interventionHint = null) => {
     const input = (rawInput || '').trim();
     const selected = (rawSelectedMood || '').replace(/^#/, '');
+
+    if (interventionHint === 'vent') {
+      return [
+        input || '此刻心口发紧',
+        '你已择「疏泄」这一路：不必温茶软语，只待一味够冷、够锐、能把滞气冲开的酒意。',
+        '五行流转中，且看哪一味最衬你此刻想「冲一冲」的锋芒。'
+      ].join(' ');
+    }
+    if (interventionHint === 'soothe') {
+      return [
+        input || '心神需要被轻轻托住',
+        '你已择「温柔安抚」：甘润、低度、柔和的滋味，正慢慢为你围出一点余地。',
+        '且让这一杯，先替你把手心焐暖。'
+      ].join(' ');
+    }
 
     // 特例：平静 + 期待 -> 震卦
     if (input.includes('平静') && input.includes('期待')) {
@@ -3238,175 +3283,6 @@ const App = () => {
     ].join(' ');
   }, []);
 
-  const handleStartGeneration = useCallback(async (type = null) => {
-    const startTime = performance.now();
-    console.log(`[Timer] 0ms: 用户点击按钮，开始寻味流程`);
-    
-    // 🔥 重置上一次的文案和质量评估，避免旧数据导致闪烁
-    setCustomQuotes({});
-    setQualityResults({});
-    
-    setMixMode('generating');
-    // 初始玄学式 Loading 文案：先依据当前输入/情绪锚点做一次东方解读
-
-    // 记录干预类型
-    if (type) {
-      setInterventionType(type);
-    }
-
-    const currentInterventionType = type || interventionType;
-    const combinedInput = (moodInput + (selectedMood || "")).trim();
-
-    // 输入验证 - 检测特殊输入场景（但允许空输入，因为负面情绪流程有默认值）
-    if (combinedInput) {
-      const validation = validateInput(combinedInput);
-      if (!validation.valid && validation.scene !== 'empty') {
-        setMixMode('home');
-        showFriendlyNotice(validation.title, validation.message, validation.tone || 'default');
-        return;
-      }
-    }
-
-    // 在验证通过后更新玄学 Loading 文案，作为轮播期的「流态」基准语
-    setButtonLoadingText(buildOrientalLoadingText(moodInput, selectedMood));
-
-    // 构造带有干预类型的输入
-    let finalInputForAI = combinedInput || '心情不太好';
-    if (currentInterventionType === 'soothe') {
-      finalInputForAI += ' (用户选择: 温柔治愈，需要安抚、温暖、低度、甘甜的饮品)';
-    } else if (currentInterventionType === 'vent') {
-      finalInputForAI += ' (用户选择: 发泄释放，需要刺激、冰冷、烈酒、酸苦的饮品)';
-    }
-
-    const isDiyMode = currentMode === 'diy';
-    if (isDiyMode && sessionIngredients.length > 0) {
-      finalInputForAI += `\n(重要参考: 用户目前拥有的原料: ${sessionIngredients.join(', ')})`;
-    }
-
-    // 动态文字：阶梯式更新加载文案（保留原有节奏，但更偏东方语境）
-    const timers = [];
-    setButtonLoadingText(buildOrientalLoadingText(moodInput, selectedMood));
-
-    timers.push(setTimeout(() => setButtonLoadingText('五行气机正在排布，替你调一杯合脏腑之性的酒。'), 3000));
-    timers.push(setTimeout(() => setButtonLoadingText('情志在杯壁缓缓升起，别急，让情绪先落地。'), 8000));
-    timers.push(setTimeout(() => setButtonLoadingText('木火土金水，各归其位，你的起伏正在被安放。'), 15000));
-    timers.push(setTimeout(() => setButtonLoadingText('卦象已成，只待这一杯，从想象落入掌心。'), 25000));
-
-    const clearAllTimers = () => timers.forEach(t => clearTimeout(t));
-
-    try {
-      // 检查饮品数据是否已加载
-      if (!apiDrinks || apiDrinks.length === 0) {
-        clearAllTimers();
-        setMixMode('home');
-        showFriendlyNotice('酒柜还在整理', '饮品数据尚未准备好，稍候片刻再启程寻味。', 'warning');
-        return;
-      }
-
-      console.log(`\n🎯 负面情绪干预模式: ${currentInterventionType === 'vent' ? '💥 发泄释放' : '🥰 温柔安抚'}`);
-
-      // 🚀 使用多Agent系统执行推荐流程
-      // 合并API饮品和用户自定义饮品（只包含有向量的）
-      const customDrinksWithVector = customDrinks.filter(d => d.vector && d.vector.length === 8);
-      const allDrinksForPipeline = [...apiDrinks, ...customDrinksWithVector];
-
-      // 🔥 [核心优化] 存储文案Promise，确保卡片出现时文案已就绪
-      let quotePromiseResolve;
-      const quoteReadyPromise = new Promise(resolve => { quotePromiseResolve = resolve; });
-
-      const agentPromise = executeRecommendationPipeline(finalInputForAI, {
-        inventory: isDiyMode ? sessionIngredients : [],
-        mode: currentMode,
-        allDrinks: allDrinksForPipeline,
-        currentTime: new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false }).replace(/\//g, '-'),
-        interventionType: currentInterventionType,
-        // 🔥 [优化] 核心机制：在预览饮品计算完成后，立即并行触发文案生成
-        onVectorSearchSuccess: (matches, contextData) => {
-          if (isQuoteFetching.current) return; // 防止在重试逻辑中重复触发
-          isQuoteFetching.current = true;
-
-          console.log(`[Timer] ${Math.round(performance.now() - startTime)}ms: 触发唯一一次异步文案生成`);
-          fetchLiveQuotes(matches, contextData, 15).then((quotesMap) => {
-            if (Object.keys(quotesMap).length > 0) {
-              setCustomQuotes(prev => ({ ...prev, ...quotesMap }));
-              console.log(`[Timer] ${Math.round(performance.now() - startTime)}ms: 异步文案润色完成`);
-            }
-            quotePromiseResolve(quotesMap); // 通知文案已就绪
-          }).catch(err => {
-            console.warn('Early live quote generation failed', err);
-            quotePromiseResolve({}); // 失败时也要resolve避免卡死
-          }).finally(() => {
-            isQuoteFetching.current = false;
-          });
-        },
-        onValidationSuccess: (report) => {
-          console.log('[App] 异步验证报告送达，更新 UI 勋章');
-          setValidationResult(report);
-        },
-        onQualityEvalSuccess: (results) => {
-          console.log('[App] 异步质量评估送达，更新心境契合度');
-          const map = {};
-          results.forEach(r => { map[r.drinkId] = r; });
-          setQualityResults(map);
-        }
-      });
-
-      const agentResult = await agentPromise;
-
-      console.log('多Agent系统执行结果:', agentResult);
-      
-      // 🔥 [关键] 等待文案就绪后再清除loading并显示卡片
-      console.log(`[Timer] ${Math.round(performance.now() - startTime)}ms: 等待文案就绪...`);
-      await Promise.race([
-        quoteReadyPromise,
-        new Promise(resolve => setTimeout(resolve, 8000)) // 最多等8秒
-      ]);
-      console.log(`[Timer] ${Math.round(performance.now() - startTime)}ms: 文案就绪，准备显示卡片`);
-      
-      clearAllTimers();
-
-      // 获取匹配结果并展示画廊
-      const matches = agentResult.context.getIntermediate('matches') || [];
-      const moodData = agentResult.context.getIntermediate('moodData');
-      const patternAnalysis = agentResult.context.getIntermediate('patternAnalysis');
-      const validation = agentResult.context.getIntermediate('validationReport');
-
-      // 检查是否需要阻断
-      if (validation?.shouldBlock) {
-        setMixMode('home');
-        setValidationResult(validation);
-        showFriendlyNotice('换一种说法试试', validation.userMessage || '此刻的心境需要换一种表达方式。', 'warning');
-        return;
-      }
-
-      // 转换为原有格式
-      const pool = matches.map(m => ({
-        ...m.drink,
-        similarity: m.similarity,
-        matchDetails: m.matchDetails
-      }));
-
-      // 合并 moodData 和 patternAnalysis 传递给组件
-      const contextData = { moodData, patternAnalysis };
-      setMoodResult(contextData);
-      setValidationResult(validation);
-      setRecommendationPool(pool.length > 0 ? pool : (apiDrinks.length > 0 ? apiDrinks.slice(0, 9) : []));
-      setCurrentBatchIndex(0);
-      setCurrentCardIndex(0);
-      setMixMode('home');
-      setShowRecommendationGallery(true);
-
-      console.log(`[Timer] ${Math.round(performance.now() - startTime)}ms: handleStartGeneration 流程准备就绪`);
-
-    } catch (error) {
-      console.error('分析/推荐出错:', error);
-      console.log(`[Timer] ${Math.round(performance.now() - startTime)}ms: 流程出错中断`);
-      clearAllTimers();
-      setMixMode('home');
-      showFriendlyNotice('灵感有些迟疑', '分析网络可能存在波动，请稍后再试。', 'error');
-    }
-  }, [emotionType, interventionType, moodInput, selectedMood, sessionIngredients, currentMode, apiDrinks, customDrinks, setRecommendationPool, setCurrentBatchIndex, setCurrentCardIndex, setMixMode, setShowRecommendationGallery, setCustomQuotes, showFriendlyNotice]);
-
   // 调用后端千问API进行情绪分析和饮品推荐
   const processMoodAndGenerate = useCallback(async (directMoodValue = null) => {
     // Use directMoodValue if provided (from tag click), otherwise use state
@@ -3425,33 +3301,32 @@ const App = () => {
       }
     }
 
-
-    // 如果有自定义原料且为 DIY 模式，附加到 Prompt
-    let finalInputForAI = combinedInput;
-    if (currentMode === 'diy' && sessionIngredients.length > 0) {
-      finalInputForAI += `\n(重要参考: 用户目前拥有的原料: ${sessionIngredients.join(', ')})`;
-    }
-
     // 检查是否选中了东方情绪锚点（这些是预设的文学表达，不应被本地负面关键词检测干扰）
     const isOrientalAnchor = ORIENTAL_MOOD_TAGS.some(tag => tag.value === effectiveMood);
 
     // 首先检查是否为负面情绪（本地快速检测）
     // 注意：东方情绪锚点跳过本地负面检测，让 LLM 来判断情绪属性
-    const isNegativeLocal = !isOrientalAnchor && (NEGATIVE_KEYWORDS.some(kw => combinedInput.toLowerCase().includes(kw)) || effectiveMood === '#难受');
+    const isMixedContrast = detectMixedEmotionContrast(combinedInput);
+    const isNegativeLocal = !isOrientalAnchor && !isMixedContrast
+      && (NEGATIVE_KEYWORDS.some(kw => combinedInput.toLowerCase().includes(kw)) || effectiveMood === '#难受');
 
     if (isNegativeLocal) {
-      // 负面情绪：尝试自动检测用户意图
+      // 负面情绪：尝试自动检测用户意图 → 与正向一致先走流式六维，再推荐（见 streamUserInputForMood 注入干预）
       setEmotionType('negative');
 
       const autoIntent = detectNegativeIntent(combinedInput);
 
       if (autoIntent) {
-        // 自动检测到明确意图，直接开始生成
-        console.log(`🎯 自动检测到用户意图: ${autoIntent === 'vent' ? '发泄释放' : '温柔安抚'}`);
+        console.log(`🎯 自动检测到用户意图: ${autoIntent === 'vent' ? '发泄释放' : '温柔安抚'} → 流式六维`);
+        setCustomQuotes({});
+        setQualityResults({});
+        if (!apiDrinks || apiDrinks.length === 0) {
+          showFriendlyNotice('酒柜还在整理', '饮品数据尚未准备好，稍候片刻再启程寻味。', 'warning');
+          return;
+        }
         setInterventionType(autoIntent);
-        handleStartGeneration(autoIntent);
+        setMixMode('generating');
       } else {
-        // 无法自动判断，显示弹窗询问用户
         setShowInterventionModal(true);
       }
       return;
@@ -3459,7 +3334,8 @@ const App = () => {
 
     // 非负面情绪：设置情绪类型并启动流态分析
     setEmotionType('positive');
-    
+    setInterventionType(null);
+
     // 检查饮品数据是否已加载
     if (!apiDrinks || apiDrinks.length === 0) {
       showFriendlyNotice('酒柜还在整理', '饮品数据尚未准备好，稍候片刻再启程寻味。', 'warning');
@@ -3497,9 +3373,9 @@ const App = () => {
         console.warn('[StreamingComplete] ⚠️ 检测到 patternAnalysis 缺失，启动前端启发式补全...');
         const userWuxing = moodData.emotion?.philosophy?.wuxing || 'earth';
         patternAnalysis = {
-            polarity: { type: 'negative', confidence: 0.5 },
+            polarity: { type: 'mixed', confidence: 0.45 },
             wuxing: { user: userWuxing === '木' ? 'wood' : userWuxing === '火' ? 'fire' : userWuxing === '水' ? 'water' : userWuxing === '金' ? 'metal' : 'earth' },
-            strategy: { type: 'harmonize', logic: '自动补全辨证逻辑' }
+            strategy: { type: 'harmonize', logic: '辨证块缺失，默认以调和为主；建议以模型六维为准' }
         };
     }
 
@@ -3524,7 +3400,7 @@ const App = () => {
       const allDrinksForPipeline = [...apiDrinks, ...customDrinksWithVector];
 
       // 使用向量引擎评估和排序饮品（pick 模式不传库存，避免原料过滤干扰推荐）
-      const rankingSalt = `${moodInput || ''}${selectedMood || ''}`.trim();
+      const rankingSalt = streamUserInputForMood.trim();
       const rankedDrinks = await evaluateAndSortDrinks(
         moodData,
         allDrinksForPipeline,
@@ -3613,7 +3489,7 @@ const App = () => {
       setMixMode('home');
       showFriendlyNotice('灵感有些迟疑', '推荐过程出现问题，请稍后再试。', 'error');
     }
-  }, [apiDrinks, customDrinks, sessionIngredients, currentMode, showFriendlyNotice, setCustomQuotes, moodInput, selectedMood]);
+  }, [apiDrinks, customDrinks, sessionIngredients, currentMode, showFriendlyNotice, setCustomQuotes, moodInput, selectedMood, streamUserInputForMood]);
 
   const toggleIngredient = useCallback((id) => {
     setCheckedIngredients(prev => ({ ...prev, [id]: !prev[id] }));
@@ -3654,7 +3530,7 @@ const App = () => {
     >
       <StreamingAnalysisCard
         isActive={mixMode === 'generating'}
-        userInput={(moodInput + (selectedMood || '')).trim()}
+        userInput={streamUserInputForMood}
         onStreamComplete={(moodData) => {
           // 直接继续执行饮品推荐流程（handleStreamingComplete 内部会设置 moodResult）
           handleStreamingComplete(moodData);
@@ -3701,6 +3577,7 @@ const App = () => {
               setShowRecommendationGallery(false);
               setMixMode('home');
               setSelectedMood(null); // Reset mood tag selection
+              setInterventionType(null);
             }}
             onStartMaking={(drink) => {
               setCurrentDrink(drink); // Use the passed drink object which RecommendationGallery provides
@@ -3874,9 +3751,16 @@ const App = () => {
         isOpen={showInterventionModal}
         onClose={() => setShowInterventionModal(false)}
         onSelectType={(type) => {
+          setCustomQuotes({});
+          setQualityResults({});
+          if (!apiDrinks || apiDrinks.length === 0) {
+            setShowInterventionModal(false);
+            showFriendlyNotice('酒柜还在整理', '饮品数据尚未准备好，稍候片刻再启程寻味。', 'warning');
+            return;
+          }
           setInterventionType(type);
           setShowInterventionModal(false);
-          handleStartGeneration(type);
+          setMixMode('generating');
         }}
       />
 

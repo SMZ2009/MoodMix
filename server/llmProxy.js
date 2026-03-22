@@ -576,6 +576,8 @@ async function handleStreamMoodAnalysis(req, res) {
 
 描述时请引经据典，化用诗词典故，如沐春风，如饮甘露，使闻者心领神会。
 
+若用户同时呈现两种及以上情绪或句中有明显转折（如「累但开心」「难过但释然」），灵犀感应须分层照应，不可只取一端抹杀另一端；最终 JSON 中 patternAnalysis.polarity.type 必须为 "mixed"，confidence 反映整体把握程度，并在 strategy.logic 中用一两句点明张力结构（如倦怠与欣喜并存、悲戚与释然相济）。
+
 ### 阶段二：天机呈现 (Final Result)
 感应完毕，以[RESULT]标记呈现最终洞见，随后紧跟严格的JSON对象（此JSON仅作技术对接之用，用户不会看到）。
 
@@ -591,11 +593,11 @@ async function handleStreamMoodAnalysis(req, res) {
     "socialContext": { "physical": { "state": "独自", "intensity": 1.0 }, "drinkMapping": { "ratioScore": 95 } }
   },
   "patternAnalysis": {
-    "polarity": { "type": "negative", "confidence": 0.9 },
+    "polarity": { "type": "mixed", "confidence": 0.88 },
     "wuxing": { "user": "earth" },
-    "strategy": { "type": "counter", "logic": "以木克土，借辛散之味破开脾土郁结" }
+    "strategy": { "type": "harmonize", "logic": "土气郁结与火性欣喜并见，宜辛甘并用，先疏脾郁再温养心阳" }
   },
-  "summary": "思虑深重致气机郁结，宜以辛散之味破局。"
+  "summary": "思虑与欣喜交缠，气机郁中有升，宜调和肝脾与心阳。"
 }`;
     const profileContextBlock = buildProfileContextBlock(user_profile);
     const userMessage = buildUserMessage(user_input.trim(), timeInfo) + profileContextBlock;

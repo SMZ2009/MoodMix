@@ -527,6 +527,29 @@ app.post('/api/analyze-mood', validateApiKey, handleMoodAnalysis);
 app.post('/api/analyze_mood', validateApiKey, handleMoodAnalysis);
 
 /**
+ * 用户已在 UI 选择发泄/安抚：追加到流式 system，避免模型仍按泛用「温暖治愈」写灵犀（与 intervention 后缀一致）。
+ */
+function buildStreamInterventionAugment(userInput) {
+  if (!userInput || typeof userInput !== 'string') return '';
+  if (userInput.includes('发泄释放')) {
+    return `
+
+### 【干预模式：发泄疏解】（优先级高于上文泛用引导）
+用户已明确选择「发泄释放」：要疏泄胸中块垒、借辛烈与冷冽冲开郁结，而非单纯哄慰。
+- 阶段一「灵犀感应」须以**撞击、冷冽、辛烈、雷动、决堤、裂石、寒风穿喉**等意象为主，可写愁与火，但**禁止**把主轴写成「温暖你的心房」「带走忧伤」「让一杯饮品在春夜里温暖你」等纯安抚话术；**避免**以「如沐春风」「如饮甘露」作收束。
+- 若写到饮品，应偏**破冰、辛辣、凛冽、烈酒穿胸**，与温柔甜软相反。
+- 阶段二 JSON 须一致：如 somatic.drinkMapping.temperature 偏负、demand.philosophy.type 可为「破」、socialContext.drinkMapping.ratioScore 可较高。`;
+  }
+  if (userInput.includes('温柔治愈')) {
+    return `
+
+### 【干预模式：温柔治愈】
+阶段一可用温润、甘润、托住、安抚、静水深流等意象；不必追求辛烈撞击。`;
+  }
+  return '';
+}
+
+/**
  * 流式情绪分析处理器
  */
 async function handleStreamMoodAnalysis(req, res) {
@@ -598,7 +621,7 @@ async function handleStreamMoodAnalysis(req, res) {
     "strategy": { "type": "harmonize", "logic": "土气郁结与火性欣喜并见，宜辛甘并用，先疏脾郁再温养心阳" }
   },
   "summary": "思虑与欣喜交缠，气机郁中有升，宜调和肝脾与心阳。"
-}`;
+}` + buildStreamInterventionAugment(user_input);
     const profileContextBlock = buildProfileContextBlock(user_profile);
     const userMessage = buildUserMessage(user_input.trim(), timeInfo) + profileContextBlock;
 

@@ -22,6 +22,8 @@ function parseSseLine(line) {
 const StreamingAnalysisCard = ({ 
   isActive, 
   userInput,
+  /** 发泄 vent / 安抚 soothe；与「觅一处疏解」等同 vent */
+  interventionType = null,
   onStreamComplete,
   onError 
 }) => {
@@ -92,7 +94,7 @@ const StreamingAnalysisCard = ({
 
     const startAnalysis = async () => {
       setPhase('init');
-      setStatusText('以意入味…');
+      setStatusText(interventionType === 'vent' ? '借辛烈以疏泄…' : interventionType === 'soothe' ? '以甘润托住…' : '以意入味…');
       setSummaryText('');
       setStreamingText('');
       resultDataRef.current = null;
@@ -100,11 +102,16 @@ const StreamingAnalysisCard = ({
       await new Promise(resolve => setTimeout(resolve, 400));
       setPhase('analyzing');
 
-      const statusMessages = [
-        '心与味，正在相遇…',
-        '五行正在推演…',
-        '此味将出，稍候片刻…'
-      ];
+      const statusMessages =
+        interventionType === 'vent'
+          ? [
+              '胸中块垒，正寻一味能替你冲开的烈…',
+              '辛与冷冽正在排布…',
+              '只差这一杯，替你撞开郁结…'
+            ]
+          : interventionType === 'soothe'
+            ? ['心与味，正在相遇…', '五行正在推演…', '此味将出，稍候片刻…']
+            : ['心与味，正在相遇…', '五行正在推演…', '此味将出，稍候片刻…'];
       let msgIndex = 0;
       const statusInterval = setInterval(() => {
         msgIndex = (msgIndex + 1) % statusMessages.length;
@@ -338,7 +345,7 @@ const StreamingAnalysisCard = ({
       }
       isRunningRef.current = false;
     };
-  }, [isActive, userInput]);
+  }, [isActive, userInput, interventionType]);
 
   if (!isActive) return null;
 
@@ -381,7 +388,7 @@ const StreamingAnalysisCard = ({
             className="text-white/20 text-[10px] tracking-[0.3em] uppercase"
             style={{ fontFamily: '"Songti SC", serif' }}
           >
-            心境解读
+            {interventionType === 'vent' ? '疏泄寻味' : interventionType === 'soothe' ? '温柔寻味' : '心境解读'}
           </span>
           <div className="flex gap-1.5">
             {[0, 1, 2].map(i => (
@@ -485,7 +492,8 @@ const StreamingAnalysisCard = ({
             }`}
             style={{ fontFamily: '"Songti SC", serif' }}
           >
-            {(phase === 'init' || phase === 'analyzing' || phase === 'complete') && '缓缓酿成...'}
+            {(phase === 'init' || phase === 'analyzing' || phase === 'complete') &&
+              (interventionType === 'vent' ? '为冲劲寻味…' : '缓缓酿成...')}
             {phase === 'error' && '请稍后再试'}
           </span>
         </div>

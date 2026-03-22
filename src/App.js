@@ -3532,6 +3532,7 @@ const App = () => {
       <StreamingAnalysisCard
         isActive={mixMode === 'generating'}
         userInput={streamUserInputForMood}
+        interventionType={interventionType}
         onStreamComplete={(moodData) => {
           // 直接继续执行饮品推荐流程（handleStreamingComplete 内部会设置 moodResult）
           handleStreamingComplete(moodData);

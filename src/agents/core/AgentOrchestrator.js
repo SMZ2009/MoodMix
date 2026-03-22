@@ -290,11 +290,12 @@ export async function executeRecommendationPipeline(userInput, options = {}) {
     try {
       const { evaluateAndSortDrinks } = await import('../../engine/vectorEngine');
       const moodData = context.getIntermediate('moodData');
+      const patternAnalysis = context.getIntermediate('patternAnalysis');
       const allDrinks = context.allDrinks;
       const inventory = context.inventory;
 
       if (moodData && allDrinks && allDrinks.length > 0) {
-        const pool = await evaluateAndSortDrinks(moodData, allDrinks, inventory);
+        const pool = await evaluateAndSortDrinks(moodData, allDrinks, inventory, patternAnalysis);
 
         // Phase 3.5: 安全拦截（同步，<10ms）
         const safePool = safetyFilter(pool, moodData, allDrinks);

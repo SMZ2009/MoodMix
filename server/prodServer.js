@@ -1729,6 +1729,12 @@ app.get('/api/drink/like-stats/:drinkId', (req, res) => {
 });
 
 // ═══════════════════════════════════════════
+// 高德地图 API 代理（与 llmProxy 共用，避免生产环境命中 SPA 返回 HTML）
+// ═══════════════════════════════════════════
+const { registerAmapRoutes } = require('./amapRoutes');
+registerAmapRoutes(app, { getFetch });
+
+// ═══════════════════════════════════════════
 // Socket.IO 实时通信
 // ═══════════════════════════════════════════
 io.on('connection', (socket) => {
@@ -1767,7 +1773,7 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log(`   端口: ${PORT}`);
   console.log(`   前端: 从 ${buildPath} 提供`);
   console.log(`   WebSocket: ✅ 已启用 (Socket.IO)`);
-  console.log(`   API: /api/analyze_mood, /api/analyze_mood_stream, /api/generate_quotes, /api/comprehensive_analyze, /api/generate-drink-dimensions, /api/drink-assistant, /api/validate_optimize, /api/quality-eval, /api/drink/like, /api/drink/unlike, /api/drink/like-stats/:drinkId`);
+  console.log(`   API: /api/analyze_mood, /api/analyze_mood_stream, /api/generate_quotes, /api/comprehensive_analyze, /api/generate-drink-dimensions, /api/drink-assistant, /api/validate_optimize, /api/quality-eval, /api/drink/like, /api/drink/unlike, /api/drink/like-stats/:drinkId, /api/amap/nearby, /api/amap/regeo`);
   console.log(`   模型: ${SILICONFLOW_MODEL}`);
   console.log(`   API Key: ${hasKey ? '✅ 已配置' : '❌ 未配置'}`);
   console.log(`   环境: ${process.env.NODE_ENV || 'development'}`);

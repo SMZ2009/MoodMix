@@ -100,9 +100,39 @@ export function computeDynamicWeights(moodData) {
 }
 
 /**
- * 构造用户的需求向量 (用于余弦相似度计算)
+ * 辨证结论映射到检索向量：用户五行 → 颜色维 (1–5 木火土金水)，策略微调动作维。
+ * 无 drinkMapping 时全量应用；有 drinkMapping 时仅对颜色维做 0.5 混合，避免覆盖完整 LLM。
  */
-export function buildUserVector(moodData) {
+function applyPatternAnalysisToUserVector(v, patternAnalysis, moodData) {
+    if (!patternAnalysis?.wuxing?.user) return v;
+    const w = patternAnalysis.wuxing.user;
+    const colorByWuxing = { wood: 1, fire: 2, earth: 3, metal: 4, water: 5 };
+    const cc = colorByWuxing[w];
+    if (cc == null) return v;
+
+    const hasMapping =
+        moodData?.emotion?.drinkMapping?.colorCode != null ||
+        moodData?.emotion?.drinkMapping?.tasteScore != null;
+
+    if (!hasMapping) {
+        v[3] = cc;
+        const pol = patternAnalysis.polarity?.type;
+        if (pol === 'positive') v[0] = Math.min(10, (v[0] || 5) + 0.5);
+        else if (pol === 'negative') v[0] = Math.max(0, (v[0] || 5) - 0.5);
+        const st = patternAnalysis.strategy?.type;
+        if (st === 'counter') v[7] = Math.min(5, Math.max(1, Math.round((v[7] || 2) + 1)));
+        else if (st === 'resonate') v[7] = Math.min(5, Math.max(1, Math.round((v[7] || 2) - 1)));
+    } else {
+        v[3] = Math.round(0.5 * (v[3] || 3) + 0.5 * cc);
+    }
+    return v;
+}
+
+/**
+ * 构造用户的需求向量 (用于余弦相似度计算)
+ * @param {Object|null} patternAnalysis - 可选；有则合并五行/策略到向量，避免仅靠默认 drinkMapping
+ */
+export function buildUserVector(moodData, patternAnalysis = null) {
     const v = new Array(8).fill(0);
     // 0: 味觉: 0-10
     v[0] = moodData.emotion?.drinkMapping?.tasteScore ?? 5;
@@ -121,7 +151,7 @@ export function buildUserVector(moodData) {
     // 7: 动作: 1-5
     v[7] = Math.max(moodData.demand?.drinkMapping?.actionScore ?? 0, moodData.socialContext?.drinkMapping?.actionScore ?? 0) || 2;
 
-    return v;
+    return applyPatternAnalysisToUserVector(v, patternAnalysis, moodData);
 }
 
 /**
@@ -168,10 +198,10 @@ function weightedCosineSimilarity(u, v, weights) {
 /**
  * 第1&2&3步：进行双轨过滤 + 加权计算矩阵推荐
  */
-export async function evaluateAndSortDrinks(moodData, allDrinks, sessionIngredients) {
+export async function evaluateAndSortDrinks(moodData, allDrinks, sessionIngredients, patternAnalysis = null) {
     const drinkVectors = await loadDrinkVectors();
     const dynamicWeights = computeDynamicWeights(moodData);
-    const userVector = buildUserVector(moodData);
+    const userVector = buildUserVector(moodData, patternAnalysis);
 
     const moodSig = JSON.stringify({
         em: moodData?.emotion?.physical?.intensity,
@@ -181,6 +211,8 @@ export async function evaluateAndSortDrinks(moodData, allDrinks, sessionIngredie
         ti: moodData?.time?.physical?.intensity,
         sc: moodData?.socialContext?.physical?.intensity,
         sum: moodData?.summary,
+        pw: patternAnalysis?.wuxing?.user,
+        st: patternAnalysis?.strategy?.type,
     });
     const moodHash = hash32(moodSig);
 
@@ -298,13 +330,14 @@ export async function evaluateAndSortDrinks(moodData, allDrinks, sessionIngredie
                 fallbackVectorCount,
                 fallbackRatio: allDrinks.length ? fallbackVectorCount / allDrinks.length : 0,
                 userVector,
-                moodSig: moodSig.slice(0, 280),
+                moodSig: moodSig.slice(0, 400),
                 moodHash,
                 scoreSpread,
                 nearTieBandCount: nearTieCount,
                 top9: top9.map((d) => ({ id: d.id, s: Number(d.similarityScore.toFixed(6)) })),
+                patternWuxing: patternAnalysis?.wuxing?.user,
             },
-            runId: 'pre-fix',
+            runId: 'post-fix',
         });
     }
     // #endregion

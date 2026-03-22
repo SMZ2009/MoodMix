@@ -3511,6 +3511,10 @@ const App = () => {
         };
     }
 
+    if (moodData && typeof moodData === 'object' && summary) {
+        moodData.summary = summary;
+    }
+
     // 🔥 重置上一次的文案和质量评估，避免旧数据导致闪烁
     setCustomQuotes({});
     setQualityResults({});
@@ -3541,12 +3545,17 @@ const App = () => {
           paWuxing: patternAnalysis?.wuxing?.user,
           poolLen: allDrinksForPipeline.length,
         },
-        runId: 'pre-fix',
+        runId: 'post-fix',
       });
       // #endregion
 
       // 使用向量引擎评估和排序饮品（pick 模式不传库存，避免原料过滤干扰推荐）
-      const rankedDrinks = await evaluateAndSortDrinks(moodData, allDrinksForPipeline, currentMode === 'diy' ? sessionIngredients : []);
+      const rankedDrinks = await evaluateAndSortDrinks(
+        moodData,
+        allDrinksForPipeline,
+        currentMode === 'diy' ? sessionIngredients : [],
+        patternAnalysis
+      );
       const topMatches = rankedDrinks.slice(0, 9);
 
       // 🔥 [优化] 先异步获取 LLM 文案，等待完成后再显示卡片

@@ -499,7 +499,7 @@ app.post('/api/analyze_mood_stream', async (req, res) => {
             { role: 'user', content: userMessage }
           ],
           temperature: 0.5,
-          max_tokens: 800,
+          max_tokens: 1800,
           stream: true
         }),
         signal: controller.signal
@@ -627,6 +627,8 @@ app.post('/api/analyze_mood_stream', async (req, res) => {
     } catch (e) {
       // ignore marker failures
     }
+
+    ensureStreamingAnalysisFields(parsed);
 
     console.log(`[Stream] 分析完成: "${user_input.slice(0, 30)}..."`);
 
@@ -1223,20 +1225,24 @@ ${JSON.stringify(fullContext, null, 2)}
 // ═══════════════════════════════════════════
 
 function buildSystemPrompt() {
-  return `你是一个专业的东方养生顾问和混调师。你需要分析用户的当前心理和肉体状态，
-并用一个结构化的中文 JSON 格式来返回分析结果，用于推荐适合的饮品。
+  return `你是一个专业的东方养生顾问和混调师。分析用户当前心理与身体状态，用于饮品推荐。
 
-你的分析应该涵盖以下8个维度：
-1. 情绪（emotion）- 用户的心理状态和五行属性
-2. 体感（somatic）- 用户的身体感受
-3. 时间（time）- 当前的时间相关信息
-4. 季节（season）- 季节相关的调理建议
-5. 颜色偏好（color）- 推荐的饮品颜色
-6. 味觉需求（taste）- 推荐的主要味道
-7. 温度（temperature）- 推荐的饮品温度
-8. 强度（intensity）- 饮品的强度和浓度
+输出要求：
+1. 可先用一两句诗意化引导，然后输出一行 [RESULT]，紧随其后输出且仅输出一个合法 JSON 对象（不要用 Markdown 代码块包裹）。
+2. JSON 顶层必须包含四个键，缺一不可：moodData、patternAnalysis、vectorResult、summary。
 
-返回格式必须是有效的 JSON，包含以上所有维度的数据。`;
+moodData 为六维结构，键名固定为：emotion、somatic、time、cognitive、demand、socialContext；每维需包含 physical、philosophy 或 drinkMapping 等字段，数值合理。
+
+patternAnalysis 为中医辨证结论，必须包含：
+- polarity: { "type": "negative"|"positive"|"mixed", "confidence": 0~1 }
+- wuxing: { "user": "wood"|"fire"|"earth"|"metal"|"water" }
+- strategy: { "type": "counter"|"harmonize"|"resonate"|"correct"|"balance", "logic": "简短说明" }
+
+vectorResult 含八维风味检索所需信息（如 8 维 vector 数组及说明）。
+
+summary 为一行中文摘要。
+
+若只能输出 JSON，也必须包含上述四个顶层键。`;
 }
 
 function buildUserMessage(input, currentTime) {
@@ -1306,6 +1312,38 @@ birthdayWuxing.full_scores: ${JSON.stringify(fullScores)}
 4) Conflict resolution:
 - If inferred values conflict with the fixed constraints above, always use the fixed constraints above.
 `;
+}
+
+/** 五行中文或英文 → vectorEngine / 标签引擎使用的英文枚举 */
+function wuxingCnToEn(cn) {
+  const map = { 木: 'wood', 火: 'fire', 土: 'earth', 金: 'metal', 水: 'water' };
+  if (typeof cn !== 'string') return 'earth';
+  const t = cn.trim();
+  if (map[t]) return map[t];
+  if (['wood', 'fire', 'earth', 'metal', 'water'].includes(t)) return t;
+  return 'earth';
+}
+
+/**
+ * 流式分析解析后补全：LLM 常漏掉 patternAnalysis，或与旧版 prompt 返回的平铺结构混用。
+ * 与 App.js handleStreamingComplete 中启发式补全语义一致，避免前端告警并保证推荐链字段完整。
+ */
+function ensureStreamingAnalysisFields(parsed) {
+  if (!parsed || typeof parsed !== 'object') return;
+  const moodData = parsed.moodData || (parsed.emotion ? parsed : null);
+  if (!moodData || typeof moodData !== 'object') return;
+
+  if (!parsed.patternAnalysis) {
+    const wuxing = moodData?.emotion?.philosophy?.wuxing || '土';
+    parsed.patternAnalysis = {
+      polarity: { type: 'negative', confidence: 0.5 },
+      wuxing: { user: wuxingCnToEn(wuxing) },
+      strategy: { type: 'harmonize', logic: '服务端补全辨证逻辑' }
+    };
+  }
+  if (!parsed.vectorResult) {
+    parsed.vectorResult = generateDefaultVectorResult(moodData);
+  }
 }
 
 function parseAIResponse(aiMessage) {

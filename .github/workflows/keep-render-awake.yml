@@ -1,0 +1,35 @@
+name: Keep Render service awake
+
+on:
+  schedule:
+    # Render free web services spin down after 15 minutes without inbound traffic.
+    # GitHub Actions cron uses UTC; pinging every 10 minutes leaves some delay margin.
+    - cron: "3,13,23,33,43,53 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: keep-render-awake
+  cancel-in-progress: true
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Ping MoodMix health endpoint
+        shell: bash
+        run: |
+          curl \
+            --fail \
+            --show-error \
+            --silent \
+            --location \
+            --max-time 120 \
+            --retry 3 \
+            --retry-delay 10 \
+            --retry-all-errors \
+            --output /dev/null \
+            "https://moodmix-brve.onrender.com/api/test"

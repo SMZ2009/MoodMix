@@ -3,6 +3,15 @@ import { calculateWuxingFromBirthday } from '../../engine/profileWuxing';
 
 const IS_DEV = process.env.NODE_ENV === 'development';
 
+export const PRESET_PLAYBACK_TIMING = Object.freeze({
+  entrance: 400,
+  introHold: 800,
+  character: 50,
+  sentenceHold: 900,
+  summaryCharacter: 60,
+  summaryHold: 1100,
+});
+
 /** Parse one SSE line: optional space after "data:", tolerate no space before JSON. */
 function parseSseLine(line) {
   const trimmed = line.trim();
@@ -74,7 +83,7 @@ const StreamingAnalysisCard = ({
           summaryTimerRef.current = null;
         }
       }
-    }, presetPlayback ? 32 : 80);
+    }, presetPlayback ? PRESET_PLAYBACK_TIMING.summaryCharacter : 80);
 
     return () => {
       if (summaryTimerRef.current) {
@@ -115,7 +124,7 @@ const StreamingAnalysisCard = ({
       setStreamingText('');
       resultDataRef.current = null;
 
-      await wait(400);
+      await wait(PRESET_PLAYBACK_TIMING.entrance);
       if (cancelled) return;
       setPhase('analyzing');
 
@@ -124,14 +133,19 @@ const StreamingAnalysisCard = ({
           ? presetPlayback.steps.filter((step) => typeof step === 'string' && step.trim())
           : [];
 
+        // 入场后先让引导语稳定显示，避免与第一句在同一帧被覆盖。
+        await wait(PRESET_PLAYBACK_TIMING.introHold);
+        if (cancelled) return;
+
         for (const step of steps) {
           setStreamingText('');
           for (let index = 1; index <= step.length; index += 1) {
             if (cancelled) return;
             setStreamingText(step.slice(0, index));
-            await wait(24);
+            await wait(PRESET_PLAYBACK_TIMING.character);
           }
-          await wait(240);
+          // 每句话完整呈现后留出阅读时间，再进入下一句。
+          await wait(PRESET_PLAYBACK_TIMING.sentenceHold);
           if (cancelled) return;
         }
 
@@ -146,7 +160,11 @@ const StreamingAnalysisCard = ({
         setStatusText('心意已达');
         setSummaryText(completion);
 
-        await wait(900);
+        // 等摘要逐字播放完毕并停留片刻，确保用户读完后再进入画廊。
+        await wait(
+          completion.length * PRESET_PLAYBACK_TIMING.summaryCharacter
+            + PRESET_PLAYBACK_TIMING.summaryHold
+        );
         if (!cancelled && onStreamCompleteRef.current && resultDataRef.current) {
           onStreamCompleteRef.current(resultDataRef.current);
         }

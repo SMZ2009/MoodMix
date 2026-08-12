@@ -1,6 +1,6 @@
 import React from 'react';
 import { act, render, screen } from '@testing-library/react';
-import StreamingAnalysisCard from './StreamingAnalysisCard';
+import StreamingAnalysisCard, { PRESET_PLAYBACK_TIMING } from './StreamingAnalysisCard';
 
 const presetPlayback = {
   intro: '循晨意入味…',
@@ -49,10 +49,24 @@ describe('StreamingAnalysisCard preset playback', () => {
 
     expect(screen.getByText('循晨意入味…')).not.toBeNull();
 
-    await advancePlayback(700);
-    expect(screen.getByText(/晨光/)).not.toBeNull();
+    await advancePlayback(
+      PRESET_PLAYBACK_TIMING.entrance + PRESET_PLAYBACK_TIMING.introHold - 100
+    );
+    expect(screen.getByText('循晨意入味…')).not.toBeNull();
+    expect(onStreamComplete).not.toHaveBeenCalled();
 
-    await advancePlayback(5000);
+    await advancePlayback(
+      500
+    );
+    expect(screen.getByText(/晨光/)).not.toBeNull();
+    expect(PRESET_PLAYBACK_TIMING.character).toBeGreaterThanOrEqual(50);
+    expect(PRESET_PLAYBACK_TIMING.sentenceHold).toBeGreaterThanOrEqual(900);
+
+    // 四秒时仍处于分析阶段，不会过早切换画廊。
+    await advancePlayback(2400);
+    expect(onStreamComplete).not.toHaveBeenCalled();
+
+    await advancePlayback(15000);
     expect(onStreamComplete).toHaveBeenCalledTimes(1);
     expect(onStreamComplete.mock.calls[0][0]).toMatchObject({
       source: 'preset',
@@ -73,7 +87,7 @@ describe('StreamingAnalysisCard preset playback', () => {
       />
     );
 
-    await advancePlayback(650);
+    await advancePlayback(1450);
     rerender(
       <StreamingAnalysisCard
         isActive={false}
@@ -83,7 +97,7 @@ describe('StreamingAnalysisCard preset playback', () => {
         onError={jest.fn()}
       />
     );
-    await advancePlayback(5000);
+    await advancePlayback(12000);
 
     expect(onStreamComplete).not.toHaveBeenCalled();
     expect(global.fetch).not.toHaveBeenCalled();

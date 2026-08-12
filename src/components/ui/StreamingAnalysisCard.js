@@ -22,6 +22,8 @@ function parseSseLine(line) {
 const StreamingAnalysisCard = ({ 
   isActive, 
   userInput,
+  /** 本地快捷标签回放；存在时完全跳过模型 API。 */
+  presetPlayback = null,
   /** 发泄 vent / 安抚 soothe；与「觅一处疏解」等同 vent */
   interventionType = null,
   onStreamComplete,
@@ -72,7 +74,7 @@ const StreamingAnalysisCard = ({
           summaryTimerRef.current = null;
         }
       }
-    }, 80);
+    }, presetPlayback ? 32 : 80);
 
     return () => {
       if (summaryTimerRef.current) {
@@ -80,10 +82,10 @@ const StreamingAnalysisCard = ({
         summaryTimerRef.current = null;
       }
     };
-  }, [phase, summaryText]);
+  }, [phase, presetPlayback, summaryText]);
 
   useEffect(() => {
-    if (!isActive || !userInput) {
+    if (!isActive || (!userInput && !presetPlayback)) {
       isRunningRef.current = false;
       return;
     }
@@ -92,15 +94,65 @@ const StreamingAnalysisCard = ({
     if (isRunningRef.current) return;
     isRunningRef.current = true;
 
+    let cancelled = false;
+    let statusInterval = null;
+    const playbackTimers = new Set();
+    const wait = (delay) => new Promise((resolve) => {
+      const timer = setTimeout(() => {
+        playbackTimers.delete(timer);
+        resolve();
+      }, delay);
+      playbackTimers.add(timer);
+    });
+
     const startAnalysis = async () => {
       setPhase('init');
-      setStatusText(interventionType === 'vent' ? '借辛烈以疏泄…' : interventionType === 'soothe' ? '以甘润托住…' : '以意入味…');
+      setStatusText(
+        presetPlayback?.intro
+          || (interventionType === 'vent' ? '借辛烈以疏泄…' : interventionType === 'soothe' ? '以甘润托住…' : '以意入味…')
+      );
       setSummaryText('');
       setStreamingText('');
       resultDataRef.current = null;
 
-      await new Promise(resolve => setTimeout(resolve, 400));
+      await wait(400);
+      if (cancelled) return;
       setPhase('analyzing');
+
+      if (presetPlayback) {
+        const steps = Array.isArray(presetPlayback.steps)
+          ? presetPlayback.steps.filter((step) => typeof step === 'string' && step.trim())
+          : [];
+
+        for (const step of steps) {
+          setStreamingText('');
+          for (let index = 1; index <= step.length; index += 1) {
+            if (cancelled) return;
+            setStreamingText(step.slice(0, index));
+            await wait(24);
+          }
+          await wait(240);
+          if (cancelled) return;
+        }
+
+        const completion = presetPlayback.completion || '寻味之旅已开启';
+        const resultData = {
+          source: 'preset',
+          summary: completion,
+          moodData: { summary: completion },
+        };
+        resultDataRef.current = resultData;
+        setPhase('complete');
+        setStatusText('心意已达');
+        setSummaryText(completion);
+
+        await wait(900);
+        if (!cancelled && onStreamCompleteRef.current && resultDataRef.current) {
+          onStreamCompleteRef.current(resultDataRef.current);
+        }
+        isRunningRef.current = false;
+        return;
+      }
 
       const statusMessages =
         interventionType === 'vent'
@@ -113,7 +165,7 @@ const StreamingAnalysisCard = ({
             ? ['心与味，正在相遇…', '五行正在推演…', '此味将出，稍候片刻…']
             : ['心与味，正在相遇…', '五行正在推演…', '此味将出，稍候片刻…'];
       let msgIndex = 0;
-      const statusInterval = setInterval(() => {
+      statusInterval = setInterval(() => {
         msgIndex = (msgIndex + 1) % statusMessages.length;
         setStatusText(statusMessages[msgIndex]);
       }, 3000);
@@ -340,12 +392,18 @@ const StreamingAnalysisCard = ({
     startAnalysis();
 
     return () => {
+      cancelled = true;
+      if (statusInterval) {
+        clearInterval(statusInterval);
+      }
+      playbackTimers.forEach((timer) => clearTimeout(timer));
+      playbackTimers.clear();
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
       isRunningRef.current = false;
     };
-  }, [isActive, userInput, interventionType]);
+  }, [isActive, userInput, interventionType, presetPlayback]);
 
   if (!isActive) return null;
 

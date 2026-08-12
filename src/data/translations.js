@@ -183,6 +183,19 @@ export const DRINK_NAMES = {
     'AT&T': 'AT&T鸡尾酒',
     'Addison': '艾迪生',
     'Quentin': '昆廷',
+    // 首页快捷心境预设
+    'Thai Coffee': '泰式咖啡',
+    'Melya': '蜜雅咖啡',
+    'Apello': '苹果柑橘饮',
+    'Iced Coffee': '冰咖啡',
+    'Thai Iced Coffee': '泰式冰咖啡',
+    'Frappé': '希腊冰咖啡',
+    'Masala Chai': '马萨拉香料茶',
+    'Thai Iced Tea': '泰式冰茶',
+    'Pineapple Gingerale Smoothie': '菠萝姜汁冰沙',
+    'Hot Chocolate to Die for': '浓情热巧克力',
+    'Just a Moonmint': '月光薄荷奶饮',
+    'Yoghurt Cooler': '酸奶清饮',
 };
 
 // ─── 配料名 中英映射 ───────────────────────────

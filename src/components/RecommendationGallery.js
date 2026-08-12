@@ -157,12 +157,17 @@ const RecommendationGallery = ({ drinks, onBack, onStartMaking, onShuffle, onNav
           <span className="text-[10px] text-gray-500 uppercase tracking-[0.2em]">Recommendation</span>
         </div>
 
-        <button
-          onClick={onShuffle}
-          className="flex items-center justify-center w-10 h-10 rounded-full bg-white/40 backdrop-blur-md border border-white/60 text-gray-700 hover:bg-white/60 hover:text-gray-900 transition-all duration-300 active:scale-95 shadow-sm"
-        >
-          <Shuffle size={18} />
-        </button>
+        {onShuffle ? (
+          <button
+            onClick={onShuffle}
+            aria-label="换一批推荐"
+            className="flex items-center justify-center w-10 h-10 rounded-full bg-white/40 backdrop-blur-md border border-white/60 text-gray-700 hover:bg-white/60 hover:text-gray-900 transition-all duration-300 active:scale-95 shadow-sm"
+          >
+            <Shuffle size={18} />
+          </button>
+        ) : (
+          <div className="w-10 h-10" aria-hidden="true" />
+        )}
       </header>
 
       {/* Card Carousel */}

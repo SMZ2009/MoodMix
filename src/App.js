@@ -25,6 +25,7 @@ import { executeMixologyTask } from './agents';
 import { generatePhilosophyTags } from './engine/philosophyTags';
 import { fetchLiveQuotes } from './api/quoteGenerator';
 import { translateDrinkName, translateIngredient } from './data/translations';
+import { materializeQuickMoodPreset } from './data/quickMoodPresets';
 import { validateInput } from './utils/inputValidator';
 import { generateShareCard } from './utils/ShareCardGenerator';
 import IngredientManager from './components/IngredientManager';
@@ -575,7 +576,7 @@ const ORIENTAL_MOOD_TAGS = [
 ];
 
 const MoodInputSection = ({
-  moodInput, setMoodInput, selectedMood, setSelectedMood, onGenerate, buttonFeedback, isMixing,
+  moodInput, setMoodInput, selectedMood, setSelectedMood, onGenerate, onQuickMoodSelect, buttonFeedback, isMixing,
   ingredientCount, onEditIngredients, onNavigate, activeTab, showFriendlyNotice,
   currentMode, onModeChange
 }) => {
@@ -825,7 +826,7 @@ const MoodInputSection = ({
                         const nextValue = isSelected ? null : mood.value;
                         setSelectedMood(nextValue);
                         if (!isSelected && !isMixing) {
-                          onGenerate(nextValue);
+                          onQuickMoodSelect(nextValue);
                         }
                       }}
                       className={`mood-ink-tag group ${isSelected ? 'is-selected' : ''} mood-tag-cloud`}
@@ -2376,6 +2377,8 @@ const App = () => {
   const [customQuotes, setCustomQuotes] = useState({});
   const [validationResult, setValidationResult] = useState(null);
   const [qualityResults, setQualityResults] = useState({});
+  const [recommendationSource, setRecommendationSource] = useState(null); // 'preset' | 'ai' | null
+  const [generationRunId, setGenerationRunId] = useState(0);
   const [dakaDrinks, setDakaDrinks] = useState([]);
   const [showDakaModal, setShowDakaModal] = useState(false);
   const [dakaDrink, setDakaDrink] = useState(null);
@@ -2417,7 +2420,15 @@ const App = () => {
   // Track if session ingredients have been initialized from inventory
   const isSessionInitialized = useRef(false);
   const isQuoteFetching = useRef(false);
+  const generationRunRef = useRef(0);
   const mainContentRef = useRef(null);
+
+  const startGenerationRun = useCallback(() => {
+    const nextRunId = generationRunRef.current + 1;
+    generationRunRef.current = nextRunId;
+    setGenerationRunId(nextRunId);
+    return nextRunId;
+  }, []);
 
   // WebSocket 连接初始化
   useEffect(() => {
@@ -3324,6 +3335,8 @@ const App = () => {
           showFriendlyNotice('酒柜还在整理', '饮品数据尚未准备好，稍候片刻再启程寻味。', 'warning');
           return;
         }
+        startGenerationRun();
+        setRecommendationSource('ai');
         setInterventionType(autoIntent);
         setMixMode('generating');
       } else {
@@ -3344,16 +3357,23 @@ const App = () => {
 
     // 启动流态分析卡片 - StreamingAnalysisCard 会处理分析并回调 handleStreamingComplete
     console.log('[processMoodAndGenerate] 启动流态分析卡片');
+    startGenerationRun();
+    setRecommendationSource('ai');
     setMixMode('generating');
     // 流态卡片会自动调用 /api/analyze_mood_stream
     // 完成后调用 handleStreamingComplete 继续推荐流程
-  }, [moodInput, selectedMood, sessionIngredients, currentMode, apiDrinks, customDrinks, showFriendlyNotice]);
+  }, [moodInput, selectedMood, apiDrinks, showFriendlyNotice, startGenerationRun]);
 
   /**
    * 流态分析完成后的回调
    * - 接收 moodData，继续执行饮品推荐流程
    */
-  const handleStreamingComplete = useCallback(async (resultData) => {
+  const handleStreamingComplete = useCallback(async (resultData, runId) => {
+    if (runId !== generationRunRef.current) {
+      console.log(`[StreamingComplete] 忽略已失效的生成批次 ${runId}`);
+      return;
+    }
+
     const startTime = performance.now();
     console.log('[StreamingComplete] 收到原始流式结果:', resultData);
     
@@ -3409,6 +3429,8 @@ const App = () => {
         rankingSalt,
         interventionType
       );
+
+      if (runId !== generationRunRef.current) return;
       const topMatches = rankedDrinks.slice(0, 9);
 
       // 🔥 [优化] 先异步获取 LLM 文案，等待完成后再显示卡片
@@ -3433,14 +3455,16 @@ const App = () => {
           
           // 后台监听：无论是否超时，文案返回后都设置到 state
           quotePromise.then((quotes) => {
-            if (Object.keys(quotes).length > 0) {
+            if (runId === generationRunRef.current && Object.keys(quotes).length > 0) {
               console.log(`[StreamingComplete] 文案异步到达，更新 UI (${Object.keys(quotes).length} 条)`);
               setCustomQuotes(prev => ({ ...prev, ...quotes }));
             }
           }).catch(err => {
             console.warn('[StreamingComplete] 后台文案获取失败', err);
           }).finally(() => {
-            isQuoteFetching.current = false;
+            if (runId === generationRunRef.current) {
+              isQuoteFetching.current = false;
+            }
           });
           
           // 等待最多 8 秒，超时则先显示画廊（文案会稍后到达）
@@ -3457,6 +3481,8 @@ const App = () => {
         }
       }
 
+      if (runId !== generationRunRef.current) return;
+
       // 🔥 [关键] 批量设置所有状态，减少重复渲染
       if (Object.keys(quotesMap).length > 0) {
         setCustomQuotes(quotesMap);
@@ -3472,7 +3498,7 @@ const App = () => {
       if (topMatches.length > 0) {
         const contextData = { moodData, patternAnalysis, summary };
         evaluateAllDrinks(topMatches, contextData).then((results) => {
-          if (results && results.length > 0) {
+          if (runId === generationRunRef.current && results && results.length > 0) {
             const map = {};
             results.forEach(r => { map[r.drinkId] = r; });
             setQualityResults(map);
@@ -3486,11 +3512,43 @@ const App = () => {
       console.log(`[StreamingComplete] ${Math.round(performance.now() - startTime)}ms: 推荐完成`);
 
     } catch (error) {
+      if (runId !== generationRunRef.current) return;
       console.error('[StreamingComplete] 错误:', error);
       setMixMode('home');
       showFriendlyNotice('灵感有些迟疑', '推荐过程出现问题，请稍后再试。', 'error');
     }
-  }, [apiDrinks, customDrinks, sessionIngredients, currentMode, showFriendlyNotice, setCustomQuotes, moodInput, selectedMood, streamUserInputForMood, interventionType]);
+  }, [apiDrinks, customDrinks, sessionIngredients, currentMode, showFriendlyNotice, streamUserInputForMood, interventionType]);
+
+  const handleQuickMoodSelect = useCallback((value) => {
+    if (currentMode === 'diy') {
+      processMoodAndGenerate(value);
+      return;
+    }
+
+    // 选择本地预设即使旧的 AI 请求失效，防止其异步结果覆盖当前卡片。
+    startGenerationRun();
+    const materialized = materializeQuickMoodPreset(value, apiDrinks);
+
+    if (!materialized) {
+      setRecommendationSource(null);
+      showFriendlyNotice('预设酒单暂未备齐', '预设酒单暂未备齐，请稍后再试。', 'warning');
+      return;
+    }
+
+    const polarity = materialized.moodResult.patternAnalysis?.polarity?.type;
+    setEmotionType(polarity === 'negative' ? 'negative' : 'positive');
+    setInterventionType(null);
+    setValidationResult(null);
+    setRecommendationSource('preset');
+    setMoodResult(materialized.moodResult);
+    setRecommendationPool(materialized.drinks);
+    setCustomQuotes(materialized.customQuotes);
+    setQualityResults(materialized.qualityResults);
+    setCurrentBatchIndex(0);
+    setCurrentCardIndex(0);
+    setMixMode('home');
+    setShowRecommendationGallery(true);
+  }, [apiDrinks, currentMode, processMoodAndGenerate, showFriendlyNotice, startGenerationRun]);
 
   const toggleIngredient = useCallback((id) => {
     setCheckedIngredients(prev => ({ ...prev, [id]: !prev[id] }));
@@ -3530,14 +3588,16 @@ const App = () => {
       tabIndex={-1}
     >
       <StreamingAnalysisCard
+        key={`mood-stream-${generationRunId}`}
         isActive={mixMode === 'generating'}
         userInput={streamUserInputForMood}
         interventionType={interventionType}
         onStreamComplete={(moodData) => {
           // 直接继续执行饮品推荐流程（handleStreamingComplete 内部会设置 moodResult）
-          handleStreamingComplete(moodData);
+          handleStreamingComplete(moodData, generationRunId);
         }}
         onError={(error) => {
+          if (generationRunId !== generationRunRef.current) return;
           setMixMode('home');
           const detail =
             error && typeof error.message === 'string' && error.message.trim()
@@ -3576,15 +3636,21 @@ const App = () => {
           <RecommendationGallery
             drinks={visibleDrinks}
             onBack={() => {
+              startGenerationRun();
               setShowRecommendationGallery(false);
               setMixMode('home');
               setSelectedMood(null); // Reset mood tag selection
               setInterventionType(null);
+              setRecommendationSource(null);
+              setRecommendationPool([]);
+              setMoodResult(null);
+              setCustomQuotes({});
+              setQualityResults({});
             }}
             onStartMaking={(drink) => {
               setCurrentDrink(drink); // Use the passed drink object which RecommendationGallery provides
             }}
-            onShuffle={handleShuffle}
+            onShuffle={recommendationSource === 'preset' ? undefined : handleShuffle}
             onNavigate={handleNavClick}
             onLikeDrink={handleLikeDrink}
             onUnlikeDrink={handleUnlikeDrink}
@@ -3605,6 +3671,7 @@ const App = () => {
                 selectedMood={selectedMood}
                 setSelectedMood={setSelectedMood}
                 onGenerate={processMoodAndGenerate}
+                onQuickMoodSelect={handleQuickMoodSelect}
                 buttonFeedback={{ ...buttonFeedback, loadingText: buttonLoadingText }}
                 isMixing={mixMode === 'generating'}
                 ingredientCount={ingredientCount}
@@ -3760,6 +3827,8 @@ const App = () => {
             showFriendlyNotice('酒柜还在整理', '饮品数据尚未准备好，稍候片刻再启程寻味。', 'warning');
             return;
           }
+          startGenerationRun();
+          setRecommendationSource('ai');
           setInterventionType(type);
           setShowInterventionModal(false);
           setMixMode('generating');
@@ -4331,6 +4400,3 @@ const CustomMineIcon = ({ size = 26, className = "" }) => (
     <path fill="none" d="M15 18v3" />
   </svg>
 );
-
-
-

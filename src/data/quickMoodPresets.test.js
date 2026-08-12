@@ -27,8 +27,14 @@ describe('quick mood presets', () => {
     QUICK_MOOD_PRESETS.forEach((preset) => {
       const result = materializeQuickMoodPreset(preset.value, catalog);
 
+      expect(preset.analysis.intro).toMatch(/…$/);
+      expect(preset.analysis.steps).toHaveLength(3);
+      preset.analysis.steps.forEach((step) => expect(step.trim()).not.toBe(''));
+      expect(preset.analysis.completion).toBe(preset.moodProfile.summary);
+
       expect(result).not.toBeNull();
       expect(result.source).toBe('preset');
+      expect(result.analysis).toEqual(preset.analysis);
       expect(result.drinks).toHaveLength(3);
       expect(new Set(result.drinks.map((drink) => drink.id)).size).toBe(3);
       expect(Object.keys(result.customQuotes)).toHaveLength(3);

@@ -60,6 +60,7 @@ function createPresetMoodResult(profile) {
  * @typedef {Object} QuickMoodPreset
  * @property {string} value
  * @property {Object} moodProfile
+ * @property {{intro: string, steps: [string, string, string], completion: string}} analysis
  * @property {QuickMoodPresetCard[]} cards
  */
 
@@ -77,6 +78,15 @@ export const QUICK_MOOD_PRESETS = [
       temperature: 1,
       actionScore: 3,
       hour: 8,
+    },
+    analysis: {
+      intro: '循晨意入味…',
+      steps: [
+        '晨光正沿着木的生发向上伸展。',
+        '困意仍在，身体需要轻快而不锋利的提振。',
+        '以咖啡香与明亮果意，把清醒慢慢点亮。',
+      ],
+      completion: '晨意初醒，精神需要轻快提振',
     },
     cards: [
       {
@@ -115,6 +125,15 @@ export const QUICK_MOOD_PRESETS = [
       actionScore: 3,
       hour: 15,
     },
+    analysis: {
+      intro: '拨开午后倦意…',
+      steps: [
+        '午后的土气略显沉滞，倦意落在身体里。',
+        '需要一点冰凉与清苦，把迟钝轻轻拨开。',
+        '不必猛推，只让思路重新流动起来。',
+      ],
+      completion: '午后倦意上涌，思路需要重新清亮',
+    },
     cards: [
       {
         apiId: '12770',
@@ -151,6 +170,15 @@ export const QUICK_MOOD_PRESETS = [
       temperature: 0,
       actionScore: 3,
       hour: 21,
+    },
+    analysis: {
+      intro: '为夜色续一程…',
+      steps: [
+        '夜色渐深，水的疲惫正拖慢神思。',
+        '温热辛香或清爽果意，都在替专注续航。',
+        '留一口喘息，再稳稳走完最后一程。',
+      ],
+      completion: '漫长工作仍未结束，神思需要稳稳续航',
     },
     cards: [
       {
@@ -189,6 +217,15 @@ export const QUICK_MOOD_PRESETS = [
       actionScore: 2,
       hour: 19,
     },
+    analysis: {
+      intro: '替今日收束…',
+      steps: [
+        '今日诸事已收束，金的利落正在归位。',
+        '微苦与醇厚适合替忙碌按下句号。',
+        '这一杯不是逃离，是认真回应你的付出。',
+      ],
+      completion: '忙碌已经收束，此刻值得一份认真奖赏',
+    },
     cards: [
       {
         apiId: '11001',
@@ -226,6 +263,15 @@ export const QUICK_MOOD_PRESETS = [
       actionScore: 3,
       hour: 16,
     },
+    analysis: {
+      intro: '让时间慢下来…',
+      steps: [
+        '火的愉悦正在舒展，时间也慢了下来。',
+        '薄荷、桃香与气泡，让轻快自然浮起。',
+        '今天无需赶路，只管把松弛留在杯边。',
+      ],
+      completion: '时间终于松开，心情正适合舒展与欢聚',
+    },
     cards: [
       {
         apiId: '11000',
@@ -262,6 +308,15 @@ export const QUICK_MOOD_PRESETS = [
       temperature: 2,
       actionScore: 1,
       hour: 23,
+    },
+    analysis: {
+      intro: '把夜色调柔…',
+      steps: [
+        '夜色沉静，水的柔意正接住尚未放下的心绪。',
+        '温热与柔和的奶香，适合让呼吸慢下来。',
+        '今天到这里就好，剩下的交给明天。',
+      ],
+      completion: '夜色渐深，身心需要被轻轻托住',
     },
     cards: [
       {
@@ -359,6 +414,7 @@ export function materializeQuickMoodPreset(value, apiDrinks = []) {
     source: 'preset',
     drinks,
     moodResult: createPresetMoodResult({ ...preset.moodProfile, value: preset.value }),
+    analysis: preset.analysis,
     customQuotes,
     qualityResults,
   };

@@ -2378,6 +2378,7 @@ const App = () => {
   const [validationResult, setValidationResult] = useState(null);
   const [qualityResults, setQualityResults] = useState({});
   const [recommendationSource, setRecommendationSource] = useState(null); // 'preset' | 'ai' | null
+  const [pendingPresetResult, setPendingPresetResult] = useState(null);
   const [generationRunId, setGenerationRunId] = useState(0);
   const [dakaDrinks, setDakaDrinks] = useState([]);
   const [showDakaModal, setShowDakaModal] = useState(false);
@@ -3335,6 +3336,7 @@ const App = () => {
           showFriendlyNotice('酒柜还在整理', '饮品数据尚未准备好，稍候片刻再启程寻味。', 'warning');
           return;
         }
+        setPendingPresetResult(null);
         startGenerationRun();
         setRecommendationSource('ai');
         setInterventionType(autoIntent);
@@ -3357,6 +3359,7 @@ const App = () => {
 
     // 启动流态分析卡片 - StreamingAnalysisCard 会处理分析并回调 handleStreamingComplete
     console.log('[processMoodAndGenerate] 启动流态分析卡片');
+    setPendingPresetResult(null);
     startGenerationRun();
     setRecommendationSource('ai');
     setMixMode('generating');
@@ -3519,6 +3522,23 @@ const App = () => {
     }
   }, [apiDrinks, customDrinks, sessionIngredients, currentMode, showFriendlyNotice, streamUserInputForMood, interventionType]);
 
+  const handlePresetPlaybackComplete = useCallback((presetResult, runId) => {
+    if (!presetResult || runId !== generationRunRef.current) {
+      return;
+    }
+
+    setRecommendationSource('preset');
+    setMoodResult(presetResult.moodResult);
+    setRecommendationPool(presetResult.drinks);
+    setCustomQuotes(presetResult.customQuotes);
+    setQualityResults(presetResult.qualityResults);
+    setCurrentBatchIndex(0);
+    setCurrentCardIndex(0);
+    setPendingPresetResult((current) => current?.runId === runId ? null : current);
+    setMixMode('home');
+    setShowRecommendationGallery(true);
+  }, []);
+
   const handleQuickMoodSelect = useCallback((value) => {
     if (currentMode === 'diy') {
       processMoodAndGenerate(value);
@@ -3526,10 +3546,12 @@ const App = () => {
     }
 
     // 选择本地预设即使旧的 AI 请求失效，防止其异步结果覆盖当前卡片。
-    startGenerationRun();
+    const runId = startGenerationRun();
     const materialized = materializeQuickMoodPreset(value, apiDrinks);
 
     if (!materialized) {
+      setPendingPresetResult(null);
+      setMixMode('home');
       setRecommendationSource(null);
       showFriendlyNotice('预设酒单暂未备齐', '预设酒单暂未备齐，请稍后再试。', 'warning');
       return;
@@ -3539,15 +3561,14 @@ const App = () => {
     setEmotionType(polarity === 'negative' ? 'negative' : 'positive');
     setInterventionType(null);
     setValidationResult(null);
-    setRecommendationSource('preset');
-    setMoodResult(materialized.moodResult);
-    setRecommendationPool(materialized.drinks);
-    setCustomQuotes(materialized.customQuotes);
-    setQualityResults(materialized.qualityResults);
-    setCurrentBatchIndex(0);
-    setCurrentCardIndex(0);
-    setMixMode('home');
-    setShowRecommendationGallery(true);
+    setRecommendationSource(null);
+    setMoodResult(null);
+    setRecommendationPool([]);
+    setCustomQuotes({});
+    setQualityResults({});
+    setShowRecommendationGallery(false);
+    setPendingPresetResult({ ...materialized, runId });
+    setMixMode('generating');
   }, [apiDrinks, currentMode, processMoodAndGenerate, showFriendlyNotice, startGenerationRun]);
 
   const toggleIngredient = useCallback((id) => {
@@ -3591,13 +3612,20 @@ const App = () => {
         key={`mood-stream-${generationRunId}`}
         isActive={mixMode === 'generating'}
         userInput={streamUserInputForMood}
+        presetPlayback={pendingPresetResult?.analysis || null}
         interventionType={interventionType}
         onStreamComplete={(moodData) => {
-          // 直接继续执行饮品推荐流程（handleStreamingComplete 内部会设置 moodResult）
-          handleStreamingComplete(moodData, generationRunId);
+          if (pendingPresetResult?.runId === generationRunId) {
+            handlePresetPlaybackComplete(pendingPresetResult, generationRunId);
+          } else {
+            // 直接继续执行饮品推荐流程（handleStreamingComplete 内部会设置 moodResult）
+            handleStreamingComplete(moodData, generationRunId);
+          }
         }}
         onError={(error) => {
           if (generationRunId !== generationRunRef.current) return;
+          setPendingPresetResult(null);
+          setRecommendationSource(null);
           setMixMode('home');
           const detail =
             error && typeof error.message === 'string' && error.message.trim()
@@ -3639,6 +3667,7 @@ const App = () => {
               startGenerationRun();
               setShowRecommendationGallery(false);
               setMixMode('home');
+              setPendingPresetResult(null);
               setSelectedMood(null); // Reset mood tag selection
               setInterventionType(null);
               setRecommendationSource(null);
@@ -3827,6 +3856,7 @@ const App = () => {
             showFriendlyNotice('酒柜还在整理', '饮品数据尚未准备好，稍候片刻再启程寻味。', 'warning');
             return;
           }
+          setPendingPresetResult(null);
           startGenerationRun();
           setRecommendationSource('ai');
           setInterventionType(type);

@@ -2,8 +2,8 @@ name: Keep Render service awake
 
 on:
   schedule:
-    # Render free web services spin down after 15 minutes without inbound traffic.
-    # GitHub Actions cron uses UTC; pinging every 10 minutes leaves some delay margin.
+    # Backup check only: GitHub scheduled workflows are best-effort and may be delayed.
+    # The primary keep-awake monitor runs externally every 5 minutes.
     - cron: "3,13,23,33,43,53 * * * *"
   workflow_dispatch:
 
@@ -32,4 +32,4 @@ jobs:
             --retry-delay 10 \
             --retry-all-errors \
             --output /dev/null \
-            "https://moodmix-brve.onrender.com/api/test"
+            "https://moodmix-volcano0813.onrender.com/api/test?source=github-actions"

@@ -63,6 +63,8 @@ npm run build
 npm run serve-prod
 ```
 
+使用 Render Free 时不要配置高频保活请求。免费实例空闲休眠可以节省工作区共享的每月实例时长；持续 ping 会提前耗尽额度，并导致同一工作区中的全部免费 Web Service 被暂停。
+
 ## 项目结构
 
 ```
